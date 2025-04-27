@@ -78,11 +78,11 @@ export function TransactionList() {
       params.endDate = dateRange.to.toISOString().split('T')[0];
     }
     
-    if (categoryFilter) {
+    if (categoryFilter && categoryFilter !== 'all') {
       params.categoryId = categoryFilter;
     }
     
-    if (accountFilter) {
+    if (accountFilter && accountFilter !== 'all') {
       params.accountId = accountFilter;
     }
     
@@ -177,8 +177,8 @@ export function TransactionList() {
   const clearFilters = () => {
     setSearchQuery("");
     setDateRange(undefined);
-    setCategoryFilter("");
-    setAccountFilter("");
+    setCategoryFilter("all");
+    setAccountFilter("all");
     setCurrentPage(1);
   };
   
@@ -189,7 +189,7 @@ export function TransactionList() {
         <div className="flex flex-wrap gap-2 mb-4">
           <div className="flex items-center bg-muted rounded-full px-3 py-1">
             <span className="text-sm font-medium mr-2">Filtros:</span>
-            {(!searchQuery && !dateRange && !categoryFilter && !accountFilter) ? (
+            {(!searchQuery && !dateRange && (!categoryFilter || categoryFilter === "all") && (!accountFilter || accountFilter === "all")) ? (
               <Badge variant="outline" className="bg-primary/10 text-primary rounded-full">Todos</Badge>
             ) : (
               <Button variant="ghost" size="sm" className="h-6 px-2 rounded-full" onClick={clearFilters}>
@@ -208,7 +208,7 @@ export function TransactionList() {
                 variant="ghost" 
                 size="sm" 
                 className="h-4 w-4 p-0 rounded-full" 
-                onClick={() => setCategoryFilter("")}
+                onClick={() => setCategoryFilter("all")}
               >
                 ×
               </Button>
@@ -225,7 +225,7 @@ export function TransactionList() {
                 variant="ghost" 
                 size="sm" 
                 className="h-4 w-4 p-0 rounded-full" 
-                onClick={() => setAccountFilter("")}
+                onClick={() => setAccountFilter("all")}
               >
                 ×
               </Button>
@@ -254,7 +254,7 @@ export function TransactionList() {
               <span className="whitespace-nowrap">+ Categoría</span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas las categorías</SelectItem>
+              <SelectItem value="all">Todas las categorías</SelectItem>
               {categories.map((category: any) => (
                 <SelectItem key={category.id} value={category.id.toString()}>
                   {category.name}
@@ -268,7 +268,7 @@ export function TransactionList() {
               <span className="whitespace-nowrap">+ Cuenta</span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas las cuentas</SelectItem>
+              <SelectItem value="all">Todas las cuentas</SelectItem>
               {accounts.map((account: any) => (
                 <SelectItem key={account.id} value={account.id.toString()}>
                   {account.name}
