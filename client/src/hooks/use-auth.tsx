@@ -1,3 +1,4 @@
+
 import { createContext, ReactNode, useContext, useState } from "react";
 import {
   useQuery,
@@ -16,7 +17,6 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
-  
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -92,8 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
   });
-  
-  );
 
   return (
     <AuthContext.Provider
@@ -104,8 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
-        verifyPinMutation,
-        updatePinMutation,
       }}
     >
       {children}
