@@ -16,8 +16,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
-  verifyPinMutation: UseMutationResult<{ valid: boolean }, Error, { pin: string }>;
-  updatePinMutation: UseMutationResult<SelectUser, Error, { currentPin: string; newPin: string }>;
+  
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -94,40 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
   
-  const verifyPinMutation = useMutation({
-    mutationFn: async (data: { pin: string }) => {
-      const res = await apiRequest("POST", "/api/verify-pin", data);
-      return await res.json();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error al verificar PIN",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
-  const updatePinMutation = useMutation({
-    mutationFn: async (data: { currentPin: string; newPin: string }) => {
-      const res = await apiRequest("PUT", "/api/user/pin", data);
-      return await res.json();
-    },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-      toast({
-        title: "PIN actualizado",
-        description: "Tu PIN ha sido actualizado correctamente.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error al actualizar PIN",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  );
 
   return (
     <AuthContext.Provider

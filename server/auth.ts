@@ -28,13 +28,7 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-async function validatePin(pin: string) {
-  // PIN must be 4-6 digits
-  if (!/^\d{4,6}$/.test(pin)) {
-    return false;
-  }
-  return true;
-}
+
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
@@ -147,47 +141,5 @@ export function setupAuth(app: Express) {
     res.json(userResponse);
   });
 
-  app.post("/api/verify-pin", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    const { pin } = req.body;
-    
-    if (req.user.pin === pin) {
-      res.json({ valid: true });
-    } else {
-      res.json({ valid: false });
-    }
-  });
   
-  app.put("/api/user/pin", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    const { currentPin, newPin } = req.body;
-    
-    // Verify current PIN
-    if (req.user.pin !== currentPin) {
-      return res.status(400).json({ message: "PIN actual incorrecto" });
-    }
-    
-    // Validate new PIN
-    if (!await validatePin(newPin)) {
-      return res.status(400).json({ message: "El nuevo PIN debe tener entre 4 y 6 dígitos" });
-    }
-    
-    try {
-      // Update user PIN
-      const updatedUser = await storage.updateUser(req.user.id, { pin: newPin });
-      if (!updatedUser) {
-        return res.status(404).json({ message: "Usuario no encontrado" });
-      }
-      
-      // Remove sensitive information
-      const userResponse = { ...updatedUser };
-      delete userResponse.password;
-      
-      res.json(userResponse);
-    } catch (error) {
-      res.status(500).json({ message: "Error al actualizar el PIN" });
-    }
-  });
 }
