@@ -28,7 +28,6 @@ const registerSchema = z.object({
   username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
   name: z.string().min(1, "El nombre es requerido"),
-  pin: z.string().regex(/^\d{4,6}$/, "El PIN debe tener entre 4 y 6 dígitos"),
   isAdmin: z.boolean().optional().default(true),
 });
 
@@ -62,7 +61,6 @@ export default function AuthPage() {
       username: "",
       password: "",
       name: "",
-      pin: "",
       isAdmin: true,
     },
   });
@@ -246,19 +244,7 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={registerForm.control}
-                        name="pin"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>PIN de acceso (4-6 dígitos)</FormLabel>
-                            <FormControl>
-                              <Input placeholder="123456" maxLength={6} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+
                       <Button 
                         type="submit" 
                         className="w-full" 
