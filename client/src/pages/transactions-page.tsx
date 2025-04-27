@@ -22,9 +22,25 @@ export default function TransactionsPage() {
     <Shell>
       <div className="container px-4 py-6 max-w-7xl">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Transacciones</h1>
-          <Button onClick={() => setIsNewTransactionOpen(true)}>
-            + Nueva Transacción
+          <h1 className="text-2xl font-bold">
+            {activeTab === "all" && "Transacciones"}
+            {activeTab === "income" && "Ingresos"}
+            {activeTab === "expense" && "Gastos"}
+            {activeTab === "transfer" && "Transferencias"}
+          </h1>
+          <Button 
+            onClick={() => {
+              setIsNewTransactionOpen(true);
+              // Preseleccionar el tipo de transacción según la pestaña actual
+              if (activeTab === "income" || activeTab === "expense" || activeTab === "transfer") {
+                // El formulario leerá este valor y ajustará la pestaña activa
+              }
+            }}
+          >
+            + Nueva {activeTab === "income" ? "Ingreso" : 
+                     activeTab === "expense" ? "Gasto" : 
+                     activeTab === "transfer" ? "Transferencia" : 
+                     "Transacción"}
           </Button>
         </div>
         
@@ -35,13 +51,31 @@ export default function TransactionsPage() {
             <TabsTrigger value="expense">Gastos</TabsTrigger>
             <TabsTrigger value="transfer">Transferencias</TabsTrigger>
           </TabsList>
+          <TabsContent value="all">
+            <TransactionList transactionType="all" />
+          </TabsContent>
+          <TabsContent value="income">
+            <TransactionList transactionType="income" />
+          </TabsContent>
+          <TabsContent value="expense">
+            <TransactionList transactionType="expense" />
+          </TabsContent>
+          <TabsContent value="transfer">
+            <TransactionList transactionType="transfer" />
+          </TabsContent>
         </Tabs>
-        
-        <TransactionList />
         
         <Dialog open={isNewTransactionOpen} onOpenChange={setIsNewTransactionOpen}>
           <DialogContent className="max-w-lg">
-            <TransactionForm onComplete={() => setIsNewTransactionOpen(false)} />
+            <TransactionForm 
+              onComplete={() => setIsNewTransactionOpen(false)}
+              defaultValues={{
+                transactionTypeId: 
+                  activeTab === "income" ? 1 : 
+                  activeTab === "expense" ? 2 : 
+                  activeTab === "transfer" ? 3 : 2 // Por defecto gastos si no se especifica
+              }}
+            />
           </DialogContent>
         </Dialog>
       </div>

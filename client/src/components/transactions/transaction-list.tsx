@@ -44,7 +44,11 @@ import {
 
 import { TransactionForm } from "./transaction-form";
 
-export function TransactionList() {
+interface TransactionListProps {
+  transactionType?: string;
+}
+
+export function TransactionList({ transactionType = "all" }: TransactionListProps) {
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
   
@@ -84,6 +88,15 @@ export function TransactionList() {
     
     if (accountFilter && accountFilter !== 'all') {
       params.accountId = accountFilter;
+    }
+    
+    // Add transaction type filter based on the tab
+    if (transactionType === 'income') {
+      params.transactionTypeId = '1';
+    } else if (transactionType === 'expense') {
+      params.transactionTypeId = '2';
+    } else if (transactionType === 'transfer') {
+      params.transactionTypeId = '3';
     }
     
     return params;
