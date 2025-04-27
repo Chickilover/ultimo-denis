@@ -75,11 +75,6 @@ export function setupAuth(app: Express) {
     try {
       const registrationData = await insertUserSchema.parseAsync(req.body);
       
-      // Validate PIN
-      if (!await validatePin(registrationData.pin)) {
-        return res.status(400).json({ message: "El PIN debe tener entre 4 y 6 dígitos" });
-      }
-      
       const existingUser = await storage.getUserByUsername(registrationData.username);
       if (existingUser) {
         return res.status(400).json({ message: "El nombre de usuario ya existe" });
