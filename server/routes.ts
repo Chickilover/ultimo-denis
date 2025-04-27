@@ -4,8 +4,12 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
 import { insertAccountSchema, insertTransactionSchema, insertBudgetSchema, insertSavingsGoalSchema, insertSavingsContributionSchema, insertCategorySchema, insertTagSchema, insertSettingsSchema, insertRecurringTransactionSchema } from "@shared/schema";
+import { seedDatabase } from "./seed";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize database with default data
+  await seedDatabase();
+  
   // Set up authentication routes
   setupAuth(app);
 
