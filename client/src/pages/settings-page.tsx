@@ -52,8 +52,13 @@ export default function SettingsPage() {
       setDefaultCurrency(settings.defaultCurrency || "UYU");
       setTheme(settings.theme || "light");
       setLanguage(settings.language || "es");
-      setExchangeRate(settings.exchangeRate || "38.50");
-      setLocalExchangeRate(settings.exchangeRate || "38.50");
+      
+      // Redondear el tipo de cambio a un entero
+      const exchangeRateValue = settings.exchangeRate || "38";
+      const roundedValue = Math.round(parseFloat(exchangeRateValue)).toString();
+      
+      setExchangeRate(roundedValue);
+      setLocalExchangeRate(roundedValue);
     }
   }, [settings]);
 
@@ -168,14 +173,18 @@ export default function SettingsPage() {
   // Función para guardar cambios de configuración
   const saveSettings = () => {
     if (!updateSettingsMutation.isPending) {
-      // Asegurar que usamos el valor correcto del tipo de cambio
-      setExchangeRate(localExchangeRate);
+      // Redondear el tipo de cambio a un entero
+      const roundedValue = Math.round(parseFloat(localExchangeRate)).toString();
+      
+      // Actualizar el estado local y principal con el valor redondeado
+      setLocalExchangeRate(roundedValue);
+      setExchangeRate(roundedValue);
       
       updateSettingsMutation.mutate({
         defaultCurrency,
         theme,
         language,
-        exchangeRate: localExchangeRate
+        exchangeRate: roundedValue
       });
     }
   };
@@ -183,14 +192,18 @@ export default function SettingsPage() {
   // Función para actualizar el tipo de cambio
   const updateExchangeRate = () => {
     if (!updateSettingsMutation.isPending) {
-      // Actualizar el estado principal con el valor local
-      setExchangeRate(localExchangeRate);
+      // Redondear el valor local si aún tiene decimales
+      const roundedValue = Math.round(parseFloat(localExchangeRate)).toString();
+      
+      // Actualizar el estado local y principal con el valor redondeado
+      setLocalExchangeRate(roundedValue);
+      setExchangeRate(roundedValue);
       
       updateSettingsMutation.mutate({
         defaultCurrency,
         theme,
         language,
-        exchangeRate: localExchangeRate,
+        exchangeRate: roundedValue,
         lastExchangeRateUpdate: new Date().toISOString()
       });
     }
@@ -298,12 +311,21 @@ export default function SettingsPage() {
               <div className="flex space-x-2">
                 <Input
                   id="exchange-rate"
-                  placeholder="38.50"
+                  placeholder="38"
                   type="number"
-                  step="0.01"
+                  step="1"  
                   min="0"
                   value={localExchangeRate}
-                  onChange={(e) => setLocalExchangeRate(e.target.value)}
+                  onChange={(e) => {
+                    // Convertir a entero
+                    const inputValue = e.target.value;
+                    if (inputValue) {
+                      const intValue = Math.round(parseFloat(inputValue)).toString();
+                      setLocalExchangeRate(intValue);
+                    } else {
+                      setLocalExchangeRate("");
+                    }
+                  }}
                 />
                 <Button onClick={updateExchangeRate}>Actualizar</Button>
               </div>
