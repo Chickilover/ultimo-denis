@@ -327,13 +327,15 @@ export default function BudgetsPage() {
     <Shell>
       <div className="container px-4 py-6 max-w-7xl">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Presupuestos</h1>
-          <Button onClick={() => setIsNewBudgetOpen(true)}>
-            + Nuevo Presupuesto
+          <h1 className="text-2xl font-bold">Proyectos</h1>
+          <Button 
+            onClick={() => setIsNewBudgetOpen(true)} 
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+            + Nuevo Proyecto
           </Button>
         </div>
         
-        {/* Budget Tabs */}
+        {/* Project Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="active">Activos</TabsTrigger>
@@ -341,7 +343,7 @@ export default function BudgetsPage() {
           </TabsList>
         </Tabs>
         
-        {/* Budgets Grid */}
+        {/* Projects Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {isLoading ? (
             <div className="col-span-full flex justify-center p-8">
@@ -408,7 +410,7 @@ export default function BudgetsPage() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
                         <div>
-                          <p className="text-sm text-muted-foreground">Presupuesto</p>
+                          <p className="text-sm text-muted-foreground">Proyecto</p>
                           <p className="text-lg font-bold">{formatCurrency(budget.amount, budget.currency)}</p>
                         </div>
                         <div className="text-right">
@@ -449,7 +451,7 @@ export default function BudgetsPage() {
           )}
         </div>
         
-        {/* New Budget Dialog */}
+        {/* New Project Dialog */}
         <Dialog open={isNewBudgetOpen} onOpenChange={setIsNewBudgetOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -719,7 +721,7 @@ export default function BudgetsPage() {
           </DialogContent>
         </Dialog>
         
-        {/* Edit Budget Dialog */}
+        {/* Edit Project Dialog */}
         <Dialog open={isEditBudgetOpen} onOpenChange={setIsEditBudgetOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -989,7 +991,7 @@ export default function BudgetsPage() {
           </DialogContent>
         </Dialog>
         
-        {/* Delete Budget Confirmation */}
+        {/* Delete Project Confirmation */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
