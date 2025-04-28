@@ -371,6 +371,7 @@ export const familyMembers = pgTable("family_members", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(), // El usuario al que pertenece este miembro
   name: text("name").notNull(),
+  email: text("email"), // Email para invitaciones si puede acceder a la app
   relationship: text("relationship").notNull(), // Esposo/a, Hijo/a, Padre/Madre, etc.
   isActive: boolean("is_active").notNull().default(true),
   canAccess: boolean("can_access").notNull().default(false), // Si puede tener acceso a la aplicación

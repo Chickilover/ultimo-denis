@@ -56,6 +56,7 @@ import { useForm } from "react-hook-form";
 // Schema para validar los datos del formulario
 const familyMemberSchema = z.object({
   name: z.string().min(1, "El nombre es obligatorio"),
+  email: z.string().email("Correo electrónico inválido").optional(),
   relationship: z.string().min(1, "La relación es obligatoria"),
   canAccess: z.boolean().default(false),
   avatarUrl: z.string().nullable().optional(),
@@ -64,6 +65,7 @@ const familyMemberSchema = z.object({
 type FamilyMember = {
   id: number;
   name: string;
+  email?: string; // Campo opcional para email
   relationship: string;
   isActive: boolean;
   canAccess: boolean;
@@ -179,6 +181,7 @@ export default function FamilyPage() {
     resolver: zodResolver(familyMemberSchema),
     defaultValues: {
       name: "",
+      email: "",
       relationship: "",
       canAccess: false,
       avatarUrl: null,
@@ -190,6 +193,7 @@ export default function FamilyPage() {
     resolver: zodResolver(familyMemberSchema),
     defaultValues: {
       name: "",
+      email: "",
       relationship: "",
       canAccess: false,
       avatarUrl: null,
@@ -201,6 +205,7 @@ export default function FamilyPage() {
     setSelectedMember(member);
     editForm.reset({
       name: member.name,
+      email: member.email || "", // Si existe email, lo usamos
       relationship: member.relationship,
       canAccess: member.canAccess,
       avatarUrl: member.avatarUrl,
@@ -257,6 +262,27 @@ export default function FamilyPage() {
                         <FormControl>
                           <Input placeholder="Nombre del miembro" {...field} />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={addForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Correo electrónico</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="email" 
+                            placeholder="correo@ejemplo.com" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Para enviar invitaciones si este miembro tendrá acceso a la aplicación.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -416,6 +442,27 @@ export default function FamilyPage() {
                     <FormControl>
                       <Input placeholder="Nombre del miembro" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Correo electrónico</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="email" 
+                        placeholder="correo@ejemplo.com" 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Para enviar invitaciones si este miembro tendrá acceso a la aplicación.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
