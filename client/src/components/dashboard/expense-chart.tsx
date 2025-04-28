@@ -141,7 +141,14 @@ export function ExpenseChart() {
           <div className="space-y-3">
             {chartData.slice(0, 6).map((item, index) => (
               <div key={index} className="flex items-center">
-                <span className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: item.color }}></span>
+                <CategoryIcon 
+                  name={item.name} 
+                  icon={item.icon} 
+                  color={item.color}
+                  size="sm"
+                  showEmoji={true}
+                  className="mr-2"
+                />
                 <span className="text-sm text-gray-600 dark:text-gray-300 flex-1">{item.name}</span>
                 <span className="text-sm font-semibold">{item.percentage}%</span>
               </div>

@@ -2,24 +2,11 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
 import { useCurrency } from "@/hooks/use-currency";
+import { CategoryIcon } from "@/components/ui/category-icon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { calculateProgress } from "@/lib/utils";
-import { 
-  ShoppingCart, 
-  Phone, 
-  Utensils, 
-  Gift 
-} from "lucide-react";
-
-// Map category names to icons
-const categoryIcons: Record<string, any> = {
-  "Supermercado": <ShoppingCart className="h-5 w-5 text-accent-500" />,
-  "Teléfono e Internet": <Phone className="h-5 w-5 text-red-500" />,
-  "Restaurantes": <Utensils className="h-5 w-5 text-primary-500" />,
-  "Regalos": <Gift className="h-5 w-5 text-green-500" />,
-};
 
 export function BudgetProgress() {
   const { formatCurrency } = useCurrency();
@@ -36,7 +23,13 @@ export function BudgetProgress() {
     queryFn: getQueryFn({ on401: "throw" })
   });
   
-  // Calculate budget progress
+  // Fetch categories to get icons and colors
+  const { data: categories = [] } = useQuery({
+    queryKey: ["/api/categories"],
+    queryFn: getQueryFn({ on401: "throw" })
+  });
+  
+  // Calculate budget progress with category details
   const budgetsWithProgress = useMemo(() => {
     if (!budgets.length) return [];
     
@@ -46,6 +39,9 @@ export function BudgetProgress() {
     const currentYear = now.getFullYear();
     
     return budgets.map((budget: any) => {
+      // Find associated category
+      const category = categories.find((cat: any) => cat.id === budget.categoryId) || {};
+      
       // Determine date range for this budget based on period
       let startDate, endDate;
       
@@ -82,12 +78,15 @@ export function BudgetProgress() {
       
       return {
         ...budget,
+        categoryName: category.name,
+        categoryIcon: category.icon,
+        color: category.color,
         spent,
         progress,
         status,
       };
     });
-  }, [budgets, transactions]);
+  }, [budgets, transactions, categories]);
   
   return (
     <Card>
@@ -103,13 +102,15 @@ export function BudgetProgress() {
             budgetsWithProgress.slice(0, 4).map((budget: any, index: number) => (
               <div key={index} className="space-y-1">
                 <div className="flex justify-between items-center mb-1">
-                  <div className="flex items-center">
-                    {categoryIcons[budget.name] || 
-                     <div className="h-5 w-5 bg-primary/20 rounded-full flex items-center justify-center text-primary">
-                       {budget.name.charAt(0)}
-                     </div>
-                    }
-                    <span className="text-sm font-medium ml-2">{budget.name}</span>
+                  <div className="flex items-center gap-2">
+                    <CategoryIcon 
+                      name={budget.categoryName || budget.name} 
+                      icon={budget.categoryIcon} 
+                      color={budget.color}
+                      size="md"
+                      showEmoji={true}
+                    />
+                    <span className="text-sm font-medium">{budget.name}</span>
                   </div>
                   <span className="text-sm font-mono font-medium">
                     {formatCurrency(budget.spent)} / {formatCurrency(budget.amount)}
