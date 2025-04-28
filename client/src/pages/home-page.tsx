@@ -93,20 +93,6 @@ export default function HomePage() {
       <div className="container px-4 py-6 max-w-7xl">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">¡Hola, {user?.name || "Usuario"}!</h2>
-          <div className="flex items-center space-x-3">
-            <Select
-              defaultValue="UYU"
-              // This would be connected to the currency context in a full implementation
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="Moneda" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="UYU">$U (UYU)</SelectItem>
-                <SelectItem value="USD">$ (USD)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
         
         {/* Botones de registro rápido */}
