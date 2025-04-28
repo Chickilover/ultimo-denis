@@ -91,7 +91,7 @@ export function BudgetProgress() {  // kept same function name to avoid breaking
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-md font-medium">Estado de Presupuestos</CardTitle>
+        <CardTitle className="text-md font-medium">Estado de Proyectos</CardTitle>
         <Link href="/budgets">
           <Button variant="link" size="sm" className="text-primary">Ver todos</Button>
         </Link>
@@ -143,10 +143,10 @@ export function BudgetProgress() {  // kept same function name to avoid breaking
             ))
           ) : (
             <div className="py-6 text-center text-muted-foreground">
-              <p>No hay presupuestos activos</p>
+              <p>No hay proyectos activos</p>
               <Link href="/budgets">
                 <Button variant="outline" size="sm" className="mt-2">
-                  Crear presupuesto
+                  Crear proyecto
                 </Button>
               </Link>
             </div>

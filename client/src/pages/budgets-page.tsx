@@ -148,8 +148,8 @@ export default function BudgetsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/budgets"] });
       toast({
-        title: "Presupuesto creado",
-        description: "El presupuesto se ha creado correctamente",
+        title: "Proyecto creado",
+        description: "El proyecto se ha creado correctamente",
       });
       setIsNewBudgetOpen(false);
       form.reset();
