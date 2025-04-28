@@ -84,7 +84,7 @@ export function TransactionForm({
     resolver: zodResolver(formSchema),
     defaultValues: defaultValues || {
       userId: user?.id,
-      transactionTypeId: 2, // Default to Expense
+      transactionTypeId: 2, // Default to Expense (ID 2 = gasto)
       categoryId: undefined,
       amount: "",
       currency: "UYU", // Default to Uruguayan pesos
@@ -219,7 +219,7 @@ export function TransactionForm({
       receiptUrl: data.receiptUrl || null,
       // Make sure numeric fields are properly converted
       amount: data.amount || "0",
-      transactionTypeId: activeTab === "expense" ? 1 : activeTab === "income" ? 2 : 3,
+      transactionTypeId: activeTab === "expense" ? 2 : activeTab === "income" ? 1 : 3,
     };
     
     // Log the data being submitted
