@@ -30,9 +30,12 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   // Update settings when currency preferences change
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: { defaultCurrency: string; exchangeRate: number }) => {
+      // Asegurar que el tipo de cambio sea un número entero
+      const roundedRate = Math.round(data.exchangeRate);
+      
       const res = await apiRequest("PUT", "/api/settings", {
         defaultCurrency: data.defaultCurrency,
-        exchangeRate: data.exchangeRate.toString(),
+        exchangeRate: roundedRate.toString(),
       });
       return res.json();
     },
@@ -45,7 +48,10 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (settings) {
       setDefaultCurrency(settings.defaultCurrency as "UYU" | "USD");
-      setExchangeRate(parseFloat(settings.exchangeRate.toString()) || 40.0);
+      // Asegurar que el tipo de cambio sea un número entero
+      const rateValue = parseFloat(settings.exchangeRate?.toString() || "40.0");
+      const roundedRate = Math.round(rateValue);
+      setExchangeRate(roundedRate);
     }
   }, [settings]);
   

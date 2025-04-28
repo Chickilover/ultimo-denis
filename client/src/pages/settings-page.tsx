@@ -192,20 +192,51 @@ export default function SettingsPage() {
   // Función para actualizar el tipo de cambio
   const updateExchangeRate = () => {
     if (!updateSettingsMutation.isPending) {
-      // Redondear el valor local si aún tiene decimales
-      const roundedValue = Math.round(parseFloat(localExchangeRate)).toString();
-      
-      // Actualizar el estado local y principal con el valor redondeado
-      setLocalExchangeRate(roundedValue);
-      setExchangeRate(roundedValue);
-      
-      updateSettingsMutation.mutate({
-        defaultCurrency,
-        theme,
-        language,
-        exchangeRate: roundedValue,
-        lastExchangeRateUpdate: new Date().toISOString()
-      });
+      try {
+        // Asegurar que tenemos un valor para procesar
+        if (!localExchangeRate || localExchangeRate.trim() === "") {
+          toast({
+            title: "Error",
+            description: "Por favor ingresa un valor para el tipo de cambio",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Convertir a número y redondear al entero más cercano
+        const numValue = parseFloat(localExchangeRate);
+        if (isNaN(numValue)) {
+          toast({
+            title: "Error",
+            description: "El valor del tipo de cambio debe ser un número válido",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Redondear siempre a un número entero
+        const roundedValue = Math.round(numValue).toString();
+        
+        // Actualizar estado local
+        setLocalExchangeRate(roundedValue);
+        setExchangeRate(roundedValue);
+        
+        // Enviar al servidor
+        updateSettingsMutation.mutate({
+          defaultCurrency,
+          theme,
+          language,
+          exchangeRate: roundedValue,
+          lastExchangeRateUpdate: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error("Error al actualizar tipo de cambio:", err);
+        toast({
+          title: "Error",
+          description: "Ocurrió un error al actualizar el tipo de cambio",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -317,13 +348,26 @@ export default function SettingsPage() {
                   min="0"
                   value={localExchangeRate}
                   onChange={(e) => {
-                    // Convertir a entero
+                    // Permitir entrada vacía o valores numéricos
                     const inputValue = e.target.value;
-                    if (inputValue) {
-                      const intValue = Math.round(parseFloat(inputValue)).toString();
-                      setLocalExchangeRate(intValue);
-                    } else {
+                    
+                    if (inputValue === "") {
+                      // Permitir campo vacío durante la edición
                       setLocalExchangeRate("");
+                    } else {
+                      // Intentar convertir a número
+                      const numValue = parseFloat(inputValue);
+                      if (!isNaN(numValue)) {
+                        // Siempre guardar como entero
+                        const intValue = Math.round(numValue).toString();
+                        setLocalExchangeRate(intValue);
+                      }
+                    }
+                  }}
+                  onBlur={() => {
+                    // Si el campo está vacío al perder el foco, restaurar el valor anterior
+                    if (localExchangeRate === "") {
+                      setLocalExchangeRate(exchangeRate);
                     }
                   }}
                 />
