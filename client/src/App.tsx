@@ -8,17 +8,31 @@ import { useAuth } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
-import TransactionsPage from "@/pages/transactions-page";
-import AccountsPage from "@/pages/accounts-page";
+import IncomePage from "@/pages/income-page";
+import ExpensesPage from "@/pages/expenses-page";
 import BudgetsPage from "@/pages/budgets-page";
+
+// Páginas que aún debemos crear
+import FamilyPage from "@/pages/family-page";
+import SavingsPage from "@/pages/savings-page";
+import ReportsPage from "@/pages/reports-page";
+import ScannerPage from "@/pages/scanner-page";
+import AdvisorPage from "@/pages/advisor-page";
+import SettingsPage from "@/pages/settings-page";
 
 function Router() {
   return (
     <Switch>
       <ProtectedRoute path="/" component={HomePage} />
-      <ProtectedRoute path="/transactions" component={TransactionsPage} />
-      <ProtectedRoute path="/accounts" component={AccountsPage} />
+      <ProtectedRoute path="/income" component={IncomePage} />
+      <ProtectedRoute path="/expenses" component={ExpensesPage} />
       <ProtectedRoute path="/budgets" component={BudgetsPage} />
+      <ProtectedRoute path="/family" component={FamilyPage} />
+      <ProtectedRoute path="/savings" component={SavingsPage} />
+      <ProtectedRoute path="/reports" component={ReportsPage} />
+      <ProtectedRoute path="/scanner" component={ScannerPage} />
+      <ProtectedRoute path="/advisor" component={AdvisorPage} />
+      <ProtectedRoute path="/settings" component={SettingsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>

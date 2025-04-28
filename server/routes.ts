@@ -626,6 +626,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Verificar si existen claves secretas
+  app.post("/api/check-secrets", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const { secretKeys } = req.body;
+      if (!Array.isArray(secretKeys)) {
+        return res.status(400).json({ message: "secretKeys debe ser un array de strings" });
+      }
+      
+      const result: Record<string, boolean> = {};
+      
+      // Verificar cada clave secreta
+      secretKeys.forEach(key => {
+        result[key] = !!process.env[key];
+      });
+      
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Error al verificar secretos" });
+    }
+  });
+  
   // Simple OCR API simulation for receipt scanning
   app.post("/api/ocr/scan", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

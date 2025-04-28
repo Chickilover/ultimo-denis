@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Shell } from "@/components/layout/shell";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { TransactionsList } from "@/components/transactions/transactions-list";
 import { Button } from "@/components/ui/button";
+import { TransactionsList } from "@/components/transactions/transactions-list";
 import { PlusCircle } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { TransactionForm } from "@/components/transactions/transaction-form";
 import { PageHeader } from "@/components/layout/page-header";
 
@@ -14,7 +14,7 @@ export default function IncomePage() {
     <Shell>
       <PageHeader
         title="Ingresos"
-        description="Administra los ingresos de tu hogar"
+        description="Administra tus ingresos personales y familiares"
         actions={
           <Button onClick={() => setIsDialogOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -33,7 +33,12 @@ export default function IncomePage() {
             </div>
             <TransactionForm 
               onComplete={() => setIsDialogOpen(false)}
-              defaultValues={{ transactionTypeId: 1 }}
+              defaultValues={{
+                transactionTypeId: 1, // Tipo ingreso
+                currency: "UYU", // Moneda uruguaya por defecto
+                isShared: false,
+                date: new Date().toISOString().split('T')[0]
+              }}
             />
           </div>
         </DialogContent>
