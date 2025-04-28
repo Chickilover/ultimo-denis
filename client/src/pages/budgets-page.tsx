@@ -517,19 +517,20 @@ export default function BudgetsPage() {
                         
                         {budget.status === 'pending' && (
                           <div className="text-xs bg-amber-500/10 text-amber-600 py-1 px-2 rounded-full inline-block">
-                            Pendiente de aprobación
+                            Pendiente {budget.approvalCount > 0 || budget.rejectionCount > 0 ? 
+                            `(${budget.approvalCount} a favor, ${budget.rejectionCount} en contra)` : ''}
                           </div>
                         )}
 
                         {budget.status === 'approved' && (
                           <div className="text-xs bg-green-500/10 text-green-600 py-1 px-2 rounded-full inline-block">
-                            Aprobado
+                            Aprobado ({budget.approvalCount} votos)
                           </div>
                         )}
 
                         {budget.status === 'rejected' && (
                           <div className="text-xs bg-red-500/10 text-red-600 py-1 px-2 rounded-full inline-block">
-                            Rechazado
+                            Rechazado ({budget.rejectionCount} votos)
                           </div>
                         )}
                       </div>
@@ -813,12 +814,134 @@ export default function BudgetsPage() {
                       <div className="space-y-1 leading-none">
                         <FormLabel>Proyecto compartido</FormLabel>
                         <FormDescription>
-                          Este proyecto será visible para todos los miembros del hogar
+                          Este proyecto será visible para todos los miembros del hogar y requiere aprobación
                         </FormDescription>
                       </div>
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="paymentType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de pago</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar tipo de pago" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="one-time">Pago único</SelectItem>
+                          <SelectItem value="monthly">Pago mensual</SelectItem>
+                          <SelectItem value="installments">Pagos en cuotas</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        El tipo de pago determina cómo se generará el gasto
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {form.watch("paymentType") === "monthly" && (
+                  <FormField
+                    control={form.control}
+                    name="paymentDay"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Día de pago</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            min="1" 
+                            max="31" 
+                            placeholder="Ej: 10" 
+                            {...field}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value);
+                              if (value >= 1 && value <= 31) {
+                                field.onChange(value);
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Día del mes en que se realizará el cargo mensual
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {form.watch("paymentType") === "installments" && (
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="paymentDay"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Día de pago</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min="1" 
+                              max="31" 
+                              placeholder="Ej: 10" 
+                              {...field}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value);
+                                if (value >= 1 && value <= 31) {
+                                  field.onChange(value);
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Día del mes en que se realizará cada cuota
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="installments"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Número de cuotas</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              min="2" 
+                              max="36" 
+                              placeholder="Ej: 12" 
+                              {...field}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value);
+                                if (value >= 2 && value <= 36) {
+                                  field.onChange(value);
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Cantidad de cuotas en que se dividirá el pago
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
                 
                 <DialogFooter>
                   <Button 
