@@ -22,7 +22,7 @@ import { apiRequest } from "@/lib/queryClient";
 
 // Validation schemas
 const loginSchema = z.object({
-  username: z.string().min(1, "El nombre de usuario es requerido"),
+  username: z.string().min(1, "Usuario o correo electrónico requerido"),
   password: z.string().min(1, "La contraseña es requerida"),
 });
 
@@ -34,13 +34,32 @@ const registerSchema = z.object({
   isAdmin: z.boolean().optional().default(true),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Ingresa un correo electrónico válido"),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1, "El token es requerido"),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  confirmPassword: z.string().min(6, "La confirmación de contraseña es requerida"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"], 
+});
+
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
 export default function AuthPage() {
   const [, navigate] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("login");
+  const [showForgotPassword, setShowForgotPassword] = useState<boolean>(false);
+  const [showResetPassword, setShowResetPassword] = useState<boolean>(false);
+  const [resetToken, setResetToken] = useState<string>("");
+  const { toast } = useToast();
 
   // Redirect if already logged in
   if (user) {
@@ -69,6 +88,24 @@ export default function AuthPage() {
     },
   });
 
+  // Forgot password form
+  const forgotPasswordForm = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
+  // Reset password form
+  const resetPasswordForm = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      token: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
+
   // Submit handlers
   const onLoginSubmit = (data: LoginFormValues) => {
     loginMutation.mutate(data);
@@ -77,6 +114,210 @@ export default function AuthPage() {
   const onRegisterSubmit = (data: RegisterFormValues) => {
     registerMutation.mutate(data);
   };
+
+  const onForgotPasswordSubmit = async (data: ForgotPasswordFormValues) => {
+    try {
+      const response = await apiRequest("POST", "/api/forgot-password", data);
+      const result = await response.json();
+      
+      toast({
+        title: "Solicitud enviada",
+        description: "Si tu correo está registrado, recibirás instrucciones para restablecer tu contraseña.",
+        variant: "default",
+      });
+
+      // En un entorno de desarrollo, mostrar el token para pruebas
+      if (result.token) {
+        setResetToken(result.token);
+        setShowResetPassword(true);
+        setShowForgotPassword(false);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al procesar tu solicitud.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onResetPasswordSubmit = async (data: ResetPasswordFormValues) => {
+    try {
+      await apiRequest("POST", "/api/reset-password", {
+        token: data.token || resetToken,
+        password: data.password
+      });
+      
+      toast({
+        title: "Contraseña actualizada",
+        description: "Tu contraseña ha sido actualizada con éxito. Ya puedes iniciar sesión.",
+        variant: "default",
+      });
+      
+      setShowResetPassword(false);
+      setActiveTab("login");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al actualizar tu contraseña. El token puede ser inválido o haber expirado.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Renderizar formulario para recuperar contraseña
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <div className="max-w-md w-full">
+          <Card>
+            <CardHeader>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="absolute left-2 top-2 flex items-center text-gray-500"
+                onClick={() => setShowForgotPassword(false)}
+              >
+                <ArrowLeft className="mr-1 h-4 w-4" />
+                Volver
+              </Button>
+              <div className="pt-4">
+                <CardTitle className="text-center">Recuperar contraseña</CardTitle>
+                <CardDescription className="text-center">
+                  Ingresa tu correo electrónico para recibir instrucciones
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Form {...forgotPasswordForm}>
+                <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
+                  <FormField
+                    control={forgotPasswordForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Correo electrónico</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="email" 
+                            placeholder="correo@ejemplo.com" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button 
+                    type="submit" 
+                    className="w-full mt-2"
+                  >
+                    Enviar instrucciones
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Renderizar formulario para restablecer contraseña
+  if (showResetPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <div className="max-w-md w-full">
+          <Card>
+            <CardHeader>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="absolute left-2 top-2 flex items-center text-gray-500"
+                onClick={() => {
+                  setShowResetPassword(false);
+                  setActiveTab("login");
+                }}
+              >
+                <ArrowLeft className="mr-1 h-4 w-4" />
+                Volver
+              </Button>
+              <div className="pt-4">
+                <CardTitle className="text-center">Crear nueva contraseña</CardTitle>
+                <CardDescription className="text-center">
+                  Ingresa tu nueva contraseña
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Form {...resetPasswordForm}>
+                <form onSubmit={resetPasswordForm.handleSubmit(onResetPasswordSubmit)} className="space-y-4">
+                  {!resetToken && (
+                    <FormField
+                      control={resetPasswordForm.control}
+                      name="token"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Token de recuperación</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Ingresa el token recibido" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                  <FormField
+                    control={resetPasswordForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nueva contraseña</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="••••••" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={resetPasswordForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirmar contraseña</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            placeholder="••••••" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button 
+                    type="submit" 
+                    className="w-full mt-2"
+                  >
+                    Cambiar contraseña
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
@@ -149,9 +390,9 @@ export default function AuthPage() {
                         name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nombre de usuario</FormLabel>
+                            <FormLabel>Usuario o correo electrónico</FormLabel>
                             <FormControl>
-                              <Input placeholder="usuario" {...field} />
+                              <Input placeholder="usuario o correo@ejemplo.com" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -192,6 +433,15 @@ export default function AuthPage() {
                       onClick={() => setActiveTab("register")}
                     >
                       Regístrate
+                    </Button>
+                  </div>
+                  <div className="text-sm text-center text-gray-500 dark:text-gray-400">
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto" 
+                      onClick={() => setShowForgotPassword(true)}
+                    >
+                      ¿Olvidaste tu contraseña?
                     </Button>
                   </div>
                 </CardFooter>
