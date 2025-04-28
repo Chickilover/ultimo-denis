@@ -36,18 +36,11 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         return;
       }
       
-      // Allow only digits and a single decimal point
-      const cleanedInput = input.replace(/[^\d.]/g, "");
+      // Solo permitir dígitos (sin puntos decimales)
+      const cleanedInput = input.replace(/[^\d]/g, "");
       
-      // Ensure only one decimal point
-      const parts = cleanedInput.split(".");
-      let formattedValue = parts[0];
-      
-      if (parts.length > 1) {
-        formattedValue += "." + parts.slice(1).join("").slice(0, 2);
-      }
-      
-      onChange(formattedValue);
+      // No necesitamos manejar decimales ya que solo usamos enteros
+      onChange(cleanedInput);
     };
     
     return (
@@ -64,11 +57,11 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
           <Input
             ref={ref}
             type="text"
-            inputMode="decimal"
+            inputMode="numeric"
             value={getDisplayValue()}
             onChange={handleChange}
             className={cn("pl-10", className)}
-            placeholder="0.00"
+            placeholder="0"
             {...props}
           />
         </div>

@@ -8,11 +8,14 @@
 export function formatNumber(
   value: number | string,
   currency?: string,
-  decimalPlaces = 2
+  decimalPlaces = 0
 ): string {
   const numValue = typeof value === "string" ? parseFloat(value) : value;
   
-  if (isNaN(numValue)) return currency ? `${currency} 0,00` : "0,00";
+  if (isNaN(numValue)) return currency ? `${currency} 0` : "0";
+  
+  // Redondear al número entero más cercano antes de formatear
+  const roundedValue = Math.round(numValue);
   
   const options: Intl.NumberFormatOptions = {
     style: "decimal",
@@ -20,7 +23,7 @@ export function formatNumber(
     maximumFractionDigits: decimalPlaces,
   };
   
-  const formatted = new Intl.NumberFormat("es-UY", options).format(numValue);
+  const formatted = new Intl.NumberFormat("es-UY", options).format(roundedValue);
   
   return currency ? `${currency} ${formatted}` : formatted;
 }
@@ -61,17 +64,20 @@ export function formatDate(
  */
 export function formatPercentage(
   value: number | string,
-  decimalPlaces = 1
+  decimalPlaces = 0
 ): string {
   const numValue = typeof value === "string" ? parseFloat(value) : value;
   
   if (isNaN(numValue)) return "0%";
   
+  // Redondear al porcentaje entero más cercano
+  const roundedValue = Math.round(numValue);
+  
   return new Intl.NumberFormat("es-UY", {
     style: "percent",
     minimumFractionDigits: decimalPlaces,
     maximumFractionDigits: decimalPlaces,
-  }).format(numValue / 100);
+  }).format(roundedValue / 100);
 }
 
 /**
@@ -100,5 +106,6 @@ export function formatUSD(value: number | string): string {
 export function parseCurrencyString(value: string): number {
   // Remove currency symbols and any non-numeric characters except decimal separator
   const numericString = value.replace(/[^\d,]/g, "").replace(",", ".");
-  return parseFloat(numericString);
+  // Redondear al entero más cercano
+  return Math.round(parseFloat(numericString));
 }
