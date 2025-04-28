@@ -63,20 +63,43 @@ export function FinancialSummary() {
   
   // Calculate totals
   const totalBalance = useMemo(() => {
-    return accounts.reduce((total: number, account: any) => {
-      // Convert account balance to the default currency if needed
-      const accountBalance = parseFloat(account.currentBalance);
-      if (account.currency === defaultCurrency) {
-        return total + accountBalance;
-      } else {
-        // Simple conversion - in real app would use exchange rate
-        return total + (defaultCurrency === "UYU" 
-          ? accountBalance * 40 // USD to UYU
-          : accountBalance / 40 // UYU to USD
-        );
-      }
-    }, 0);
-  }, [accounts, defaultCurrency]);
+    // Si no hay cuentas, calculamos el saldo total como ingresos menos gastos
+    if (accounts.length === 0) {
+      return transactions.reduce((balance: number, tx: any) => {
+        const amount = parseFloat(tx.amount);
+        
+        // Convert to default currency if needed
+        const convertedAmount = tx.currency === defaultCurrency 
+          ? amount 
+          : (defaultCurrency === "UYU" 
+              ? amount * 40 // USD to UYU
+              : amount / 40  // UYU to USD
+            );
+        
+        if (tx.transactionTypeId === 1) { // Ingreso
+          return balance + convertedAmount;
+        } else if (tx.transactionTypeId === 2) { // Gasto
+          return balance - convertedAmount;
+        }
+        return balance;
+      }, 0);
+    } else {
+      // Si hay cuentas, usamos el saldo de las cuentas
+      return accounts.reduce((total: number, account: any) => {
+        // Convert account balance to the default currency if needed
+        const accountBalance = parseFloat(account.currentBalance);
+        if (account.currency === defaultCurrency) {
+          return total + accountBalance;
+        } else {
+          // Simple conversion - in real app would use exchange rate
+          return total + (defaultCurrency === "UYU" 
+            ? accountBalance * 40 // USD to UYU
+            : accountBalance / 40 // UYU to USD
+          );
+        }
+      }, 0);
+    }
+  }, [accounts, transactions, defaultCurrency]);
   
   const { totalIncome, totalExpense } = useMemo(() => {
     return transactions.reduce((totals: { totalIncome: number, totalExpense: number }, tx: any) => {
@@ -130,6 +153,9 @@ export function FinancialSummary() {
   const incomeChange = 0;
   const expenseChange = 0;
   
+  // Calcular el balance neto (ingresos - gastos)
+  const netBalance = totalIncome - totalExpense;
+  
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -144,6 +170,30 @@ export function FinancialSummary() {
           </SelectContent>
         </Select>
       </div>
+      
+      {/* Balance neto (destacado) - ahora es su propia tarjeta */}
+      <Card className={`${netBalance >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
+        <CardContent className="pt-6 pb-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-base font-semibold text-muted-foreground">Saldo final ({selectedPeriod === "month" ? "Mes" : "Año"})</p>
+              <div className="flex items-center">
+                <h3 className="text-3xl font-bold font-mono">{formatCurrency(netBalance)}</h3>
+                <span className={`ml-2 text-sm ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  (Ingresos - Gastos)
+                </span>
+              </div>
+            </div>
+            <div className={`rounded-full p-4 ${netBalance >= 0 ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50'}`}>
+              {netBalance >= 0 ? (
+                <ArrowUp className="h-8 w-8 text-green-600 dark:text-green-400" />
+              ) : (
+                <ArrowDown className="h-8 w-8 text-red-600 dark:text-red-400" />
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
