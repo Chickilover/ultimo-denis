@@ -19,6 +19,7 @@ import { PlusIcon, Pencil, Trash2 } from "lucide-react";
 export default function SettingsPage() {
   const [defaultCurrency, setDefaultCurrency] = useState("UYU");
   const [exchangeRate, setExchangeRate] = useState("38.50");
+  const [localExchangeRate, setLocalExchangeRate] = useState("38.50");
   const [theme, setTheme] = useState("light");
   const [language, setLanguage] = useState("es");
   const { toast } = useToast();
@@ -52,6 +53,7 @@ export default function SettingsPage() {
       setTheme(settings.theme || "light");
       setLanguage(settings.language || "es");
       setExchangeRate(settings.exchangeRate || "38.50");
+      setLocalExchangeRate(settings.exchangeRate || "38.50");
     }
   }, [settings]);
 
@@ -166,11 +168,14 @@ export default function SettingsPage() {
   // Función para guardar cambios de configuración
   const saveSettings = () => {
     if (!updateSettingsMutation.isPending) {
+      // Asegurar que usamos el valor correcto del tipo de cambio
+      setExchangeRate(localExchangeRate);
+      
       updateSettingsMutation.mutate({
         defaultCurrency,
         theme,
         language,
-        exchangeRate
+        exchangeRate: localExchangeRate
       });
     }
   };
@@ -178,11 +183,14 @@ export default function SettingsPage() {
   // Función para actualizar el tipo de cambio
   const updateExchangeRate = () => {
     if (!updateSettingsMutation.isPending) {
+      // Actualizar el estado principal con el valor local
+      setExchangeRate(localExchangeRate);
+      
       updateSettingsMutation.mutate({
         defaultCurrency,
         theme,
         language,
-        exchangeRate,
+        exchangeRate: localExchangeRate,
         lastExchangeRateUpdate: new Date().toISOString()
       });
     }
@@ -294,8 +302,8 @@ export default function SettingsPage() {
                   type="number"
                   step="0.01"
                   min="0"
-                  value={exchangeRate}
-                  onChange={(e) => setExchangeRate(e.target.value)}
+                  value={localExchangeRate}
+                  onChange={(e) => setLocalExchangeRate(e.target.value)}
                 />
                 <Button onClick={updateExchangeRate}>Actualizar</Button>
               </div>
