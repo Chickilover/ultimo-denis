@@ -2,10 +2,11 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { scrypt, randomBytes, timingSafeEqual, createHash } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
+import { z } from "zod";
 
 declare global {
   namespace Express {
@@ -52,7 +53,17 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        const user = await storage.getUserByUsername(username);
+        // Comprobar si el usuario intentó iniciar sesión con un correo electrónico
+        const isEmail = username.includes('@');
+        
+        // Buscar usuario por nombre de usuario o correo electrónico
+        let user;
+        if (isEmail) {
+          user = await storage.getUserByEmail(username);
+        } else {
+          user = await storage.getUserByUsername(username);
+        }
+        
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false, { message: "Usuario o contraseña incorrectos" });
         } else {
@@ -146,5 +157,87 @@ export function setupAuth(app: Express) {
     res.json(userResponse);
   });
 
+  // Esquema para validar la solicitud de restablecimiento de contraseña
+  const forgotPasswordSchema = z.object({
+    email: z.string().email("Ingrese un correo electrónico válido"),
+  });
+
+  // Esquema para validar el restablecimiento de contraseña
+  const resetPasswordSchema = z.object({
+    token: z.string().min(1, "El token es necesario"),
+    password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  });
+
+  // Mapa para almacenar los tokens de restablecimiento (en producción usaríamos una base de datos)
+  const resetTokens = new Map<string, { userId: number, expires: Date }>();
+
+  // Solicitar restablecimiento de contraseña
+  app.post("/api/forgot-password", async (req, res) => {
+    try {
+      const { email } = await forgotPasswordSchema.parseAsync(req.body);
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user) {
+        // Por seguridad, no revelar si el email existe o no
+        return res.status(200).json({ 
+          message: "Si el correo electrónico está registrado, recibirás instrucciones para restablecer tu contraseña." 
+        });
+      }
+
+      // Generar token único
+      const token = createHash('sha256')
+        .update(randomBytes(32).toString('hex') + user.id + Date.now())
+        .digest('hex');
+      
+      // Establecer expiración (1 hora)
+      const expires = new Date();
+      expires.setHours(expires.getHours() + 1);
+      
+      // Guardar token
+      resetTokens.set(token, { userId: user.id, expires });
+
+      // En un entorno real aquí enviaríamos un correo electrónico con el token
+      // Pero para esta demo, simplemente retornamos el token en la respuesta
+      console.log(`Token de restablecimiento para ${email}: ${token}`);
+      
+      res.status(200).json({ 
+        message: "Si el correo electrónico está registrado, recibirás instrucciones para restablecer tu contraseña.",
+        // Solo para desarrollo - Eliminar en producción
+        token
+      });
+    } catch (error) {
+      res.status(400).json({ message: "Error en la solicitud", error });
+    }
+  });
+
+  // Restablecer contraseña con token
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, password } = await resetPasswordSchema.parseAsync(req.body);
+      
+      // Verificar si el token existe y es válido
+      const resetInfo = resetTokens.get(token);
+      if (!resetInfo) {
+        return res.status(400).json({ message: "Token inválido o expirado" });
+      }
+      
+      // Verificar si el token ha expirado
+      if (new Date() > resetInfo.expires) {
+        resetTokens.delete(token);
+        return res.status(400).json({ message: "El token ha expirado" });
+      }
+      
+      // Actualizar la contraseña del usuario
+      const hashedPassword = await hashPassword(password);
+      await storage.updateUser(resetInfo.userId, { password: hashedPassword });
+      
+      // Eliminar el token usado
+      resetTokens.delete(token);
+      
+      res.status(200).json({ message: "Contraseña actualizada con éxito" });
+    } catch (error) {
+      res.status(400).json({ message: "Error al restablecer la contraseña", error });
+    }
+  });
   
 }
