@@ -109,7 +109,7 @@ export function TransactionForm({
   });
   
   // Get categories
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useQuery<any[]>({
     queryKey: ["/api/categories"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
@@ -192,14 +192,14 @@ export function TransactionForm({
   }, [activeTab, form]);
   
   // Filtered categories based on transaction type
-  const filteredCategories = categories.filter((category: any) => {
+  const filteredCategories = categories ? (categories as any[]).filter((category) => {
     if (activeTab === "income") {
       return category.isIncome;
     } else if (activeTab === "expense") {
       return !category.isIncome;
     }
     return true;
-  });
+  }) : [];
   
   // Submit handler
   const onSubmit = (data: TransactionFormValues) => {
@@ -458,7 +458,11 @@ export function TransactionForm({
                   <Textarea
                     placeholder="Notas adicionales sobre esta transacción"
                     className="resize-none"
-                    {...field}
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                    name={field.name}
                   />
                 </FormControl>
                 <FormMessage />
@@ -475,7 +479,7 @@ export function TransactionForm({
               disabled
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
               Adjuntar comprobante
             </Button>
