@@ -1,8 +1,9 @@
 import { forwardRef, useState, useEffect } from "react";
-import { Input, InputProps } from "./input";
+import { Input } from "./input";
 import { cn } from "@/lib/utils";
+import { ComponentProps } from "react";
 
-export interface CurrencyInputProps extends Omit<InputProps, "onChange"> {
+export interface CurrencyInputProps extends Omit<ComponentProps<"input">, "onChange"> {
   value: string | number;
   onChange: (value: string) => void;
   currency?: "UYU" | "USD";
@@ -27,12 +28,8 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         return;
       }
       
-      // Format number with comma as decimal separator (Uruguayan format)
-      const formatted = numValue.toLocaleString("es-UY", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-      
+      // Just convert to string without forcing decimal formatting
+      const formatted = numValue.toString();
       setDisplayValue(formatted);
     }, [value]);
     
@@ -46,23 +43,19 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         return;
       }
       
-      // Remove all non-numeric characters except comma
-      const cleanedInput = input.replace(/[^\d,]/g, "");
+      // Allow only digits and a single decimal point
+      const cleanedInput = input.replace(/[^\d.]/g, "");
       
-      // Allow only one comma
-      const parts = cleanedInput.split(",");
+      // Ensure only one decimal point
+      const parts = cleanedInput.split(".");
       let formattedValue = parts[0];
       
       if (parts.length > 1) {
-        formattedValue += "," + parts.slice(1).join("").slice(0, 2);
+        formattedValue += "." + parts.slice(1).join("").slice(0, 2);
       }
       
       setDisplayValue(formattedValue);
-      
-      // Convert to standard numeric format for the onChange handler
-      // Replace comma with dot for standard decimal handling
-      const standardized = formattedValue.replace(",", ".");
-      onChange(standardized);
+      onChange(formattedValue);
     };
     
     return (
@@ -83,6 +76,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
             value={displayValue}
             onChange={handleChange}
             className={cn("pl-10", className)}
+            placeholder="0.00"
             {...props}
           />
         </div>

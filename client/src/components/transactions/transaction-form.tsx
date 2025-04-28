@@ -208,10 +208,40 @@ export function TransactionForm({
       data.userId = user.id;
     }
     
-    if (editMode && transactionId) {
-      updateTransactionMutation.mutate(data);
-    } else {
-      createTransactionMutation.mutate(data);
+    // Ensure all required fields have values and convert properly
+    const completeData = {
+      ...data,
+      // Set default values for required fields if not present
+      currency: data.currency || 'UYU',
+      time: data.time || null,
+      accountId: data.accountId || null,
+      notes: data.notes || '',
+      receiptUrl: data.receiptUrl || null,
+      // Make sure numeric fields are properly converted
+      amount: data.amount || "0",
+      transactionTypeId: activeTab === "expense" ? 1 : activeTab === "income" ? 2 : 3,
+    };
+    
+    // Log the data being submitted
+    console.log('Submitting transaction:', completeData);
+    
+    try {
+      if (editMode && transactionId) {
+        updateTransactionMutation.mutate(completeData);
+      } else {
+        createTransactionMutation.mutate(completeData);
+      }
+      toast({
+        title: "Enviando datos...",
+        description: "Enviando la transacción al servidor",
+      });
+    } catch (error) {
+      console.error('Error al enviar transacción:', error);
+      toast({
+        title: "Error al enviar",
+        description: `Ocurrió un error: ${error instanceof Error ? error.message : String(error)}`,
+        variant: "destructive",
+      });
     }
   };
   
