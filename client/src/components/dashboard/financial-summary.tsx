@@ -100,9 +100,35 @@ export function FinancialSummary() {
     }, { totalIncome: 0, totalExpense: 0 });
   }, [transactions, defaultCurrency]);
   
-  // Calculate monthly change percentages
-  const incomeChange = 5.0;  // Mock values - would calculate by comparing with previous period
-  const expenseChange = 8.2;
+  // Buscar transacciones del periodo anterior para calcular cambios
+  // Obtener el rango de fechas para el periodo anterior
+  const getPreviousPeriodRange = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    
+    let startDate, endDate;
+    
+    if (selectedPeriod === "month") {
+      // Mes anterior
+      startDate = new Date(year, month - 1, 1);
+      endDate = new Date(year, month, 0);
+    } else {
+      // Año anterior
+      startDate = new Date(year - 1, 0, 1);
+      endDate = new Date(year - 1, 11, 31);
+    }
+    
+    return {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    };
+  };
+  
+  // Usamos valores de 0 por defecto para indicar que no hay cambios calculados
+  // Esto evita usar datos falsos cuando no hay datos históricos
+  const incomeChange = 0;
+  const expenseChange = 0;
   
   return (
     <div className="space-y-4">

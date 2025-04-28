@@ -25,37 +25,67 @@ export default function HomePage() {
   const { formatCurrency } = useCurrency();
   const [chartPeriod, setChartPeriod] = useState("6months");
   
-  // Prepare data for the monthly trend chart
+  // Obtener transacciones reales
+  const { data: transactions = [] } = useQuery<any[]>({
+    queryKey: ["/api/transactions"],
+    queryFn: getQueryFn({ on401: "throw" }),
+  });
+  
+  // Preparar datos para el gráfico basados en transacciones reales
   const generateMonthlyData = (months: number) => {
     const data = [];
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
     
+    // Inicializar el arreglo con meses vacíos
     for (let i = months - 1; i >= 0; i--) {
       const month = (currentMonth - i + 12) % 12;
       const year = currentYear - Math.floor((currentMonth - i + 1) / 12);
       
-      // Use Spanish month names
+      // Nombres de meses en español
       const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
       
       data.push({
         month: `${monthNames[month]} ${year !== currentYear ? year : ""}`,
-        ingresos: 70000 + Math.random() * 20000,
-        gastos: 55000 + Math.random() * 15000,
+        monthIndex: month,
+        year: year,
+        ingresos: 0,
+        gastos: 0,
       });
     }
+    
+    // Calcular ingresos y gastos por mes usando transacciones reales
+    transactions.forEach((transaction: any) => {
+      const transactionDate = new Date(transaction.date);
+      const transactionMonth = transactionDate.getMonth();
+      const transactionYear = transactionDate.getFullYear();
+      
+      // Verificar si la transacción está dentro del rango de meses solicitado
+      const monthItem = data.find(
+        item => item.monthIndex === transactionMonth && item.year === transactionYear
+      );
+      
+      if (monthItem) {
+        const amount = parseFloat(transaction.amount);
+        if (transaction.transactionTypeId === 1) { // Ingreso
+          monthItem.ingresos += amount;
+        } else if (transaction.transactionTypeId === 2) { // Gasto
+          monthItem.gastos += amount;
+        }
+      }
+    });
     
     return data;
   };
   
-  const [chartData, setChartData] = useState(generateMonthlyData(6));
+  const [chartData, setChartData] = useState<any[]>([]);
   
-  // Update chart data when period changes
+  // Actualizar datos del gráfico cuando cambia el periodo o las transacciones
   useEffect(() => {
     const months = chartPeriod === "6months" ? 6 : chartPeriod === "12months" ? 12 : 3;
     setChartData(generateMonthlyData(months));
-  }, [chartPeriod]);
+  }, [chartPeriod, transactions]);
   
   return (
     <Shell>
