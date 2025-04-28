@@ -382,6 +382,7 @@ export const familyMembers = pgTable("family_members", {
 export const insertFamilyMemberSchema = createInsertSchema(familyMembers).pick({
   userId: true,
   name: true,
+  email: true,
   relationship: true,
   isActive: true,
   canAccess: true,

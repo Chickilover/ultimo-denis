@@ -360,7 +360,15 @@ export default function FamilyPage() {
                   </CardTitle>
                   <CardDescription>{member.relationship}</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-2">
+                  {member.email && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Correo:</span>
+                      <span className="text-sm font-medium truncate max-w-[150px]">
+                        {member.email}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Acceso a la app:</span>
                     <span className="text-sm font-medium">
