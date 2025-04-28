@@ -165,19 +165,27 @@ export default function SettingsPage() {
 
   // Función para guardar cambios de configuración
   const saveSettings = () => {
-    updateSettingsMutation.mutate({
-      defaultCurrency,
-      theme,
-      language,
-      exchangeRate
-    });
+    if (!updateSettingsMutation.isPending) {
+      updateSettingsMutation.mutate({
+        defaultCurrency,
+        theme,
+        language,
+        exchangeRate
+      });
+    }
   };
 
   // Función para actualizar el tipo de cambio
   const updateExchangeRate = () => {
-    updateSettingsMutation.mutate({
-      exchangeRate
-    });
+    if (!updateSettingsMutation.isPending) {
+      updateSettingsMutation.mutate({
+        defaultCurrency,
+        theme,
+        language,
+        exchangeRate,
+        lastExchangeRateUpdate: new Date().toISOString()
+      });
+    }
   };
 
   // Función para guardar una categoría
@@ -190,9 +198,15 @@ export default function SettingsPage() {
     };
 
     if (editingCategoryId) {
-      updateCategoryMutation.mutate(categoryData);
+      if (!updateCategoryMutation.isPending) {
+        updateCategoryMutation.mutate(categoryData);
+        setCategoryDialogOpen(false);
+      }
     } else {
-      createCategoryMutation.mutate(categoryData);
+      if (!createCategoryMutation.isPending) {
+        createCategoryMutation.mutate(categoryData);
+        setCategoryDialogOpen(false);
+      }
     }
   };
 
@@ -449,12 +463,12 @@ export default function SettingsPage() {
 
       {/* Modal para crear/editar categorías */}
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby="category-dialog-description">
           <DialogHeader>
             <DialogTitle>
               {editingCategoryId ? "Editar Categoría" : "Nueva Categoría"}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="category-dialog-description">
               {editingCategoryId
                 ? "Actualiza los detalles de la categoría"
                 : "Crea una nueva categoría para organizar tus transacciones"}
