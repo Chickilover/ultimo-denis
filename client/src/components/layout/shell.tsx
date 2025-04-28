@@ -24,8 +24,10 @@ export function Shell({ children }: ShellProps) {
       <Sidebar className="hidden md:flex" />
       
       {/* Main Content */}
-      <main className="pt-16 pb-16 md:pb-0 md:pl-64">
-        {children}
+      <main className="pt-16 pb-16 md:pb-0 md:pl-72">
+        <div className="px-4 py-6">
+          {children}
+        </div>
         
         {/* Add Transaction FAB on desktop */}
         <div className="fixed bottom-6 right-6 hidden md:block">
@@ -41,8 +43,12 @@ export function Shell({ children }: ShellProps) {
       
       {/* Transaction Form Dialog */}
       <Dialog open={isTransactionFormOpen} onOpenChange={setIsTransactionFormOpen}>
-        <DialogContent className="max-w-lg">
-          <TransactionForm onComplete={() => setIsTransactionFormOpen(false)} />
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <div className="flex flex-col">
+            <h2 className="text-lg font-semibold mb-2">Nueva transacción</h2>
+            <p className="text-sm text-muted-foreground mb-4">Completa el formulario para registrar una nueva transacción.</p>
+            <TransactionForm onComplete={() => setIsTransactionFormOpen(false)} />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

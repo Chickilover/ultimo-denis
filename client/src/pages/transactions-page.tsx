@@ -66,7 +66,13 @@ export default function TransactionsPage() {
         </Tabs>
         
         <Dialog open={isNewTransactionOpen} onOpenChange={setIsNewTransactionOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Nueva transacción</DialogTitle>
+              <DialogDescription>
+                Completa el formulario para registrar una nueva transacción.
+              </DialogDescription>
+            </DialogHeader>
             <TransactionForm 
               onComplete={() => setIsNewTransactionOpen(false)}
               defaultValues={{
