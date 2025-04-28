@@ -221,13 +221,23 @@ export default function SettingsPage() {
         setLocalExchangeRate(roundedValue);
         setExchangeRate(roundedValue);
         
-        // Enviar al servidor
+        // Datos a enviar al servidor
+        const now = new Date();
+        
+        // Enviar al servidor - Incluir solo el exchangeRate para evitar conflictos
         updateSettingsMutation.mutate({
+          exchangeRate: roundedValue,
+          // Establecer fecha en formato compatible con PostgreSQL
+          lastExchangeRateUpdate: now.toISOString(),
+          // Mantener las demás configuraciones para no perderlas
           defaultCurrency,
           theme,
-          language,
+          language
+        });
+
+        console.log("Enviando actualización al servidor:", {
           exchangeRate: roundedValue,
-          lastExchangeRateUpdate: new Date().toISOString()
+          lastExchangeRateUpdate: now.toISOString()
         });
       } catch (err) {
         console.error("Error al actualizar tipo de cambio:", err);

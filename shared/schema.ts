@@ -421,6 +421,7 @@ export const insertSettingsSchema = createInsertSchema(settings).pick({
   theme: true,
   language: true,
   exchangeRate: true,
+  lastExchangeRateUpdate: true,
 });
 
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
