@@ -1,4 +1,4 @@
-import { Shell } from "@/components/layout/shell";
+import { ShellWithoutTransaction } from "@/components/layout/shell-without-transaction";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { 
@@ -231,7 +231,7 @@ export default function FamilyPage() {
   };
   
   return (
-    <Shell>
+    <ShellWithoutTransaction>
       <PageHeader
         title="Mi Hogar"
         description="Administra los miembros de tu familia o grupo de convivencia"
@@ -523,6 +523,6 @@ export default function FamilyPage() {
           </Form>
         </DialogContent>
       </Dialog>
-    </Shell>
+    </ShellWithoutTransaction>
   );
 }
