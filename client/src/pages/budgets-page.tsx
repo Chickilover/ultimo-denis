@@ -255,6 +255,12 @@ export default function BudgetsPage() {
       isShared: budget.isShared,
       startDate: new Date(budget.startDate),
       endDate: budget.endDate ? new Date(budget.endDate) : undefined,
+      paymentType: budget.paymentType || "one-time",
+      paymentDay: budget.paymentDay || 1,
+      installments: budget.installments || 1,
+      status: budget.status || "pending",
+      approvalCount: budget.approvalCount || 0,
+      rejectionCount: budget.rejectionCount || 0,
     });
     setIsEditBudgetOpen(true);
   };
