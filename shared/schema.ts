@@ -306,6 +306,30 @@ export const insertSavingsContributionSchema = createInsertSchema(savingsContrib
 export type InsertSavingsContribution = z.infer<typeof insertSavingsContributionSchema>;
 export type SavingsContribution = typeof savingsContributions.$inferSelect;
 
+// Family members
+export const familyMembers = pgTable("family_members", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(), // El usuario al que pertenece este miembro
+  name: text("name").notNull(),
+  relationship: text("relationship").notNull(), // Esposo/a, Hijo/a, Padre/Madre, etc.
+  isActive: boolean("is_active").notNull().default(true),
+  canAccess: boolean("can_access").notNull().default(false), // Si puede tener acceso a la aplicación
+  avatarUrl: text("avatar_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertFamilyMemberSchema = createInsertSchema(familyMembers).pick({
+  userId: true,
+  name: true,
+  relationship: true,
+  isActive: true,
+  canAccess: true,
+  avatarUrl: true,
+});
+
+export type InsertFamilyMember = z.infer<typeof insertFamilyMemberSchema>;
+export type FamilyMember = typeof familyMembers.$inferSelect;
+
 // Settings
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),

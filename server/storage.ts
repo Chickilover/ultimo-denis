@@ -15,6 +15,13 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userData: Partial<User>): Promise<User | undefined>;
   
+  // Family members methods
+  getFamilyMembers(userId: number): Promise<FamilyMember[]>;
+  getFamilyMember(id: number): Promise<FamilyMember | undefined>;
+  createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember>;
+  updateFamilyMember(id: number, memberData: Partial<FamilyMember>): Promise<FamilyMember | undefined>;
+  deleteFamilyMember(id: number): Promise<boolean>;
+  
   // Account methods
   getAccounts(userId: number): Promise<Account[]>;
   getAccountsByUser(userId: number, includeShared: boolean): Promise<Account[]>;
@@ -95,6 +102,7 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
+  private familyMembers: Map<number, FamilyMember>;
   private accounts: Map<number, Account>;
   private categories: Map<number, Category>;
   private tags: Map<number, Tag>;
@@ -112,6 +120,7 @@ export class MemStorage implements IStorage {
   sessionStore: session.SessionStore;
   currentId: {
     users: number;
+    familyMembers: number;
     accounts: number;
     categories: number;
     tags: number;
@@ -129,6 +138,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.familyMembers = new Map();
     this.accounts = new Map();
     this.categories = new Map();
     this.tags = new Map();
@@ -145,6 +155,7 @@ export class MemStorage implements IStorage {
     
     this.currentId = {
       users: 1,
+      familyMembers: 1,
       accounts: 1,
       categories: 1,
       tags: 1,
@@ -219,6 +230,38 @@ export class MemStorage implements IStorage {
     const updatedUser = { ...user, ...userData };
     this.users.set(id, updatedUser);
     return updatedUser;
+  }
+  
+  // Family Members methods
+  async getFamilyMembers(userId: number): Promise<FamilyMember[]> {
+    return Array.from(this.familyMembers.values()).filter(
+      (member) => member.userId === userId
+    );
+  }
+  
+  async getFamilyMember(id: number): Promise<FamilyMember | undefined> {
+    return this.familyMembers.get(id);
+  }
+  
+  async createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember> {
+    const id = this.currentId.familyMembers++;
+    const now = new Date();
+    const newMember: FamilyMember = { ...member, id, isActive: true, createdAt: now };
+    this.familyMembers.set(id, newMember);
+    return newMember;
+  }
+  
+  async updateFamilyMember(id: number, memberData: Partial<FamilyMember>): Promise<FamilyMember | undefined> {
+    const member = this.familyMembers.get(id);
+    if (!member) return undefined;
+    
+    const updatedMember = { ...member, ...memberData };
+    this.familyMembers.set(id, updatedMember);
+    return updatedMember;
+  }
+  
+  async deleteFamilyMember(id: number): Promise<boolean> {
+    return this.familyMembers.delete(id);
   }
 
   // Account methods
