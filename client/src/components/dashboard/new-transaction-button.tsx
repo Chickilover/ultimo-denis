@@ -85,13 +85,16 @@ export function NewTransactionButton({ variant = "default" }: { variant?: "defau
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" aria-describedby="transaction-dialog-description">
             <DialogHeader>
               <DialogTitle>
                 {transactionType === "expense" ? "Nuevo gasto" : "Nuevo ingreso"} 
                 {isShared ? " del hogar" : " personal"}
               </DialogTitle>
             </DialogHeader>
+            <p id="transaction-dialog-description" className="sr-only">
+              Formulario para registrar una nueva transacción
+            </p>
             <TransactionForm 
               onComplete={handleCloseDialog} 
               defaultValues={getDefaultValues()} 
@@ -152,13 +155,16 @@ export function NewTransactionButton({ variant = "default" }: { variant?: "defau
       </div>
       
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" aria-describedby="transaction-dialog-description-main">
           <DialogHeader>
             <DialogTitle>
               {transactionType === "expense" ? "Nuevo gasto" : "Nuevo ingreso"} 
               {isShared ? " del hogar" : " personal"}
             </DialogTitle>
           </DialogHeader>
+          <p id="transaction-dialog-description-main" className="sr-only">
+            Formulario para registrar una nueva transacción
+          </p>
           <TransactionForm 
             onComplete={handleCloseDialog} 
             defaultValues={getDefaultValues()} 

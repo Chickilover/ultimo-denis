@@ -32,7 +32,7 @@ export function Sidebar({ className }: SidebarProps) {
     { path: "/", label: "Inicio", icon: <HomeIcon className="h-5 w-5" /> },
     { path: "/income", label: "Ingresos", icon: <ArrowUpCircleIcon className="h-5 w-5 text-green-500" /> },
     { path: "/expenses", label: "Gastos", icon: <ArrowDownCircleIcon className="h-5 w-5 text-red-500" /> },
-    { path: "/budgets", label: "Proyectos del Hogar", icon: <FolderIcon className="h-5 w-5" /> },
+    { path: "/budgets", label: "Proyectos", icon: <FolderIcon className="h-5 w-5" /> },
     { path: "/family", label: "Hogar", icon: <UsersIcon className="h-5 w-5" /> },
     { path: "/savings", label: "Metas de Ahorro", icon: <PiggyBankIcon className="h-5 w-5" /> },
     { path: "/reports", label: "Reportes", icon: <LineChartIcon className="h-5 w-5" /> },
@@ -48,7 +48,7 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside className={cn("fixed top-0 left-0 z-30 h-full w-64 bg-sidebar text-sidebar-foreground pt-5 flex flex-col", className)}>
       <div className="flex justify-center items-center mb-4">
-        <img src={logoImage} alt="Mi Hogar Financiero" className="h-16 w-auto" />
+        <img src={logoImage} alt="Nido Financiero" className="h-16 w-auto" />
       </div>
       <nav className="mt-2 px-2 flex-1">
         <ul className="space-y-1">
