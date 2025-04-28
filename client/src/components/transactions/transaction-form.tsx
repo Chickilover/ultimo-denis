@@ -85,10 +85,9 @@ export function TransactionForm({
     defaultValues: defaultValues || {
       userId: user?.id,
       transactionTypeId: 2, // Default to Expense
-      accountId: undefined,
       categoryId: undefined,
       amount: "",
-      currency: "UYU",
+      currency: "UYU", // Default to Uruguayan pesos
       description: "",
       date: new Date(),
       time: "",
@@ -106,12 +105,6 @@ export function TransactionForm({
   // Get transaction types
   const { data: transactionTypes = [] } = useQuery({
     queryKey: ["/api/transaction-types"],
-    queryFn: getQueryFn({ on401: "throw" }),
-  });
-  
-  // Get accounts
-  const { data: accounts = [] } = useQuery({
-    queryKey: ["/api/accounts"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
   
@@ -336,71 +329,37 @@ export function TransactionForm({
             )}
           />
           
-          <div className="grid grid-cols-2 gap-4">
-            {/* Category */}
-            <FormField
-              control={form.control}
-              name="categoryId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categoría</FormLabel>
-                  <Select
-                    value={field.value?.toString()}
-                    onValueChange={(value) => field.onChange(parseInt(value))}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar categoría" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {filteredCategories.map((category: any) => (
-                        <SelectItem 
-                          key={category.id} 
-                          value={category.id.toString()}
-                        >
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Account */}
-            <FormField
-              control={form.control}
-              name="accountId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cuenta</FormLabel>
-                  <Select
-                    value={field.value?.toString()}
-                    onValueChange={(value) => field.onChange(parseInt(value))}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar cuenta" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {accounts.map((account: any) => (
-                        <SelectItem 
-                          key={account.id} 
-                          value={account.id.toString()}
-                        >
-                          {account.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          {/* Category */}
+          <FormField
+            control={form.control}
+            name="categoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Categoría</FormLabel>
+                <Select
+                  value={field.value?.toString()}
+                  onValueChange={(value) => field.onChange(parseInt(value))}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar categoría" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {filteredCategories.map((category: any) => (
+                      <SelectItem 
+                        key={category.id} 
+                        value={category.id.toString()}
+                      >
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           
           {/* Shared Transaction */}
           <FormField

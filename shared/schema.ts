@@ -111,7 +111,7 @@ export const transactionTypes = pgTable("transaction_types", {
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  accountId: integer("account_id").references(() => accounts.id).notNull(),
+  accountId: integer("account_id").references(() => accounts.id), // Cuenta opcional
   categoryId: integer("category_id").references(() => categories.id).notNull(),
   transactionTypeId: integer("transaction_type_id").references(() => transactionTypes.id).notNull(),
   amount: numeric("amount").notNull(),
