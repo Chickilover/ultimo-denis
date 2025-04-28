@@ -128,7 +128,15 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertTransactionSchema = createInsertSchema(transactions).pick({
+// Create a more flexible transaction schema with proper transformation
+const baseInsertTransactionSchema = createInsertSchema(transactions, {
+  amount: z.union([z.string(), z.number()]).transform((val) => 
+    typeof val === "string" ? val : val.toString()
+  ),
+  date: z.union([z.string(), z.date()]).transform((val) => 
+    val instanceof Date ? val : new Date(val)
+  )
+}).pick({
   userId: true,
   accountId: true,
   categoryId: true,
@@ -144,6 +152,14 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
   isReimbursed: true,
   notes: true,
   receiptUrl: true,
+});
+
+// Make certain fields optional with defaults
+export const insertTransactionSchema = baseInsertTransactionSchema.extend({
+  accountId: z.number().nullish(), // Make account optional
+  notes: z.string().optional().nullable(),
+  receiptUrl: z.string().optional().nullable(),
+  time: z.string().optional().nullable(),
 });
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
