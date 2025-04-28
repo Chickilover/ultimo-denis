@@ -83,6 +83,7 @@ export function TransactionForm({
   const [activeTab, setActiveTab] = useState(defaultValues?.transactionTypeId === 1 ? "income" : defaultValues?.transactionTypeId === 3 ? "transfer" : "expense");
   const [showSplitSection, setShowSplitSection] = useState(false);
   const [isSplitting, setIsSplitting] = useState(false);
+  const [descriptionSuggestions, setDescriptionSuggestions] = useState<string[]>([]);
   
   // Form initialization with stabilized date handling
   const defaultFormValues = React.useMemo(() => {
@@ -238,6 +239,27 @@ export function TransactionForm({
     return true;
   }) : [];
   
+  // Load suggestions based on selected category
+  const loadSuggestionsForCategory = (categoryId: number) => {
+    // Get existing transactions from cache
+    const cachedTransactions = queryClient.getQueryData<any[]>(["/api/transactions"]);
+    
+    if (cachedTransactions && cachedTransactions.length > 0) {
+      // Filter transactions by categoryId and get unique descriptions
+      const suggestedDescriptions = Array.from(
+        new Set(
+          cachedTransactions
+            .filter(transaction => transaction.categoryId === categoryId)
+            .map(transaction => transaction.description)
+        )
+      );
+      
+      setDescriptionSuggestions(suggestedDescriptions);
+    } else {
+      setDescriptionSuggestions([]);
+    }
+  };
+  
   // Submit handler con mejor manejo de fechas
   const onSubmit = (data: TransactionFormValues) => {
     // Add userId if not present
@@ -328,48 +350,7 @@ export function TransactionForm({
             )}
           />
           
-          <div className="grid grid-cols-2 gap-4">
-            {/* Date */}
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Fecha</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PP", { locale: es })
-                          ) : (
-                            <span>Seleccionar fecha</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                        locale={es}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
+          <div className="grid grid-cols-1 gap-4">
             {/* Currency */}
             <FormField
               control={form.control}
@@ -397,22 +378,7 @@ export function TransactionForm({
             />
           </div>
           
-          {/* Description */}
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Descripción</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ej: Supermercado" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          {/* Category */}
+          {/* Category - AHORA PRIMERO */}
           <FormField
             control={form.control}
             name="categoryId"
@@ -421,7 +387,11 @@ export function TransactionForm({
                 <FormLabel>Categoría</FormLabel>
                 <Select
                   value={field.value?.toString()}
-                  onValueChange={(value) => field.onChange(parseInt(value))}
+                  onValueChange={(value) => {
+                    field.onChange(parseInt(value));
+                    // Al cambiar categoría, podríamos cargar sugerencias para autocompletado
+                    loadSuggestionsForCategory(parseInt(value));
+                  }}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -439,6 +409,32 @@ export function TransactionForm({
                     ))}
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          {/* Description - AHORA DESPUÉS */}
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Descripción</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Ej: Supermercado" 
+                    {...field} 
+                    list="suggestions"
+                  />
+                </FormControl>
+                {descriptionSuggestions.length > 0 && (
+                  <datalist id="suggestions">
+                    {descriptionSuggestions.map((suggestion, index) => (
+                      <option key={index} value={suggestion} />
+                    ))}
+                  </datalist>
+                )}
                 <FormMessage />
               </FormItem>
             )}
