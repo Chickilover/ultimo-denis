@@ -56,7 +56,6 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [categoryFilter, setCategoryFilter] = useState<string>("");
-  const [accountFilter, setAccountFilter] = useState<string>("");
   const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
@@ -86,9 +85,7 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
       params.categoryId = categoryFilter;
     }
     
-    if (accountFilter && accountFilter !== 'all') {
-      params.accountId = accountFilter;
-    }
+    // Filtrado por cuenta removido
     
     // Add transaction type filter based on the tab
     if (transactionType === 'income') {
@@ -191,7 +188,6 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
     setSearchQuery("");
     setDateRange(undefined);
     setCategoryFilter("all");
-    setAccountFilter("all");
     setCurrentPage(1);
   };
   
@@ -202,7 +198,7 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
         <div className="flex flex-wrap gap-2 mb-4">
           <div className="flex items-center bg-muted rounded-full px-3 py-1">
             <span className="text-sm font-medium mr-2">Filtros:</span>
-            {(!searchQuery && !dateRange && (!categoryFilter || categoryFilter === "all") && (!accountFilter || accountFilter === "all")) ? (
+            {(!searchQuery && !dateRange && (!categoryFilter || categoryFilter === "all")) ? (
               <Badge variant="outline" className="bg-primary/10 text-primary rounded-full">Todos</Badge>
             ) : (
               <Button variant="ghost" size="sm" className="h-6 px-2 rounded-full" onClick={clearFilters}>
@@ -228,22 +224,7 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
             </Badge>
           )}
           
-          {accountFilter && (
-            <Badge 
-              variant="outline" 
-              className="bg-primary/10 text-primary rounded-full flex items-center gap-1"
-            >
-              Cuenta: {getAccountName(parseInt(accountFilter))}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-4 w-4 p-0 rounded-full" 
-                onClick={() => setAccountFilter("all")}
-              >
-                ×
-              </Button>
-            </Badge>
-          )}
+          {/* Filtro de cuentas removido */}
           
           {dateRange?.from && (
             <Badge 
@@ -276,19 +257,7 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
             </SelectContent>
           </Select>
           
-          <Select value={accountFilter} onValueChange={setAccountFilter}>
-            <SelectTrigger className="w-auto text-xs bg-muted border-none rounded-full px-3 py-1 h-7">
-              <span className="whitespace-nowrap">+ Cuenta</span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las cuentas</SelectItem>
-              {accounts.map((account: any) => (
-                <SelectItem key={account.id} value={account.id.toString()}>
-                  {account.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Selector de cuentas removido */}
           
           <DateRangePicker
             dateRange={dateRange}
@@ -331,7 +300,6 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
                 <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground">Fecha</th>
                 <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground">Descripción</th>
                 <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground">Categoría</th>
-                <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground">Cuenta</th>
                 <th className="py-3 px-4 text-right text-xs font-medium text-muted-foreground">Importe</th>
                 <th className="py-3 px-4 text-right text-xs font-medium text-muted-foreground"></th>
               </tr>
@@ -339,13 +307,13 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-6 text-center text-muted-foreground">
+                  <td colSpan={5} className="py-6 text-center text-muted-foreground">
                     Cargando transacciones...
                   </td>
                 </tr>
               ) : paginatedTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-6 text-center text-muted-foreground">
+                  <td colSpan={5} className="py-6 text-center text-muted-foreground">
                     No se encontraron transacciones
                   </td>
                 </tr>
@@ -369,7 +337,6 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
                       </div>
                     </td>
                     <td className="py-3 px-4 text-sm">{getCategoryName(transaction.categoryId)}</td>
-                    <td className="py-3 px-4 text-sm">{getAccountName(transaction.accountId)}</td>
                     <td className="py-3 px-4 text-sm text-right font-medium font-mono">
                       <span className={transaction.transactionTypeId === 1 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
                         {transaction.transactionTypeId === 1 ? "+" : "-"}
