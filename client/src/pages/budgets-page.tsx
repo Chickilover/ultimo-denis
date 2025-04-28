@@ -77,6 +77,12 @@ const budgetFormSchema = z.object({
     required_error: "La fecha de inicio es requerida",
   }),
   endDate: z.date().optional(),
+  paymentType: z.string().default("one-time"),
+  paymentDay: z.number().optional(),
+  installments: z.number().optional(),
+  status: z.string().default("pending"),
+  approvalCount: z.number().default(0),
+  rejectionCount: z.number().default(0),
 });
 
 type BudgetFormValues = z.infer<typeof budgetFormSchema>;
@@ -121,6 +127,12 @@ export default function BudgetsPage() {
       isRollover: false,
       isShared: false,
       startDate: new Date(),
+      paymentType: "one-time",
+      paymentDay: 1,
+      installments: 1,
+      status: "pending",
+      approvalCount: 0,
+      rejectionCount: 0,
     },
   });
   
@@ -136,6 +148,12 @@ export default function BudgetsPage() {
       isRollover: false,
       isShared: false,
       startDate: new Date(),
+      paymentType: "one-time",
+      paymentDay: 1,
+      installments: 1,
+      status: "pending",
+      approvalCount: 0,
+      rejectionCount: 0,
     },
   });
   

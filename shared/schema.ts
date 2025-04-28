@@ -294,6 +294,12 @@ export const budgets = pgTable("budgets", {
   isShared: boolean("is_shared").notNull().default(false),
   startDate: date("start_date").notNull(),
   endDate: date("end_date"),
+  paymentType: text("payment_type").default("one-time"), // one-time, installments
+  paymentDay: integer("payment_day"), // Día del mes para pagos recurrentes
+  installments: integer("installments"), // Número de cuotas
+  status: text("status").notNull().default("pending"), // pending, approved, rejected
+  approvalCount: integer("approval_count").default(0), // Conteo de votos positivos
+  rejectionCount: integer("rejection_count").default(0), // Conteo de votos negativos
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -308,6 +314,12 @@ export const insertBudgetSchema = createInsertSchema(budgets).pick({
   isShared: true,
   startDate: true,
   endDate: true,
+  paymentType: true,
+  paymentDay: true,
+  installments: true,
+  status: true,
+  approvalCount: true,
+  rejectionCount: true,
 });
 
 export type InsertBudget = z.infer<typeof insertBudgetSchema>;
