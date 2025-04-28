@@ -271,7 +271,6 @@ export function TransactionForm({
       // Make sure numeric fields are properly converted
       amount: data.amount || "0",
       transactionTypeId: activeTab === "expense" ? 2 : activeTab === "income" ? 1 : 3,
-      isShared: typeof data.isShared === 'boolean' ? data.isShared : false,
     };
     
     // Prevenir interacciones múltiples durante la operación
