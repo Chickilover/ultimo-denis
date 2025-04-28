@@ -157,7 +157,7 @@ export default function BudgetsPage() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: `Error al crear el presupuesto: ${error.message}`,
+        description: `Error al crear el proyecto: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -173,15 +173,15 @@ export default function BudgetsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/budgets"] });
       toast({
-        title: "Presupuesto actualizado",
-        description: "El presupuesto se ha actualizado correctamente",
+        title: "Proyecto actualizado",
+        description: "El proyecto se ha actualizado correctamente",
       });
       setIsEditBudgetOpen(false);
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: `Error al actualizar el presupuesto: ${error.message}`,
+        description: `Error al actualizar el proyecto: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -195,15 +195,15 @@ export default function BudgetsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/budgets"] });
       toast({
-        title: "Presupuesto eliminado",
-        description: "El presupuesto se ha eliminado correctamente",
+        title: "Proyecto eliminado",
+        description: "El proyecto se ha eliminado correctamente",
       });
       setIsDeleteDialogOpen(false);
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: `Error al eliminar el presupuesto: ${error.message}`,
+        description: `Error al eliminar el proyecto: ${error.message}`,
         variant: "destructive",
       });
     },

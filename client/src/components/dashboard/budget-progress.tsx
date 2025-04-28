@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { calculateProgress } from "@/lib/utils";
 
-export function BudgetProgress() {
+export function BudgetProgress() {  // kept same function name to avoid breaking imports
   const { formatCurrency } = useCurrency();
   
   // Fetch budgets
