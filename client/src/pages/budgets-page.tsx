@@ -60,6 +60,8 @@ import {
   Loader2,
   CalendarIcon,
   InfoIcon,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 
 // Budget form schema
@@ -222,6 +224,50 @@ export default function BudgetsPage() {
       toast({
         title: "Error",
         description: `Error al eliminar el proyecto: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Approve budget mutation
+  const approveBudgetMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("PATCH", `/api/budgets/${id}/approve`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/budgets"] });
+      toast({
+        title: "Proyecto aprobado",
+        description: "Has aprobado este proyecto",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Error al aprobar el proyecto: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Reject budget mutation
+  const rejectBudgetMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("PATCH", `/api/budgets/${id}/reject`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/budgets"] });
+      toast({
+        title: "Proyecto rechazado",
+        description: "Has rechazado este proyecto",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Error al rechazar el proyecto: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -462,9 +508,55 @@ export default function BudgetsPage() {
                         </span>
                       </div>
                       
-                      {budget.isShared && (
-                        <div className="text-xs bg-primary/10 text-primary py-1 px-2 rounded-full inline-block">
-                          Compartido
+                      <div className="flex flex-wrap gap-2">
+                        {budget.isShared && (
+                          <div className="text-xs bg-primary/10 text-primary py-1 px-2 rounded-full inline-block">
+                            Compartido
+                          </div>
+                        )}
+                        
+                        {budget.status === 'pending' && (
+                          <div className="text-xs bg-amber-500/10 text-amber-600 py-1 px-2 rounded-full inline-block">
+                            Pendiente de aprobación
+                          </div>
+                        )}
+
+                        {budget.status === 'approved' && (
+                          <div className="text-xs bg-green-500/10 text-green-600 py-1 px-2 rounded-full inline-block">
+                            Aprobado
+                          </div>
+                        )}
+
+                        {budget.status === 'rejected' && (
+                          <div className="text-xs bg-red-500/10 text-red-600 py-1 px-2 rounded-full inline-block">
+                            Rechazado
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Botones de votación para proyectos en estado pendiente */}
+                      {budget.status === 'pending' && budget.isShared && (
+                        <div className="flex gap-2 mt-3">
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            className="w-full border-green-500 hover:bg-green-500/10 text-green-600"
+                            onClick={() => approveBudgetMutation.mutate(budget.id)}
+                          >
+                            <ThumbsUp className="h-4 w-4 mr-1" /> 
+                            Aprobar
+                            {budget.approvalCount > 0 && <span className="ml-1">({budget.approvalCount})</span>}
+                          </Button>
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            className="w-full border-red-500 hover:bg-red-500/10 text-red-600"
+                            onClick={() => rejectBudgetMutation.mutate(budget.id)}
+                          >
+                            <ThumbsDown className="h-4 w-4 mr-1" /> 
+                            Rechazar
+                            {budget.rejectionCount > 0 && <span className="ml-1">({budget.rejectionCount})</span>}
+                          </Button>
                         </div>
                       )}
                     </div>

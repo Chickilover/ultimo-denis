@@ -501,6 +501,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error al eliminar el presupuesto" });
     }
   });
+  
+  // Budget voting
+  app.patch("/api/budgets/:id/approve", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const budgetId = parseInt(req.params.id);
+      const budget = await storage.getBudget(budgetId);
+      
+      if (!budget) {
+        return res.status(404).json({ message: "Proyecto no encontrado" });
+      }
+      
+      // Solo se pueden votar proyectos compartidos
+      if (!budget.isShared) {
+        return res.status(400).json({ message: "Este proyecto no es compartido y no se puede votar" });
+      }
+      
+      // Incrementar votos de aprobación
+      const approvalCount = (budget.approvalCount || 0) + 1;
+      
+      // Verificar si el proyecto ahora debería ser aprobado (más de 2 votos)
+      // En una aplicación real, esto dependería de la cantidad total de miembros del hogar
+      let status = budget.status;
+      if (approvalCount >= 2) {
+        status = "approved";
+        
+        // Si es de tipo mensual/recurrente, crear una transacción recurrente
+        if (budget.paymentType === "monthly" || budget.paymentType === "installments") {
+          // Aquí crearías una transacción recurrente con los datos del proyecto aprobado
+          // Esto requeriría almacenar la información en la base de datos de transacciones recurrentes
+        }
+      }
+      
+      const updatedBudget = await storage.updateBudget(budgetId, {
+        approvalCount,
+        status
+      });
+      
+      res.json(updatedBudget);
+    } catch (error) {
+      res.status(500).json({ message: "Error al aprobar el proyecto", error });
+    }
+  });
+  
+  app.patch("/api/budgets/:id/reject", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const budgetId = parseInt(req.params.id);
+      const budget = await storage.getBudget(budgetId);
+      
+      if (!budget) {
+        return res.status(404).json({ message: "Proyecto no encontrado" });
+      }
+      
+      // Solo se pueden votar proyectos compartidos
+      if (!budget.isShared) {
+        return res.status(400).json({ message: "Este proyecto no es compartido y no se puede votar" });
+      }
+      
+      // Incrementar votos de rechazo
+      const rejectionCount = (budget.rejectionCount || 0) + 1;
+      
+      // Verificar si el proyecto ahora debería ser rechazado (más de 2 votos)
+      let status = budget.status;
+      if (rejectionCount >= 2) {
+        status = "rejected";
+      }
+      
+      const updatedBudget = await storage.updateBudget(budgetId, {
+        rejectionCount,
+        status
+      });
+      
+      res.json(updatedBudget);
+    } catch (error) {
+      res.status(500).json({ message: "Error al rechazar el proyecto", error });
+    }
+  });
 
   // Savings goals
   app.get("/api/savings-goals", async (req, res) => {
