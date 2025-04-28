@@ -47,6 +47,11 @@ const formSchema = insertTransactionSchema.extend({
   date: z.date({
     required_error: "La fecha es requerida",
   }),
+  description: z.string().min(1, "La descripción es requerida"),
+  categoryId: z.number({
+    required_error: "La categoría es requerida",
+  }).min(1, "Debes seleccionar una categoría"),
+  amount: z.string().min(1, "El importe es requerido"),
   splits: z.array(
     z.object({
       categoryId: z.number(),
@@ -75,7 +80,7 @@ export function TransactionForm({
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("expense");
+  const [activeTab, setActiveTab] = useState(defaultValues?.transactionTypeId === 1 ? "income" : defaultValues?.transactionTypeId === 3 ? "transfer" : "expense");
   const [showSplitSection, setShowSplitSection] = useState(false);
   const [isSplitting, setIsSplitting] = useState(false);
   
@@ -101,27 +106,33 @@ export function TransactionForm({
       defaultDate = new Date();
     }
     
-    return {
-      ...(defaultValues || {
-        userId: user?.id,
-        transactionTypeId: 2, // Default to Expense (ID 2 = gasto)
-        categoryId: undefined,
-        amount: "",
-        currency: "UYU", // Default to Uruguayan pesos
-        description: "",
-        time: "",
-        isShared: false,
-        isReconciled: false,
-        isReimbursable: false,
-        isReimbursed: false,
-        notes: "",
-        receiptUrl: "",
-        splits: [],
-        tags: [],
-      }),
-      date: defaultDate,
+    const emptyDefaults = {
+      userId: user?.id,
+      transactionTypeId: activeTab === "income" ? 1 : activeTab === "transfer" ? 3 : 2,
+      categoryId: undefined,
+      amount: "",
+      currency: "UYU", // Default to Uruguayan pesos
+      description: "",
+      time: "",
+      isShared: false,
+      isReconciled: false,
+      isReimbursable: false,
+      isReimbursed: false,
+      notes: "",
+      receiptUrl: "",
+      splits: [],
+      tags: [],
     };
-  }, [defaultValues, user?.id]);
+    
+    // Asegurarse que description tenga un valor por defecto para evitar errores de inputs no controlados
+    return {
+      ...emptyDefaults,
+      ...(defaultValues || {}),
+      date: defaultDate,
+      description: (defaultValues?.description || "") + "", // Forzar string para evitar undefined
+      notes: (defaultValues?.notes || "") + "", // Forzar string para evitar undefined
+    };
+  }, [defaultValues, user?.id, activeTab]);
   
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(formSchema),
@@ -254,6 +265,9 @@ export function TransactionForm({
       accountId: data.accountId || null,
       notes: data.notes || '',
       receiptUrl: data.receiptUrl || null,
+      userId: user?.id,
+      categoryId: data.categoryId || 1, // Categoría por defecto para evitar errores
+      isShared: data.isShared || false,
       // Make sure numeric fields are properly converted
       amount: data.amount || "0",
       transactionTypeId: activeTab === "expense" ? 2 : activeTab === "income" ? 1 : 3,
