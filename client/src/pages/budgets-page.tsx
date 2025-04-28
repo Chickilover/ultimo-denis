@@ -349,9 +349,12 @@ export default function BudgetsPage() {
             </div>
           ) : filteredBudgets.length === 0 ? (
             <div className="col-span-full text-center p-8">
-              <p className="text-muted-foreground mb-4">No hay presupuestos para mostrar</p>
-              <Button onClick={() => setIsNewBudgetOpen(true)}>
-                Crear nuevo presupuesto
+              <p className="text-muted-foreground mb-4">No hay proyectos para mostrar</p>
+              <Button 
+                onClick={() => setIsNewBudgetOpen(true)}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              >
+                Crear nuevo proyecto
               </Button>
             </div>
           ) : (
@@ -450,9 +453,9 @@ export default function BudgetsPage() {
         <Dialog open={isNewBudgetOpen} onOpenChange={setIsNewBudgetOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Nuevo Presupuesto</DialogTitle>
+              <DialogTitle>Nuevo Proyecto</DialogTitle>
               <DialogDescription>
-                Crea un nuevo presupuesto para controlar tus gastos
+                Crea un nuevo proyecto para planificar y controlar tus gastos
               </DialogDescription>
             </DialogHeader>
             
@@ -707,7 +710,7 @@ export default function BudgetsPage() {
                     {createBudgetMutation.isPending && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    Crear presupuesto
+                    Crear proyecto
                   </Button>
                 </DialogFooter>
               </form>
