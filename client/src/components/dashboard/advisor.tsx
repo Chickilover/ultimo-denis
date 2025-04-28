@@ -3,29 +3,40 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { BrainCircuit } from "lucide-react";
 
-// In a real application, these insights would be generated based on actual user data
-// Here we're using mock data for demonstration purposes
-const advisorInsights = [
+interface Insight {
+  id: number;
+  title: string;
+  content: string;
+  action: string;
+  type: 'warning' | 'tip' | 'info';
+  link: string;
+}
+
+// Consejos genéricos que se muestran cuando no hay suficientes datos para análisis
+const basicInsights: Insight[] = [
   {
     id: 1,
-    title: "Gasto elevado en Restaurantes",
-    content: "Este mes, tu gasto en Restaurantes y Delivery fue de 6.350 $U, un 15% más que el mes pasado. ¿Hubo alguna ocasión especial?",
-    action: "Ver detalles",
-    type: "warning"
+    title: "Registro de transacciones",
+    content: "Registra tus ingresos y gastos regularmente para tener un panorama completo de tus finanzas personales y familiares.",
+    action: "Registrar transacción",
+    type: "tip",
+    link: "/expenses"
   },
   {
     id: 2,
-    title: "Potencial de ahorro",
-    content: "Basado en tus ingresos y gastos habituales, tienes un potencial de ahorro mensual estimado de 15.000 $U.",
-    action: "Ver sugerencias de ahorro",
-    type: "tip"
+    title: "Define presupuestos",
+    content: "Establecer presupuestos te ayudará a controlar tus gastos y alcanzar tus objetivos financieros.",
+    action: "Crear presupuesto",
+    type: "info",
+    link: "/budgets"
   },
   {
     id: 3,
-    title: "Suscripciones activas",
-    content: "Actualmente tienes 3 suscripciones recurrentes por un total de 1.890 $U mensuales. Revisa si sigues utilizando todas.",
-    action: "Revisar suscripciones",
-    type: "info"
+    title: "Registra tus metas de ahorro",
+    content: "Define objetivos de ahorro específicos para motivarte a guardar dinero de forma constante.",
+    action: "Crear meta de ahorro",
+    type: "info",
+    link: "/savings"
   }
 ];
 
@@ -49,7 +60,7 @@ export function Advisor() {
       </CardHeader>
       <CardContent className="pt-4">
         <div className="space-y-3">
-          {advisorInsights.map((insight) => (
+          {basicInsights.map((insight) => (
             <div 
               key={insight.id} 
               className={`rounded-lg border p-4 ${
@@ -64,13 +75,15 @@ export function Advisor() {
                 <span className="font-semibold">{insight.title}: </span>
                 {insight.content}
               </p>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="mt-2 text-primary dark:text-primary-400 p-0 h-auto hover:bg-transparent hover:underline"
-              >
-                {insight.action}
-              </Button>
+              <Link href={insight.link}>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="mt-2 text-primary dark:text-primary-400 p-0 h-auto hover:bg-transparent hover:underline"
+                >
+                  {insight.action}
+                </Button>
+              </Link>
             </div>
           ))}
           

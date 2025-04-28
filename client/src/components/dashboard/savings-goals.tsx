@@ -11,11 +11,25 @@ import {
   Home 
 } from "lucide-react";
 
-// Map goal names to icons
-const goalIcons: Record<string, any> = {
-  "Vacaciones 2024": <Sparkles className="h-5 w-5 text-primary-500" />,
-  "Fondo de Emergencia": <Shield className="h-5 w-5 text-green-500" />,
-  "Entrada nueva casa": <Home className="h-5 w-5 text-accent-500" />,
+// Iconos para tipos comunes de metas de ahorro
+const goalIconsMap: Record<string, any> = {
+  "vacaciones": <Sparkles className="h-5 w-5 text-primary-500" />,
+  "emergencia": <Shield className="h-5 w-5 text-green-500" />,
+  "casa": <Home className="h-5 w-5 text-accent-500" />,
+};
+
+// Función para determinar qué icono usar según el nombre de la meta
+const getGoalIcon = (goalName: string) => {
+  // Convertir a minúsculas para facilitar la coincidencia
+  const name = goalName.toLowerCase();
+  
+  // Verificar si el nombre contiene alguna de las palabras clave
+  if (name.includes('vacacion')) return goalIconsMap['vacaciones'];
+  if (name.includes('emergencia') || name.includes('fondo')) return goalIconsMap['emergencia'];
+  if (name.includes('casa') || name.includes('hogar') || name.includes('apartamento')) return goalIconsMap['casa'];
+  
+  // Retornar null si no hay coincidencia
+  return null;
 };
 
 export function SavingsGoals() {
@@ -67,7 +81,7 @@ export function SavingsGoals() {
                 <div key={index} className="space-y-1">
                   <div className="flex justify-between items-center mb-1">
                     <div className="flex items-center">
-                      {goalIcons[goal.name] || 
+                      {getGoalIcon(goal.name) || 
                        <div className="h-5 w-5 bg-primary/20 rounded-full flex items-center justify-center text-primary">
                          {goal.name.charAt(0)}
                        </div>
