@@ -401,12 +401,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSettings(userId: number, data: Partial<Settings>): Promise<Settings | undefined> {
-    const result = await db
-      .update(settings)
-      .set(data)
-      .where(eq(settings.userId, userId))
-      .returning();
-    return result[0];
+    try {
+      console.log(`Actualizando configuración para usuario ${userId}:`, data);
+      
+      // Asegurar que lastExchangeRateUpdate sea de tipo Date si está presente
+      let processedData = { ...data };
+      
+      if (processedData.lastExchangeRateUpdate && typeof processedData.lastExchangeRateUpdate === 'string') {
+        try {
+          // Si es una cadena ISO, convertir a Date
+          processedData.lastExchangeRateUpdate = new Date(processedData.lastExchangeRateUpdate);
+        } catch (err) {
+          console.error("Error al convertir lastExchangeRateUpdate a Date:", err);
+          // Si falla, usamos la fecha actual
+          processedData.lastExchangeRateUpdate = new Date();
+        }
+      }
+      
+      console.log("Datos procesados:", processedData);
+      
+      const result = await db
+        .update(settings)
+        .set(processedData)
+        .where(eq(settings.userId, userId))
+        .returning();
+        
+      console.log("Resultado de actualización:", result[0]);
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error al actualizar la configuración:", error);
+      throw error;
+    }
   }
 
   // Transaction types
