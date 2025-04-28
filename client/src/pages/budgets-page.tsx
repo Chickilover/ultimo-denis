@@ -693,9 +693,9 @@ export default function BudgetsPage() {
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel>Presupuesto compartido</FormLabel>
+                        <FormLabel>Proyecto compartido</FormLabel>
                         <FormDescription>
-                          Este presupuesto será visible para todos los miembros del hogar
+                          Este proyecto será visible para todos los miembros del hogar
                         </FormDescription>
                       </div>
                     </FormItem>
@@ -705,6 +705,7 @@ export default function BudgetsPage() {
                 <DialogFooter>
                   <Button 
                     type="submit" 
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                     disabled={createBudgetMutation.isPending}
                   >
                     {createBudgetMutation.isPending && (
@@ -722,9 +723,9 @@ export default function BudgetsPage() {
         <Dialog open={isEditBudgetOpen} onOpenChange={setIsEditBudgetOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Editar Presupuesto</DialogTitle>
+              <DialogTitle>Editar Proyecto</DialogTitle>
               <DialogDescription>
-                Modifica tu presupuesto
+                Modifica los detalles de tu proyecto
               </DialogDescription>
             </DialogHeader>
             
@@ -962,9 +963,9 @@ export default function BudgetsPage() {
                         />
                       </FormControl>
                       <div className="space-y-1 leading-none">
-                        <FormLabel>Presupuesto compartido</FormLabel>
+                        <FormLabel>Proyecto compartido</FormLabel>
                         <FormDescription>
-                          Este presupuesto será visible para todos los miembros del hogar
+                          Este proyecto será visible para todos los miembros del hogar
                         </FormDescription>
                       </div>
                     </FormItem>
@@ -973,7 +974,8 @@ export default function BudgetsPage() {
                 
                 <DialogFooter>
                   <Button 
-                    type="submit" 
+                    type="submit"
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                     disabled={updateBudgetMutation.isPending}
                   >
                     {updateBudgetMutation.isPending && (
@@ -991,9 +993,9 @@ export default function BudgetsPage() {
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Eliminar presupuesto</DialogTitle>
+              <DialogTitle>Eliminar proyecto</DialogTitle>
               <DialogDescription>
-                ¿Estás seguro de que deseas eliminar este presupuesto? Esta acción no se puede deshacer.
+                ¿Estás seguro de que deseas eliminar este proyecto? Esta acción no se puede deshacer.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2 sm:gap-0">
