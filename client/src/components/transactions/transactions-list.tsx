@@ -170,7 +170,7 @@ export function TransactionsList({ transactionType = "all" }: TransactionsListPr
 
       {/* Edit Transaction Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <div className="space-y-4 py-2 pb-4">
             <div className="space-y-2">
               <h2 className="text-xl font-bold text-center">Editar Transacción</h2>
