@@ -361,24 +361,30 @@ export function TransactionForm({
             )}
           />
           
-          {/* Shared Transaction */}
+          {/* Transaction Type: Personal vs. Hogar */}
           <FormField
             control={form.control}
             name="isShared"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Transacción compartida</FormLabel>
-                  <FormDescription>
-                    Esta transacción será visible para todos los miembros del hogar
-                  </FormDescription>
-                </div>
+              <FormItem>
+                <FormLabel>Tipo de transacción</FormLabel>
+                <Select
+                  value={field.value ? "hogar" : "personal"}
+                  onValueChange={(value) => field.onChange(value === "hogar")}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="personal">Personal</SelectItem>
+                    <SelectItem value="hogar">Hogar</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>
+                  Personal: solo visible para ti. Hogar: visible para todos los miembros familiares.
+                </FormDescription>
               </FormItem>
             )}
           />
@@ -386,36 +392,6 @@ export function TransactionForm({
           {/* Additional options */}
           {activeTab === "expense" && (
             <>
-              {/* Split transaction */}
-              <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <Checkbox
-                  checked={showSplitSection}
-                  onCheckedChange={setShowSplitSection}
-                  id="split-transaction"
-                />
-                <div className="space-y-1 leading-none">
-                  <label
-                    htmlFor="split-transaction"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    Dividir transacción
-                  </label>
-                  <p className="text-sm text-muted-foreground">
-                    Dividir el importe total entre varias categorías
-                  </p>
-                </div>
-              </div>
-              
-              {/* Split section */}
-              {showSplitSection && (
-                <div className="space-y-4 rounded-md border p-4">
-                  <h3 className="text-sm font-medium">Dividir entre categorías</h3>
-                  {/* Split functionality would be implemented here */}
-                  <div className="text-sm text-muted-foreground">
-                    Funcionalidad de división en desarrollo
-                  </div>
-                </div>
-              )}
               
               {/* Reimbursable */}
               <FormField
