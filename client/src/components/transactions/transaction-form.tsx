@@ -79,27 +79,53 @@ export function TransactionForm({
   const [showSplitSection, setShowSplitSection] = useState(false);
   const [isSplitting, setIsSplitting] = useState(false);
   
-  // Form initialization
+  // Form initialization with stabilized date handling
+  const defaultFormValues = React.useMemo(() => {
+    // Handle the case where date comes as a string from API
+    let defaultDate: Date;
+    
+    if (defaultValues?.date) {
+      // If it's already a Date object, use it
+      if (defaultValues.date instanceof Date) {
+        defaultDate = defaultValues.date;
+      } 
+      // If it's a string, convert it to Date
+      else if (typeof defaultValues.date === 'string') {
+        defaultDate = new Date(defaultValues.date);
+      }
+      // Fallback to current date
+      else {
+        defaultDate = new Date();
+      }
+    } else {
+      defaultDate = new Date();
+    }
+    
+    return {
+      ...(defaultValues || {
+        userId: user?.id,
+        transactionTypeId: 2, // Default to Expense (ID 2 = gasto)
+        categoryId: undefined,
+        amount: "",
+        currency: "UYU", // Default to Uruguayan pesos
+        description: "",
+        time: "",
+        isShared: false,
+        isReconciled: false,
+        isReimbursable: false,
+        isReimbursed: false,
+        notes: "",
+        receiptUrl: "",
+        splits: [],
+        tags: [],
+      }),
+      date: defaultDate,
+    };
+  }, [defaultValues, user?.id]);
+  
   const form = useForm<TransactionFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: defaultValues || {
-      userId: user?.id,
-      transactionTypeId: 2, // Default to Expense (ID 2 = gasto)
-      categoryId: undefined,
-      amount: "",
-      currency: "UYU", // Default to Uruguayan pesos
-      description: "",
-      date: new Date(),
-      time: "",
-      isShared: false,
-      isReconciled: false,
-      isReimbursable: false,
-      isReimbursed: false,
-      notes: "",
-      receiptUrl: "",
-      splits: [],
-      tags: [],
-    },
+    defaultValues: defaultFormValues,
   });
   
   // Get transaction types
@@ -201,16 +227,27 @@ export function TransactionForm({
     return true;
   }) : [];
   
-  // Submit handler
+  // Submit handler con mejor manejo de fechas
   const onSubmit = (data: TransactionFormValues) => {
     // Add userId if not present
     if (!data.userId && user) {
       data.userId = user.id;
     }
     
+    // Convertir la fecha a formato ISO string (YYYY-MM-DD)
+    let formattedDate: string;
+    if (data.date) {
+      const date = new Date(data.date);
+      formattedDate = date.toISOString().split('T')[0];
+    } else {
+      formattedDate = new Date().toISOString().split('T')[0];
+    }
+    
     // Ensure all required fields have values and convert properly
     const completeData = {
       ...data,
+      // Sobrescribimos la fecha con el formato correcto
+      date: formattedDate,
       // Set default values for required fields if not present
       currency: data.currency || 'UYU',
       time: data.time || null,
@@ -222,8 +259,10 @@ export function TransactionForm({
       transactionTypeId: activeTab === "expense" ? 2 : activeTab === "income" ? 1 : 3,
     };
     
-    // Log the data being submitted
-    console.log('Submitting transaction:', completeData);
+    // Prevenir interacciones múltiples durante la operación
+    if (createTransactionMutation.isPending || updateTransactionMutation.isPending) {
+      return;
+    }
     
     try {
       if (editMode && transactionId) {

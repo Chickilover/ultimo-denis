@@ -1,4 +1,4 @@
-import { forwardRef, useState, useEffect } from "react";
+import { forwardRef } from "react";
 import { Input } from "./input";
 import { cn } from "@/lib/utils";
 import { ComponentProps } from "react";
@@ -12,33 +12,26 @@ export interface CurrencyInputProps extends Omit<ComponentProps<"input">, "onCha
 
 export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
   ({ value, onChange, currency = "UYU", className, label, ...props }, ref) => {
-    const [displayValue, setDisplayValue] = useState("");
-    
-    // Format initial value
-    useEffect(() => {
-      if (value === "") {
-        setDisplayValue("");
-        return;
+    // Format the display value directly without using state
+    const getDisplayValue = () => {
+      if (value === "" || value === undefined || value === null) {
+        return "";
       }
       
-      const numValue = typeof value === "string" ? parseFloat(value) : value;
-      
-      if (isNaN(numValue)) {
-        setDisplayValue("");
-        return;
+      // If it's already a string, use it directly
+      if (typeof value === "string") {
+        return value;
       }
       
-      // Just convert to string without forcing decimal formatting
-      const formatted = numValue.toString();
-      setDisplayValue(formatted);
-    }, [value]);
+      // Convert number to string
+      return value.toString();
+    };
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const input = e.target.value;
       
       // Allow for empty input
       if (input === "") {
-        setDisplayValue("");
         onChange("");
         return;
       }
@@ -54,7 +47,6 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
         formattedValue += "." + parts.slice(1).join("").slice(0, 2);
       }
       
-      setDisplayValue(formattedValue);
       onChange(formattedValue);
     };
     
@@ -73,7 +65,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
             ref={ref}
             type="text"
             inputMode="decimal"
-            value={displayValue}
+            value={getDisplayValue()}
             onChange={handleChange}
             className={cn("pl-10", className)}
             placeholder="0.00"
