@@ -274,10 +274,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/transactions", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const transactionData = await insertTransactionSchema.parseAsync({
-        ...req.body,
-        userId: req.user.id
-      });
+      // Log the data for debugging
+      console.log("Datos recibidos para crear transacción:", JSON.stringify(req.body));
+      
+      // Si accountId es una cadena vacía o undefined, establecerlo como null
+      let modifiedBody = { ...req.body };
+      if (modifiedBody.accountId === "" || modifiedBody.accountId === undefined) {
+        modifiedBody.accountId = null;
+      }
+      
+      // Asegurar que todos los campos booleanos sean valores booleanos
+      if (typeof modifiedBody.isShared === "string") {
+        modifiedBody.isShared = modifiedBody.isShared === "true";
+      }
+      if (typeof modifiedBody.isReconciled === "string") {
+        modifiedBody.isReconciled = modifiedBody.isReconciled === "true";
+      }
+      if (typeof modifiedBody.isReimbursable === "string") {
+        modifiedBody.isReimbursable = modifiedBody.isReimbursable === "true";
+      }
+      if (typeof modifiedBody.isReimbursed === "string") {
+        modifiedBody.isReimbursed = modifiedBody.isReimbursed === "true";
+      }
+      
+      // Asegurar que siempre usamos el ID del usuario autenticado
+      modifiedBody.userId = req.user.id;
+      
+      // Intentar analizar y validar los datos con el esquema mejorado
+      const transactionData = await insertTransactionSchema.parseAsync(modifiedBody);
+      
+      console.log("Datos validados:", JSON.stringify(transactionData));
       
       const transaction = await storage.createTransaction(transactionData);
       
@@ -305,7 +331,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(transaction);
     } catch (error) {
-      res.status(400).json({ message: "Datos de transacción inválidos", error });
+      console.error('Error detallado al crear transacción:', error);
+      res.status(400).json({
+        message: "Datos de transacción inválidos",
+        error: error instanceof z.ZodError 
+          ? JSON.stringify(error.errors) 
+          : String(error)
+      });
     }
   });
 
