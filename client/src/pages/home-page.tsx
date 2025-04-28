@@ -11,8 +11,15 @@ import { SavingsGoals } from "@/components/dashboard/savings-goals";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { Advisor } from "@/components/dashboard/advisor";
 import { NewTransactionButton } from "@/components/dashboard/new-transaction-button";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -97,13 +104,15 @@ export default function HomePage() {
         
         {/* Botones de registro rápido */}
         <div className="mt-6">
-          <Card className="bg-primary-50 dark:bg-primary-950/30 border-primary-100 dark:border-primary-900/50">
+          <Card className="bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-950/40 dark:to-primary-900/30 border-primary-100 dark:border-primary-900/50 shadow-md">
             <CardContent className="pt-6 pb-6">
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Registro rápido de transacciones</h3>
-                <p className="text-sm text-muted-foreground">
-                  Registra tus ingresos y gastos rápidamente, separando entre personal y hogar.
-                </p>
+                <h3 className="text-lg font-semibold flex items-center">
+                  <span className="bg-primary/10 p-2 rounded-full mr-2">
+                    <Plus className="h-5 w-5 text-primary" />
+                  </span>
+                  Registro rápido de transacciones
+                </h3>
                 <NewTransactionButton />
               </div>
             </CardContent>
@@ -148,7 +157,7 @@ export default function HomePage() {
                     <YAxis 
                       tickFormatter={(value) => formatCurrency(value).split(",")[0]}
                     />
-                    <Tooltip 
+                    <RechartsTooltip 
                       formatter={(value: any) => formatCurrency(value)} 
                       labelFormatter={(label) => `Mes: ${label}`}
                     />

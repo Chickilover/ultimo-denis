@@ -112,44 +112,52 @@ export function NewTransactionButton({ variant = "default" }: { variant?: "defau
   
   return (
     <>
-      <div className="flex flex-col gap-2 md:flex-row md:gap-3">
+      <div className="flex flex-col gap-3 md:flex-row md:gap-4">
         <Button 
-          variant="default" 
-          size="sm"
-          className="flex-1 bg-red-600 hover:bg-red-700 gap-2"
+          variant="outline" 
+          size="default"
+          className="flex-1 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-700 hover:border-red-600 gap-2 rounded-xl h-14 shadow-sm transition-all duration-200 hover:shadow-md"
           onClick={() => handleOpenDialog("expense", false)}
         >
-          <CreditCard className="h-4 w-4" />
+          <div className="bg-red-100 dark:bg-red-900/30 p-1.5 rounded-full">
+            <CreditCard className="h-4 w-4 text-red-500" />
+          </div>
           <span>Gasto personal</span>
         </Button>
         
         <Button 
-          variant="default" 
-          size="sm"
-          className="flex-1 bg-red-600 hover:bg-red-700 gap-2"
+          variant="outline" 
+          size="default"
+          className="flex-1 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-700 hover:border-red-600 gap-2 rounded-xl h-14 shadow-sm transition-all duration-200 hover:shadow-md"
           onClick={() => handleOpenDialog("expense", true)}
         >
-          <HomeIcon className="h-4 w-4" />
+          <div className="bg-red-100 dark:bg-red-900/30 p-1.5 rounded-full">
+            <HomeIcon className="h-4 w-4 text-red-500" />
+          </div>
           <span>Gasto del hogar</span>
         </Button>
         
         <Button 
-          variant="default" 
-          size="sm"
-          className="flex-1 bg-green-600 hover:bg-green-700 gap-2"
+          variant="outline" 
+          size="default"
+          className="flex-1 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20 hover:text-green-700 hover:border-green-600 gap-2 rounded-xl h-14 shadow-sm transition-all duration-200 hover:shadow-md"
           onClick={() => handleOpenDialog("income", false)}
         >
-          <UserCircle className="h-4 w-4" />
+          <div className="bg-green-100 dark:bg-green-900/30 p-1.5 rounded-full">
+            <UserCircle className="h-4 w-4 text-green-500" />
+          </div>
           <span>Ingreso personal</span>
         </Button>
         
         <Button 
-          variant="default" 
-          size="sm"
-          className="flex-1 bg-green-600 hover:bg-green-700 gap-2"
+          variant="outline" 
+          size="default"
+          className="flex-1 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20 hover:text-green-700 hover:border-green-600 gap-2 rounded-xl h-14 shadow-sm transition-all duration-200 hover:shadow-md"
           onClick={() => handleOpenDialog("income", true)}
         >
-          <Banknote className="h-4 w-4" />
+          <div className="bg-green-100 dark:bg-green-900/30 p-1.5 rounded-full">
+            <Banknote className="h-4 w-4 text-green-500" />
+          </div>
           <span>Ingreso del hogar</span>
         </Button>
       </div>
