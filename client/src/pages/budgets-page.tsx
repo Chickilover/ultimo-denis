@@ -676,7 +676,7 @@ export default function BudgetsPage() {
                       <div className="space-y-1 leading-none">
                         <FormLabel>Acumular saldo</FormLabel>
                         <FormDescription>
-                          Si no gastas todo el presupuesto del proyecto, el saldo se acumulará para el siguiente período
+                          Si no gastas todo el monto del proyecto, el saldo se acumulará para el siguiente período
                         </FormDescription>
                       </div>
                     </FormItem>
@@ -946,7 +946,7 @@ export default function BudgetsPage() {
                       <div className="space-y-1 leading-none">
                         <FormLabel>Acumular saldo</FormLabel>
                         <FormDescription>
-                          Si no gastas todo el presupuesto del proyecto, el saldo se acumulará para el siguiente período
+                          Si no gastas todo el monto del proyecto, el saldo se acumulará para el siguiente período
                         </FormDescription>
                       </div>
                     </FormItem>
