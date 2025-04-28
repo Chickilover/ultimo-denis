@@ -1,5 +1,5 @@
-import { users, accounts, categories, tags, transactions, transactionTags, transactionSplits, recurringTransactions, budgets, savingsGoals, savingsContributions, settings, transactionTypes, accountTypes } from "@shared/schema";
-import type { User, InsertUser, Account, InsertAccount, Category, InsertCategory, Tag, InsertTag, Transaction, InsertTransaction, TransactionTag, InsertTransactionTag, TransactionSplit, InsertTransactionSplit, RecurringTransaction, InsertRecurringTransaction, Budget, InsertBudget, SavingsGoal, InsertSavingsGoal, SavingsContribution, InsertSavingsContribution, Settings, InsertSettings } from "@shared/schema";
+import { users, accounts, categories, tags, transactions, transactionTags, transactionSplits, recurringTransactions, budgets, savingsGoals, savingsContributions, settings, transactionTypes, accountTypes, familyMembers } from "@shared/schema";
+import type { User, InsertUser, Account, InsertAccount, Category, InsertCategory, Tag, InsertTag, Transaction, InsertTransaction, TransactionTag, InsertTransactionTag, TransactionSplit, InsertTransactionSplit, RecurringTransaction, InsertRecurringTransaction, Budget, InsertBudget, SavingsGoal, InsertSavingsGoal, SavingsContribution, InsertSavingsContribution, Settings, InsertSettings, FamilyMember, InsertFamilyMember } from "@shared/schema";
 import { eq, and, gte, lte, like, isNull, desc, asc, or } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -41,6 +41,35 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return result[0];
+  }
+  
+  // Family Member methods
+  async getFamilyMembers(userId: number): Promise<FamilyMember[]> {
+    return db.select().from(familyMembers).where(eq(familyMembers.userId, userId));
+  }
+
+  async getFamilyMember(id: number): Promise<FamilyMember | undefined> {
+    const result = await db.select().from(familyMembers).where(eq(familyMembers.id, id));
+    return result[0];
+  }
+
+  async createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember> {
+    const result = await db.insert(familyMembers).values(member).returning();
+    return result[0];
+  }
+
+  async updateFamilyMember(id: number, memberData: Partial<FamilyMember>): Promise<FamilyMember | undefined> {
+    const result = await db
+      .update(familyMembers)
+      .set(memberData)
+      .where(eq(familyMembers.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteFamilyMember(id: number): Promise<boolean> {
+    const result = await db.delete(familyMembers).where(eq(familyMembers.id, id));
+    return result.rowCount > 0;
   }
 
   // Account methods

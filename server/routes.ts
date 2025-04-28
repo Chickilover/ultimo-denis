@@ -3,7 +3,18 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
-import { insertAccountSchema, insertTransactionSchema, insertBudgetSchema, insertSavingsGoalSchema, insertSavingsContributionSchema, insertCategorySchema, insertTagSchema, insertSettingsSchema, insertRecurringTransactionSchema } from "@shared/schema";
+import { 
+  insertAccountSchema, 
+  insertTransactionSchema, 
+  insertBudgetSchema, 
+  insertSavingsGoalSchema, 
+  insertSavingsContributionSchema, 
+  insertCategorySchema, 
+  insertTagSchema, 
+  insertSettingsSchema, 
+  insertRecurringTransactionSchema,
+  insertFamilyMemberSchema
+} from "@shared/schema";
 import { seedDatabase } from "./seed";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -673,6 +684,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(mockOcrResult);
     }, 1500); // Simulate a 1.5 second processing delay
+  });
+
+  // Family Members endpoints
+  app.get("/api/family-members", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const familyMembers = await storage.getFamilyMembers(req.user.id);
+      res.json(familyMembers);
+    } catch (error) {
+      res.status(500).json({ message: "Error al obtener los miembros de la familia" });
+    }
+  });
+
+  app.get("/api/family-members/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const familyMember = await storage.getFamilyMember(parseInt(req.params.id));
+      if (!familyMember) {
+        return res.status(404).json({ message: "Miembro familiar no encontrado" });
+      }
+      if (familyMember.userId !== req.user.id) {
+        return res.status(403).json({ message: "No tienes permiso para ver este miembro familiar" });
+      }
+      res.json(familyMember);
+    } catch (error) {
+      res.status(500).json({ message: "Error al obtener el miembro familiar" });
+    }
+  });
+
+  app.post("/api/family-members", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const familyMemberData = await insertFamilyMemberSchema.parseAsync({
+        ...req.body,
+        userId: req.user.id
+      });
+      const familyMember = await storage.createFamilyMember(familyMemberData);
+      res.status(201).json(familyMember);
+    } catch (error) {
+      res.status(400).json({ message: "Datos de miembro familiar inválidos", error });
+    }
+  });
+
+  app.put("/api/family-members/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const familyMember = await storage.getFamilyMember(parseInt(req.params.id));
+      if (!familyMember) {
+        return res.status(404).json({ message: "Miembro familiar no encontrado" });
+      }
+      if (familyMember.userId !== req.user.id) {
+        return res.status(403).json({ message: "No tienes permiso para actualizar este miembro familiar" });
+      }
+      
+      const familyMemberData = req.body;
+      const updatedFamilyMember = await storage.updateFamilyMember(parseInt(req.params.id), familyMemberData);
+      res.json(updatedFamilyMember);
+    } catch (error) {
+      res.status(400).json({ message: "Datos de miembro familiar inválidos", error });
+    }
+  });
+
+  app.delete("/api/family-members/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const familyMember = await storage.getFamilyMember(parseInt(req.params.id));
+      if (!familyMember) {
+        return res.status(404).json({ message: "Miembro familiar no encontrado" });
+      }
+      if (familyMember.userId !== req.user.id) {
+        return res.status(403).json({ message: "No tienes permiso para eliminar este miembro familiar" });
+      }
+      
+      await storage.deleteFamilyMember(parseInt(req.params.id));
+      res.sendStatus(204);
+    } catch (error) {
+      res.status(500).json({ message: "Error al eliminar el miembro familiar" });
+    }
   });
 
   const httpServer = createServer(app);
