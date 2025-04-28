@@ -66,9 +66,12 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   
   // Format currency according to UY locale
   const formatCurrency = (amount: number | string, currency: "UYU" | "USD" = defaultCurrency): string => {
-    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    let numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
     
-    if (isNaN(numAmount)) return currency === "UYU" ? "$U 0,00" : "US$ 0.00";
+    // Redondear al entero más cercano
+    numAmount = Math.round(numAmount);
+    
+    if (isNaN(numAmount)) return currency === "UYU" ? "$U 0" : "US$ 0";
     
     if (currency === "UYU") {
       // Format as Uruguayan Peso with the $U symbol
@@ -76,6 +79,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         style: "currency",
         currency: "UYU",
         currencyDisplay: "symbol",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
       })
         .format(numAmount)
         .replace("UYU", "$U");
@@ -85,6 +90,8 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         style: "currency",
         currency: "USD",
         currencyDisplay: "symbol",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
       })
         .format(numAmount)
         .replace("USD", "US$");
@@ -97,16 +104,23 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     fromCurrency: "UYU" | "USD",
     toCurrency: "UYU" | "USD"
   ): number => {
-    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    let numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    
+    // Redondear al entero más cercano
+    numAmount = Math.round(numAmount);
     
     if (isNaN(numAmount)) return 0;
     if (fromCurrency === toCurrency) return numAmount;
     
+    let result: number;
     if (fromCurrency === "UYU" && toCurrency === "USD") {
-      return numAmount / exchangeRate;
+      result = numAmount / exchangeRate;
     } else {
-      return numAmount * exchangeRate;
+      result = numAmount * exchangeRate;
     }
+    
+    // Redondear el resultado a un número entero
+    return Math.round(result);
   };
   
   const value = {
