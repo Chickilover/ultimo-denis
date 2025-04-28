@@ -771,8 +771,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/settings", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
+      console.log("Recibiendo datos de configuración:", req.body);
+      
       // Clonar los datos para no modificar req.body directamente
       const settingsData = {...req.body};
+      
+      // Manejar lastExchangeRateUpdate si está presente
+      if (settingsData.lastExchangeRateUpdate) {
+        try {
+          // Asegurarnos de que sea una fecha válida
+          const date = new Date(settingsData.lastExchangeRateUpdate);
+          if (isNaN(date.getTime())) {
+            // Si no es una fecha válida, usamos la fecha actual
+            settingsData.lastExchangeRateUpdate = new Date().toISOString();
+          }
+        } catch (err) {
+          console.error("Error al parsear lastExchangeRateUpdate:", err);
+          // Si hay un error, establecemos la fecha actual
+          settingsData.lastExchangeRateUpdate = new Date().toISOString();
+        }
+      }
       
       // Redondear el tipo de cambio a un entero si está presente
       if (settingsData.exchangeRate) {
@@ -782,14 +800,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             settingsData.exchangeRate = Math.round(exchangeRateValue).toString();
           }
         } catch (err) {
+          console.error("Error al parsear exchangeRate:", err);
           // Si hay un error al parsear, dejamos el valor como está
         }
       }
+      
+      console.log("Datos de configuración procesados:", settingsData);
       
       const settings = await storage.getSettings(req.user.id);
       
       if (!settings) {
         // Create settings if not found
+        console.log("Creando nueva configuración para el usuario:", req.user.id);
         const newSettings = await storage.createSettings({
           ...settingsData,
           userId: req.user.id
@@ -797,10 +819,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(newSettings);
       }
       
+      console.log("Actualizando configuración existente para el usuario:", req.user.id);
       const updatedSettings = await storage.updateSettings(req.user.id, settingsData);
+      console.log("Configuración actualizada:", updatedSettings);
       res.json(updatedSettings);
     } catch (error) {
-      res.status(400).json({ message: "Datos de configuración inválidos", error });
+      console.error("Error al actualizar configuración:", error);
+      res.status(400).json({ message: "Datos de configuración inválidos", error: error.message });
     }
   });
 
