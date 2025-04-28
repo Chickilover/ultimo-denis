@@ -109,7 +109,7 @@ export default function BudgetsPage() {
     queryFn: getQueryFn({ on401: "throw" }),
   });
   
-  // New budget form
+  // New project form
   const form = useForm<BudgetFormValues>({
     resolver: zodResolver(budgetFormSchema),
     defaultValues: {
@@ -124,7 +124,7 @@ export default function BudgetsPage() {
     },
   });
   
-  // Edit budget form
+  // Edit project form
   const editForm = useForm<BudgetFormValues>({
     resolver: zodResolver(budgetFormSchema),
     defaultValues: {
@@ -674,7 +674,7 @@ export default function BudgetsPage() {
                       <div className="space-y-1 leading-none">
                         <FormLabel>Acumular saldo</FormLabel>
                         <FormDescription>
-                          Si no gastas todo el presupuesto, el saldo se acumulará para el siguiente período
+                          Si no gastas todo el presupuesto del proyecto, el saldo se acumulará para el siguiente período
                         </FormDescription>
                       </div>
                     </FormItem>
@@ -944,7 +944,7 @@ export default function BudgetsPage() {
                       <div className="space-y-1 leading-none">
                         <FormLabel>Acumular saldo</FormLabel>
                         <FormDescription>
-                          Si no gastas todo el presupuesto, el saldo se acumulará para el siguiente período
+                          Si no gastas todo el presupuesto del proyecto, el saldo se acumulará para el siguiente período
                         </FormDescription>
                       </div>
                     </FormItem>
