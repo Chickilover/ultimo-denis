@@ -771,7 +771,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/settings", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const settingsData = req.body;
+      // Clonar los datos para no modificar req.body directamente
+      const settingsData = {...req.body};
+      
+      // Redondear el tipo de cambio a un entero si está presente
+      if (settingsData.exchangeRate) {
+        try {
+          const exchangeRateValue = parseFloat(settingsData.exchangeRate);
+          if (!isNaN(exchangeRateValue)) {
+            settingsData.exchangeRate = Math.round(exchangeRateValue).toString();
+          }
+        } catch (err) {
+          // Si hay un error al parsear, dejamos el valor como está
+        }
+      }
+      
       const settings = await storage.getSettings(req.user.id);
       
       if (!settings) {
