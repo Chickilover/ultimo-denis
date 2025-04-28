@@ -26,6 +26,7 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   username: z.string().min(3, "El nombre de usuario debe tener al menos 3 caracteres"),
+  email: z.string().email("Ingresa un correo electrónico válido"),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
   name: z.string().min(1, "El nombre es requerido"),
   isAdmin: z.boolean().optional().default(true),
@@ -59,6 +60,7 @@ export default function AuthPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
+      email: "",
       password: "",
       name: "",
       isAdmin: true,
@@ -226,6 +228,19 @@ export default function AuthPage() {
                             <FormLabel>Nombre de usuario</FormLabel>
                             <FormControl>
                               <Input placeholder="usuario" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Correo electrónico</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="correo@ejemplo.com" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

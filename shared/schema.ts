@@ -6,17 +6,61 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(), // Email para invitaciones y recuperación de contraseña
   password: text("password").notNull(),
   name: text("name").notNull(),
   isAdmin: boolean("is_admin").notNull().default(false),
+  householdId: integer("household_id"), // ID del grupo familiar al que pertenece
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Tabla para grupos de hogar
+export const households = pgTable("households", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  createdByUserId: integer("created_by_user_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertHouseholdSchema = createInsertSchema(households).pick({
+  name: true,
+  createdByUserId: true,
+});
+
+export type InsertHousehold = z.infer<typeof insertHouseholdSchema>;
+export type Household = typeof households.$inferSelect;
+
+// Invitaciones a hogares
+export const householdInvitations = pgTable("household_invitations", {
+  id: serial("id").primaryKey(),
+  householdId: integer("household_id").references(() => households.id).notNull(),
+  invitedByUserId: integer("invited_by_user_id").references(() => users.id).notNull(),
+  invitedEmail: text("invited_email").notNull(),
+  status: text("status").notNull().default("pending"), // pending, accepted, rejected
+  token: text("token").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export const insertHouseholdInvitationSchema = createInsertSchema(householdInvitations).pick({
+  householdId: true,
+  invitedByUserId: true,
+  invitedEmail: true,
+  token: true,
+  expiresAt: true,
+});
+
+export type InsertHouseholdInvitation = z.infer<typeof insertHouseholdInvitationSchema>;
+export type HouseholdInvitation = typeof householdInvitations.$inferSelect;
+
+// Actualización del esquema de usuario para incluir email
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
+  email: true,
   password: true,
   name: true,
   isAdmin: true,
+  householdId: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
