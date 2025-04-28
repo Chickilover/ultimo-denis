@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
 import { useCurrency } from "@/hooks/use-currency";
+import { CategoryIcon } from "@/components/ui/category-icon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -77,6 +78,7 @@ export function ExpenseChart() {
         name: category ? category.name : "Sin categoría",
         value: totalAmount,
         color: category ? category.color : "#999999",
+        icon: category ? category.icon : null,
       };
     });
     
@@ -155,7 +157,13 @@ export function ExpenseChart() {
             ))}
             {chartData.length > 6 && (
               <div className="flex items-center">
-                <span className="w-3 h-3 rounded-full bg-gray-500 mr-2"></span>
+                <CategoryIcon 
+                  name="Varios"
+                  color="#777777"
+                  size="sm"
+                  showEmoji={true}
+                  className="mr-2"
+                />
                 <span className="text-sm text-gray-600 dark:text-gray-300 flex-1">Otros</span>
                 <span className="text-sm font-semibold">
                   {chartData.slice(6).reduce((sum, item) => sum + item.percentage, 0)}%
