@@ -11,6 +11,7 @@ import HomePage from "@/pages/home-page";
 import IncomePage from "@/pages/income-page";
 import ExpensesPage from "@/pages/expenses-page";
 import BudgetsPage from "@/pages/budgets-page";
+import TransactionsPage from "@/pages/transactions-page";
 
 // Páginas que aún debemos crear
 import FamilyPage from "@/pages/family-page";
@@ -26,6 +27,7 @@ function Router() {
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/income" component={IncomePage} />
       <ProtectedRoute path="/expenses" component={ExpensesPage} />
+      <ProtectedRoute path="/transactions" component={TransactionsPage} />
       <ProtectedRoute path="/budgets" component={BudgetsPage} />
       <ProtectedRoute path="/family" component={FamilyPage} />
       <ProtectedRoute path="/savings" component={SavingsPage} />
