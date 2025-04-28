@@ -10,6 +10,7 @@ import { BudgetProgress } from "@/components/dashboard/budget-progress";
 import { SavingsGoals } from "@/components/dashboard/savings-goals";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { Advisor } from "@/components/dashboard/advisor";
+import { NewTransactionButton } from "@/components/dashboard/new-transaction-button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -106,6 +107,21 @@ export default function HomePage() {
               </SelectContent>
             </Select>
           </div>
+        </div>
+        
+        {/* Botones de registro rápido */}
+        <div className="mt-6">
+          <Card className="bg-primary-50 dark:bg-primary-950/30 border-primary-100 dark:border-primary-900/50">
+            <CardContent className="pt-6 pb-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Registro rápido de transacciones</h3>
+                <p className="text-sm text-muted-foreground">
+                  Registra tus ingresos y gastos rápidamente, separando entre personal y hogar.
+                </p>
+                <NewTransactionButton />
+              </div>
+            </CardContent>
+          </Card>
         </div>
         
         {/* Financial Summary */}

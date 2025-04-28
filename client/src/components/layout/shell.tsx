@@ -3,6 +3,7 @@ import { MobileNav } from "./mobile-nav";
 import { Sidebar } from "./sidebar";
 import { Button } from "@/components/ui/button";
 import { TransactionForm } from "@/components/transactions/transaction-form";
+import { NewTransactionButton } from "@/components/dashboard/new-transaction-button";
 import { 
   Dialog, 
   DialogContent
@@ -30,14 +31,8 @@ export function Shell({ children }: ShellProps) {
         </div>
         
         {/* Add Transaction FAB on desktop */}
-        <div className="fixed bottom-6 right-6 hidden md:block">
-          <Button 
-            size="lg" 
-            className="rounded-full shadow-lg"
-            onClick={() => setIsTransactionFormOpen(true)}
-          >
-            + Nueva Transacción
-          </Button>
+        <div className="hidden md:block">
+          <NewTransactionButton variant="floating" />
         </div>
       </main>
       
