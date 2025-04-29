@@ -58,39 +58,47 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
     setActiveTab("perfil");
   };
 
-  // Iconos con colores específicos para cada sección
+  // Iconos con colores específicos y gradientes para cada sección
   const menuItems = [
     { 
       path: "/", 
       label: "Inicio", 
       icon: <HomeIcon className="h-5 w-5" />,
-      activeColor: "bg-blue-500/20",
-      iconActiveColor: "bg-blue-500/30",
-      iconColor: "text-blue-500" 
+      activeColor: "bg-gradient-to-br from-blue-400 to-blue-600/40",
+      iconActiveColor: "bg-gradient-to-br from-blue-500 to-blue-700",
+      iconColor: "text-white",
+      borderColor: "border-blue-400",
+      shadow: "shadow-blue-500/30"
     },
     { 
       path: "/transactions", 
       label: "Transacciones", 
       icon: <CreditCardIcon className="h-5 w-5" />,
-      activeColor: "bg-purple-500/20",
-      iconActiveColor: "bg-purple-500/30",
-      iconColor: "text-purple-500" 
+      activeColor: "bg-gradient-to-br from-purple-400 to-purple-600/40",
+      iconActiveColor: "bg-gradient-to-br from-purple-500 to-purple-700",
+      iconColor: "text-white",
+      borderColor: "border-purple-400",
+      shadow: "shadow-purple-500/30"
     },
     { 
       path: "/budgets", 
       label: "Presupuestos", 
       icon: <BarChart3Icon className="h-5 w-5" />,
-      activeColor: "bg-amber-500/20",
-      iconActiveColor: "bg-amber-500/30",
-      iconColor: "text-amber-500" 
+      activeColor: "bg-gradient-to-br from-amber-400 to-amber-600/40",
+      iconActiveColor: "bg-gradient-to-br from-amber-500 to-amber-700",
+      iconColor: "text-white",
+      borderColor: "border-amber-400",
+      shadow: "shadow-amber-500/30"
     },
     { 
       path: "/savings", 
       label: "Metas", 
       icon: <PiggyBankIcon className="h-5 w-5" />,
-      activeColor: "bg-emerald-500/20",
-      iconActiveColor: "bg-emerald-500/30",
-      iconColor: "text-emerald-500" 
+      activeColor: "bg-gradient-to-br from-emerald-400 to-emerald-600/40",
+      iconActiveColor: "bg-gradient-to-br from-emerald-500 to-emerald-700",
+      iconColor: "text-white",
+      borderColor: "border-emerald-400",
+      shadow: "shadow-emerald-500/30"
     },
   ];
 
@@ -421,31 +429,47 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
         </div>
       </header>
 
-      {/* Mobile Bottom Navigation - Estilo App */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-background/95 backdrop-blur-md border-t border-border/30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] rounded-t-xl">
-        <div className="grid grid-cols-5 gap-1 px-1 py-2">
+      {/* Mobile Bottom Navigation - Estilo App Moderno con Neomorfismo */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-background/95 backdrop-blur-md border-t border-border/30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] rounded-t-xl overflow-hidden">
+        {/* Fondo decorativo */}
+        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/95 to-background opacity-90"></div>
+        
+        {/* Barra de navegación */}
+        <div className="relative grid grid-cols-5 gap-2 px-1 py-2">
           {menuItems.map((item, index) => (
             <Link href={item.path} key={index}>
               <div
                 className={cn(
-                  "flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200",
+                  "flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-300",
                   location === item.path 
-                    ? `${item.activeColor} scale-105 shadow-sm` 
-                    : "text-foreground/60 hover:bg-background"
+                    ? `${item.activeColor} scale-105 ${item.shadow}` 
+                    : "text-foreground/60 hover:bg-background/80"
                 )}
               >
                 <div className={cn(
-                  "flex items-center justify-center w-12 h-12 rounded-full mb-1 shadow-sm",
+                  "flex items-center justify-center w-12 h-12 rounded-full mb-1.5 transition-all duration-300",
                   location === item.path 
-                    ? `${item.iconActiveColor} ${item.iconColor}` 
-                    : "bg-background/80 border border-border/50"
+                    ? `${item.iconActiveColor} ${item.iconColor} shadow-lg` 
+                    : "bg-white/80 dark:bg-gray-800/80 border dark:border-gray-700 shadow-inner"
                 )}>
-                  {item.icon}
+                  {/* Efecto de brillo en iconos activos */}
+                  {location === item.path && (
+                    <div className="absolute w-8 h-8 bg-white/40 rounded-full blur-md -z-10"></div>
+                  )}
+                  <div className={location === item.path ? "animate-pulse-subtle" : ""}>
+                    {item.icon}
+                  </div>
                 </div>
                 <span className={cn(
-                  "text-xs font-medium",
+                  "text-xs font-medium transition-all duration-300",
                   location === item.path 
-                    ? item.iconColor 
+                    ? location === "/" 
+                      ? "text-blue-600 dark:text-blue-400" 
+                      : location === "/transactions" 
+                        ? "text-purple-600 dark:text-purple-400"
+                        : location === "/budgets"
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-emerald-600 dark:text-emerald-400"
                     : "text-foreground/70"
                 )}>{item.label}</span>
               </div>
@@ -454,14 +478,16 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
           
           {/* Botón flotante de añadir transacción */}
           <Button
-            className="flex flex-col items-center justify-center py-2 rounded-lg hover:bg-background"
+            className="flex flex-col items-center justify-center py-1 rounded-xl hover:bg-background"
             variant="ghost"
             onClick={onOpenTransactionForm}
           >
-            <div className="bg-primary shadow-lg rounded-full p-3 w-12 h-12 flex items-center justify-center mb-1 transform hover:scale-110 transition-transform duration-200 scale-105">
-              <PlusIcon className="h-6 w-6 text-white" />
+            <div className="bg-gradient-to-r from-primary to-primary-600 shadow-lg shadow-primary/30 rounded-full w-14 h-14 flex items-center justify-center mb-1 transform hover:scale-110 transition-all duration-300 scale-105 border-2 border-white/20">
+              {/* Efecto de brillo */}
+              <div className="absolute w-10 h-10 bg-white/30 rounded-full blur-md -z-10"></div>
+              <PlusIcon className="h-7 w-7 text-white animate-pulse-subtle" />
             </div>
-            <span className="text-xs font-medium text-primary">Añadir</span>
+            <span className="text-xs font-semibold text-primary mt-1">Añadir</span>
           </Button>
         </div>
       </div>
