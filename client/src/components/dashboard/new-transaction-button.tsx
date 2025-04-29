@@ -23,7 +23,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export function NewTransactionButton({ variant = "default" }: { variant?: "default" | "floating" }) {
+export function NewTransactionButton({ 
+  variant = "default", 
+  className = "" 
+}: { 
+  variant?: "default" | "floating", 
+  className?: string 
+}) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [transactionType, setTransactionType] = useState<"expense" | "income">("expense");
   const [isShared, setIsShared] = useState(false);

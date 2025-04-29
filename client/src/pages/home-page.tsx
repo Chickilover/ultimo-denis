@@ -13,7 +13,7 @@ import { Advisor } from "@/components/dashboard/advisor";
 import { NewTransactionButton } from "@/components/dashboard/new-transaction-button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import { Plus, BarChart3Icon } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -102,18 +102,21 @@ export default function HomePage() {
           <h2 className="text-2xl font-bold">¡Hola, {user?.name || "Usuario"}!</h2>
         </div>
         
-        {/* Botones de registro rápido */}
+        {/* Botones de registro rápido - Estilo App */}
         <div className="mt-6">
-          <Card className="bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-950/40 dark:to-primary-900/30 border-primary-100 dark:border-primary-900/50 shadow-md">
+          <Card className="card-app overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary-900/40 dark:to-primary-800/20 border-primary/10 dark:border-primary-700/30">
             <CardContent className="pt-6 pb-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center">
-                  <span className="bg-primary/10 p-2 rounded-full mr-2">
-                    <Plus className="h-5 w-5 text-primary" />
+              <div className="space-y-4 relative">
+                {/* Elemento decorativo */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl opacity-50 -mt-10 -mr-10"></div>
+                
+                <h3 className="text-lg font-bold flex items-center relative z-10">
+                  <span className="bg-primary shadow-sm p-2.5 rounded-full mr-3 flex-shrink-0">
+                    <Plus className="h-5 w-5 text-white" />
                   </span>
                   Registro rápido de transacciones
                 </h3>
-                <NewTransactionButton />
+                <NewTransactionButton className="relative z-10" />
               </div>
             </CardContent>
           </Card>
@@ -124,13 +127,18 @@ export default function HomePage() {
           <FinancialSummary />
         </div>
         
-        {/* Monthly Trend Chart */}
+        {/* Monthly Trend Chart - Estilo App */}
         <div className="mt-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-md font-medium">Evolución Mensual</CardTitle>
+          <Card className="card-app border-muted/80 overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/30">
+              <CardTitle className="text-lg font-bold flex items-center">
+                <span className="bg-secondary/10 p-1.5 rounded-lg mr-2 flex-shrink-0">
+                  <BarChart3Icon className="h-5 w-5 text-secondary" />
+                </span>
+                Evolución Mensual
+              </CardTitle>
               <Select value={chartPeriod} onValueChange={setChartPeriod}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-[180px] rounded-lg border-border/50">
                   <SelectValue placeholder="Período" />
                 </SelectTrigger>
                 <SelectContent>
@@ -140,8 +148,12 @@ export default function HomePage() {
                 </SelectContent>
               </Select>
             </CardHeader>
-            <CardContent>
-              <div className="h-72">
+            <CardContent className="pt-5">
+              <div className="h-72 relative">
+                {/* Elementos decorativos */}
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-chart-1/5 rounded-full blur-2xl"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-chart-5/5 rounded-full blur-2xl"></div>
+                
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={chartData}
@@ -152,30 +164,38 @@ export default function HomePage() {
                       bottom: 5,
                     }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+                    <XAxis dataKey="month" stroke="var(--foreground)" />
                     <YAxis 
                       tickFormatter={(value) => formatCurrency(value).split(",")[0]}
+                      stroke="var(--foreground)"
                     />
                     <RechartsTooltip 
                       formatter={(value: any) => formatCurrency(value)} 
                       labelFormatter={(label) => `Mes: ${label}`}
+                      contentStyle={{
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        border: '1px solid rgba(0,0,0,0.05)'
+                      }}
                     />
-                    <Legend />
+                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
                     <Line
                       type="monotone"
                       dataKey="ingresos"
-                      stroke="#3B82F6"
-                      activeDot={{ r: 8 }}
-                      strokeWidth={2}
+                      stroke="hsl(var(--chart-1))"
+                      activeDot={{ r: 8, strokeWidth: 0, fill: 'hsl(var(--chart-1))' }}
+                      strokeWidth={3}
                       name="Ingresos"
+                      dot={{ fill: 'hsl(var(--chart-1))', r: 4, strokeWidth: 0 }}
                     />
                     <Line
                       type="monotone"
                       dataKey="gastos"
-                      stroke="#EF4444"
-                      strokeWidth={2}
+                      stroke="hsl(var(--chart-5))"
+                      strokeWidth={3}
                       name="Gastos"
+                      dot={{ fill: 'hsl(var(--chart-5))', r: 4, strokeWidth: 0 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
