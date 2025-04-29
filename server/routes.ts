@@ -23,6 +23,8 @@ import path from "path";
 import fs from "fs";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
 
 // Funciones para el manejo de contraseñas
 const scryptAsync = promisify(scrypt);
@@ -43,7 +45,7 @@ async function comparePasswords(supplied: string, stored: string) {
 // Configuración para guardar avatares
 const avatarStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '../client/src/assets/avatars');
+    const dir = './client/public/avatars';
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
