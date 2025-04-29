@@ -31,8 +31,8 @@ export default function TransactionsPage() {
       />
       
       <div className="container px-2 py-4 max-w-7xl">
-        <div className="flex justify-between items-center mb-6">
-          <div className="grid w-full grid-cols-3 gap-1 bg-muted rounded-md p-1">
+        <div className="flex flex-col mb-6">
+          <div className="grid w-full grid-cols-3 gap-1 bg-muted rounded-md p-1 mb-3">
             <Button 
               variant={activeTab === "all" ? "default" : "ghost"}
               className="flex items-center justify-center py-6"
@@ -43,7 +43,7 @@ export default function TransactionsPage() {
             </Button>
             <Button 
               variant={activeTab === "income" ? "default" : "ghost"}
-              className="flex items-center justify-center py-6"
+              className="flex items-center justify-center py-6 bg-green-100 text-green-800 hover:bg-green-200 data-[state=default]:bg-green-600 data-[state=default]:text-white"
               onClick={() => setActiveTab("income")}
             >
               <ArrowUpCircle className="mr-2 h-4 w-4" />
@@ -51,7 +51,7 @@ export default function TransactionsPage() {
             </Button>
             <Button 
               variant={activeTab === "expense" ? "default" : "ghost"}
-              className="flex items-center justify-center py-6"
+              className="flex items-center justify-center py-6 bg-red-100 text-red-800 hover:bg-red-200 data-[state=default]:bg-red-600 data-[state=default]:text-white"
               onClick={() => setActiveTab("expense")}
             >
               <ArrowDownCircle className="mr-2 h-4 w-4" />
@@ -63,16 +63,20 @@ export default function TransactionsPage() {
             onClick={() => {
               setIsNewTransactionOpen(true);
             }}
-            size="sm"
-            className="ml-2 shrink-0"
+            size="lg"
+            className={activeTab === "income" 
+              ? "bg-green-600 hover:bg-green-700 self-center w-2/3" 
+              : activeTab === "expense" 
+              ? "bg-red-600 hover:bg-red-700 self-center w-2/3" 
+              : "self-center w-2/3"
+            }
           >
-            <Plus className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">
-              {activeTab === "income" ? "Ingreso" : 
-               activeTab === "expense" ? "Gasto" : 
-               "Transacción"}
+            <Plus className="h-5 w-5 mr-2" />
+            <span>
+              {activeTab === "income" ? "Nuevo Ingreso" : 
+               activeTab === "expense" ? "Nuevo Gasto" : 
+               "Nueva Transacción"}
             </span>
-            <span className="sm:hidden">Nuevo</span>
           </Button>
         </div>
         

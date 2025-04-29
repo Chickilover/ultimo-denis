@@ -327,13 +327,13 @@ export function TransactionForm({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger 
               value="expense" 
-              className="bg-red-100 data-[state=active]:bg-red-500 data-[state=active]:text-white hover:bg-red-200"
+              className="!bg-red-100 data-[state=active]:!bg-red-500 data-[state=active]:!text-white hover:!bg-red-200 border border-red-300"
             >
               Gasto
             </TabsTrigger>
             <TabsTrigger 
               value="income"
-              className="bg-green-100 data-[state=active]:bg-green-500 data-[state=active]:text-white hover:bg-green-200"
+              className="!bg-green-100 data-[state=active]:!bg-green-500 data-[state=active]:!text-white hover:!bg-green-200 border border-green-300"
             >
               Ingreso
             </TabsTrigger>
