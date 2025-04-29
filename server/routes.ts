@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
+import { generateInvitationCode, validateInvitationCode, consumeInvitationCode, getActiveInvitationsForUser } from './invitation';
 import { z } from "zod";
 import { 
   insertAccountSchema, 
@@ -16,7 +17,6 @@ import {
   insertFamilyMemberSchema
 } from "@shared/schema";
 import { seedDatabase } from "./seed";
-import { generateInvitationCode, validateInvitationCode, consumeInvitationCode, getActiveInvitationsForUser } from "./invitation";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database with default data

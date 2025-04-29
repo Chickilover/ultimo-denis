@@ -108,7 +108,9 @@ export function consumeInvitationCode(code: string): boolean {
  */
 function cleanupExpiredInvitations() {
   const now = new Date();
-  for (const [code, invitation] of invitations.entries()) {
+  // Usar Array.from para evitar problemas con MapIterator
+  const entriesArray = Array.from(invitations.entries());
+  for (const [code, invitation] of entriesArray) {
     if (invitation.expires < now) {
       invitations.delete(code);
     }
@@ -132,7 +134,9 @@ export function getActiveInvitationsForUser(userId: number): {
   }[] = [];
   
   const now = new Date();
-  for (const [code, invitation] of invitations.entries()) {
+  // Usar Array.from para evitar problemas con MapIterator
+  const entriesArray = Array.from(invitations.entries());
+  for (const [code, invitation] of entriesArray) {
     if (invitation.userId === userId && invitation.expires > now) {
       result.push({
         code,
