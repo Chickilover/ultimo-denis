@@ -50,15 +50,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, PlusCircle, Trash2, User, Users, Mail, Copy, Link as LinkIcon, CheckCircle } from "lucide-react";
+import { Edit, PlusCircle, Trash2, User, Users, Mail, Copy, Link as LinkIcon, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useState, useRef } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 // Schema para validar los datos del formulario
 const familyMemberSchema = z.object({
@@ -67,6 +71,11 @@ const familyMemberSchema = z.object({
   relationship: z.string().min(1, "La relación es obligatoria"),
   canAccess: z.boolean().default(false),
   avatarUrl: z.string().nullable().optional(),
+});
+
+// Esquema para el formulario de invitación
+const invitationSchema = z.object({
+  email: z.string().email("Correo electrónico inválido").min(1, "El correo electrónico es obligatorio"),
 });
 
 type FamilyMember = {
@@ -88,11 +97,6 @@ type Invitation = {
   expires: string;
   householdId: number | null;
 };
-
-// Esquema para el formulario de invitación
-const invitationSchema = z.object({
-  email: z.string().email("Correo electrónico inválido"),
-});
 
 export default function FamilyPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -236,31 +240,6 @@ export default function FamilyPage() {
     },
   });
   
-  // Función para abrir el modal de edición
-  const handleEditMember = (member: FamilyMember) => {
-    setSelectedMember(member);
-    editForm.reset({
-      name: member.name,
-      email: member.email || "", // Si existe email, lo usamos
-      relationship: member.relationship,
-      canAccess: member.canAccess,
-      avatarUrl: member.avatarUrl,
-    });
-    setIsEditDialogOpen(true);
-  };
-  
-  // Función para manejar el envío del formulario de añadir
-  const onAddSubmit = (data: z.infer<typeof familyMemberSchema>) => {
-    createMutation.mutate(data);
-  };
-  
-  // Función para manejar el envío del formulario de edición
-  const onEditSubmit = (data: z.infer<typeof familyMemberSchema>) => {
-    if (selectedMember) {
-      updateMutation.mutate({ id: selectedMember.id, data });
-    }
-  };
-  
   // Form para invitar
   const inviteForm = useForm<z.infer<typeof invitationSchema>>({
     resolver: zodResolver(invitationSchema),
@@ -297,6 +276,36 @@ export default function FamilyPage() {
     }
   });
   
+  // Función para abrir el modal de edición
+  const handleEditMember = (member: FamilyMember) => {
+    setSelectedMember(member);
+    editForm.reset({
+      name: member.name,
+      email: member.email || "", // Si existe email, lo usamos
+      relationship: member.relationship,
+      canAccess: member.canAccess,
+      avatarUrl: member.avatarUrl,
+    });
+    setIsEditDialogOpen(true);
+  };
+  
+  // Función para manejar el envío del formulario de añadir
+  const onAddSubmit = (data: z.infer<typeof familyMemberSchema>) => {
+    createMutation.mutate(data);
+  };
+  
+  // Función para manejar el envío del formulario de edición
+  const onEditSubmit = (data: z.infer<typeof familyMemberSchema>) => {
+    if (selectedMember) {
+      updateMutation.mutate({ id: selectedMember.id, data });
+    }
+  };
+  
+  // Función para eliminar un miembro
+  const handleDeleteMember = (id: number) => {
+    deleteMutation.mutate(id);
+  };
+  
   // Función para copiar el código al portapapeles
   const copyCodeToClipboard = () => {
     if (invitationCode) {
@@ -324,10 +333,11 @@ export default function FamilyPage() {
   const onInviteSubmit = (data: z.infer<typeof invitationSchema>) => {
     createInvitationMutation.mutate(data);
   };
-
-  // Función para eliminar un miembro
-  const handleDeleteMember = (id: number) => {
-    deleteMutation.mutate(id);
+  
+  // Formatear fecha de expiración
+  const formatExpireDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, "dd 'de' MMMM 'de' yyyy, HH:mm", { locale: es });
   };
   
   return (
@@ -570,96 +580,135 @@ export default function FamilyPage() {
           </div>
         }
       />
-      
-      <Tabs defaultValue="members" className="w-full mt-6">
-        <TabsList className="mb-4">
-          <TabsTrigger value="members">Miembros</TabsTrigger>
-          <TabsTrigger value="invitations">Invitaciones</TabsTrigger>
+
+      <Tabs defaultValue="members" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="members">
+            <User className="h-4 w-4 mr-2" />
+            Miembros
+          </TabsTrigger>
+          <TabsTrigger value="invitations">
+            <Mail className="h-4 w-4 mr-2" />
+            Invitaciones
+          </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="members">
-          <div className="grid gap-6">
+        <TabsContent value="members" className="space-y-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             {isLoading ? (
-              <div className="p-8 text-center">Cargando miembros familiares...</div>
-            ) : familyMembers && familyMembers.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {familyMembers.map((member) => (
-                  <Card key={member.id}>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2">
-                        <Avatar className="h-8 w-8">
-                          {member.avatarUrl ? (
-                            <AvatarImage src={member.avatarUrl} alt={member.name} />
-                          ) : (
-                            <AvatarFallback>
-                              <User className="h-4 w-4" />
-                            </AvatarFallback>
-                          )}
-                        </Avatar>
-                        {member.name}
-                      </CardTitle>
-                      <CardDescription>{member.relationship}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {member.email && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">Correo:</span>
-                          <span className="text-sm font-medium truncate max-w-[150px]">
-                            {member.email}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">Acceso a la app:</span>
-                        <span className="text-sm font-medium">
-                          {member.canAccess ? "Permitido" : "No permitido"}
-                        </span>
+              Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="h-10 w-10 rounded-full bg-muted"></div>
+                      <div className="space-y-2">
+                        <div className="h-4 w-24 bg-muted rounded"></div>
+                        <div className="h-3 w-20 bg-muted rounded"></div>
                       </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleEditMember(member)}
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar
-                      </Button>
-                      
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm" className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Eliminar
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="h-3 w-full bg-muted rounded"></div>
+                      <div className="h-3 w-4/5 bg-muted rounded"></div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-between pt-0">
+                    <div className="h-9 w-9 bg-muted rounded"></div>
+                    <div className="h-9 w-9 bg-muted rounded"></div>
+                  </CardFooter>
+                </Card>
+              ))
+            ) : familyMembers && familyMembers.length > 0 ? (
+              familyMembers.map((member) => (
+                <Card key={member.id}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <Avatar>
+                        <AvatarImage src={member.avatarUrl || undefined} />
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                          {member.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <CardTitle className="text-lg">{member.name}</CardTitle>
+                        <CardDescription>{member.relationship}</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {member.email && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <Mail className="h-4 w-4" />
+                        <span>{member.email}</span>
+                      </div>
+                    )}
+                    <div className="flex flex-wrap gap-1.5">
+                      {member.isActive && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50">
+                          Activo
+                        </Badge>
+                      )}
+                      {member.canAccess && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 hover:bg-blue-50">
+                          Acceso a la Aplicación
+                        </Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-between pt-0">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleEditMember(member)}
+                          >
+                            <Edit className="h-4 w-4" />
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta acción eliminará a {member.name} y no se puede deshacer.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteMember(member.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Eliminar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Editar miembro</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta acción no se puede deshacer. Eliminarás al miembro <span className="font-medium">{member.name}</span> de tu familia.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeleteMember(member.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Eliminar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </CardFooter>
+                </Card>
+              ))
             ) : (
-              <div className="rounded-lg border bg-card text-card-foreground p-8 text-center">
-                <h3 className="text-lg font-medium mb-2">No hay miembros familiares</h3>
-                <p className="text-muted-foreground mb-4">
-                  Aún no has añadido ningún miembro a tu hogar. Añade a los miembros de tu familia o grupo de convivencia.
+              <div className="col-span-full py-12 flex flex-col items-center justify-center">
+                <div className="rounded-full bg-muted p-3 mb-3">
+                  <User className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="text-xl font-semibold mb-1">Sin miembros familiares</h3>
+                <p className="text-muted-foreground text-center mb-4 max-w-md">
+                  Aún no has añadido ningún miembro a tu familia. Añade miembros para gestionar mejor tus finanzas compartidas.
                 </p>
                 <Button onClick={() => setIsAddDialogOpen(true)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -670,78 +719,112 @@ export default function FamilyPage() {
           </div>
         </TabsContent>
         
-        <TabsContent value="invitations">
-          <div className="grid gap-6">
-            {invitations && invitations.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {invitations.map((invitation) => (
-                  <Card key={invitation.code}>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <Mail className="h-5 w-5 text-primary" />
-                        Invitación para {invitation.email}
-                      </CardTitle>
-                      <CardDescription>
-                        Expira el {new Date(invitation.expires).toLocaleDateString()}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm">Código:</span>
-                        <code className="text-sm font-mono bg-muted px-1.5 py-0.5 rounded">
-                          {invitation.code}
-                        </code>
+        <TabsContent value="invitations" className="space-y-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Invitaciones Enviadas</h3>
+            <Button variant="outline" onClick={() => setIsInviteDialogOpen(true)}>
+              <Mail className="mr-2 h-4 w-4" />
+              Nueva Invitación
+            </Button>
+          </div>
+          
+          {isLoadingInvitations ? (
+            <div className="space-y-3">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-lg border animate-pulse">
+                  <div className="h-9 w-9 rounded-full bg-muted"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-32 bg-muted rounded"></div>
+                    <div className="h-3 w-40 bg-muted rounded"></div>
+                  </div>
+                  <div className="h-8 w-16 bg-muted rounded"></div>
+                </div>
+              ))}
+            </div>
+          ) : invitations && invitations.length > 0 ? (
+            <div className="space-y-3">
+              {invitations.map((invitation) => (
+                <Card key={invitation.code}>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={undefined} />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        <Mail className="h-5 w-5" />
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-1">
+                      <div className="font-medium">{invitation.email}</div>
+                      <div className="text-sm text-muted-foreground flex items-center">
+                        <Clock className="h-3.5 w-3.5 mr-1" /> 
+                        Expira: {formatExpireDate(invitation.expires)}
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        Comparte este código con la persona a la que has invitado.
-                      </p>
-                    </CardContent>
-                    <CardFooter className="flex justify-end">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                navigator.clipboard.writeText(invitation.code);
-                                toast({
-                                  title: "Código copiado",
-                                  description: "El código de invitación ha sido copiado al portapapeles."
-                                });
-                              }}
-                              className="w-full"
-                            >
-                              <Copy className="mr-2 h-4 w-4" />
-                              Copiar Código
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Copiar código de invitación</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </CardFooter>
-                  </Card>
-                ))}
+                    </div>
+                    
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1"
+                            onClick={() => {
+                              navigator.clipboard.writeText(invitation.code);
+                              setCopiedCode(invitation.code);
+                              setTimeout(() => setCopiedCode(null), 2000);
+                            }}
+                          >
+                            {copiedCode === invitation.code ? (
+                              <>
+                                <CheckCircle className="h-3.5 w-3.5" />
+                                <span>Copiado</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-3.5 w-3.5" />
+                                <span>Copiar Código</span>
+                              </>
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Copiar código de invitación</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="py-12 flex flex-col items-center justify-center border rounded-lg">
+              <div className="rounded-full bg-muted p-3 mb-3">
+                <Mail className="h-6 w-6 text-muted-foreground" />
               </div>
-            ) : (
-              <div className="rounded-lg border bg-card text-card-foreground p-8 text-center">
-                <h3 className="text-lg font-medium mb-2">No hay invitaciones activas</h3>
-                <p className="text-muted-foreground mb-4">
-                  No tienes invitaciones activas. Crea una nueva invitación para que otros usuarios se unan a tu hogar.
-                </p>
-                <Button onClick={() => setIsInviteDialogOpen(true)}>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Crear Invitación
-                </Button>
-              </div>
-            )}
+              <h3 className="text-xl font-semibold mb-1">Sin invitaciones enviadas</h3>
+              <p className="text-muted-foreground text-center mb-4 max-w-md">
+                No has enviado ninguna invitación aún. Invita a miembros de tu familia a unirse a tu hogar.
+              </p>
+              <Button onClick={() => setIsInviteDialogOpen(true)}>
+                <Mail className="mr-2 h-4 w-4" />
+                Enviar Invitación
+              </Button>
+            </div>
+          )}
+          
+          <div className="mt-6">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Información</AlertTitle>
+              <AlertDescription>
+                Las invitaciones son válidas por 7 días. Puedes generar nuevos códigos de invitación si los actuales expiran.
+              </AlertDescription>
+            </Alert>
           </div>
         </TabsContent>
       </Tabs>
       
-      {/* Modal de edición */}
+      {/* Modal para editar miembro */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -828,7 +911,7 @@ export default function FamilyPage() {
                   type="submit"
                   disabled={updateMutation.isPending}
                 >
-                  {updateMutation.isPending ? "Actualizando..." : "Guardar Cambios"}
+                  {updateMutation.isPending ? "Actualizando..." : "Actualizar Miembro"}
                 </Button>
               </DialogFooter>
             </form>
