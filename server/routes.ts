@@ -871,6 +871,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Profile
+  app.put("/api/user", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      // Solo permitir actualizar campos específicos
+      const allowedFields = ['name', 'avatarColor', 'incomeColor', 'expenseColor'];
+      const userData: Record<string, any> = {};
+      
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          userData[field] = req.body[field];
+        }
+      }
+      
+      const updatedUser = await storage.updateUser(req.user.id, userData);
+      res.json(updatedUser);
+    } catch (error) {
+      res.status(400).json({ message: "Datos de usuario inválidos", error });
+    }
+  });
+  
+  // Change Password
+  app.put("/api/user/password", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Contraseña actual y nueva son requeridas" });
+      }
+      
+      const user = await storage.getUser(req.user.id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+      
+      // Verificar contraseña actual
+      const passwordMatch = await comparePasswords(currentPassword, user.password);
+      if (!passwordMatch) {
+        return res.status(400).json({ message: "Contraseña actual incorrecta" });
+      }
+      
+      // Hash y actualizar la nueva contraseña
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updateUser(req.user.id, { password: hashedPassword });
+      
+      res.json({ message: "Contraseña actualizada correctamente" });
+    } catch (error) {
+      res.status(500).json({ message: "Error al cambiar la contraseña", error });
+    }
+  });
+  
+  // Upload Avatar
+  const upload = multer({ 
+    storage: avatarStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Solo se permiten imágenes'));
+      }
+    }
+  });
+  
+  app.post("/api/user/avatar", upload.single('avatar'), async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No se ha proporcionado ninguna imagen" });
+      }
+      
+      // Obtener la ruta relativa para el avatar (para uso en el cliente)
+      const relativePath = `/assets/avatars/${path.basename(req.file.path)}`;
+      
+      // Actualizar el campo avatar del usuario
+      const updatedUser = await storage.updateUser(req.user.id, { 
+        avatar: relativePath 
+      });
+      
+      res.json({ 
+        message: "Avatar actualizado correctamente", 
+        avatar: relativePath 
+      });
+    } catch (error) {
+      console.error('Error al subir avatar:', error);
+      res.status(500).json({ message: "Error al subir el avatar", error: error.message });
+    }
+  });
+
   // Verificar si existen claves secretas
   app.post("/api/check-secrets", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
