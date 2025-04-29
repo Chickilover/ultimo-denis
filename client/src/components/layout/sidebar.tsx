@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfileSettings } from "@/hooks/use-profile-settings";
+import { ExchangeRateDisplay } from "./exchange-rate-display";
 import { 
   HomeIcon, 
   CreditCardIcon, 
@@ -59,9 +60,14 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside className={cn("fixed top-0 left-0 z-30 h-full w-64 bg-sidebar text-sidebar-foreground pt-5 flex flex-col shadow-xl", className)}>
       {/* Logo con efecto de brillo */}
-      <div className="flex justify-center items-center mb-6 relative">
+      <div className="flex justify-center items-center mb-4 relative">
         <div className="absolute w-40 h-40 bg-accent/30 rounded-full blur-3xl opacity-20 -top-16"></div>
         <img src="/images/logo.png" alt="Nido Financiero" className="h-16 w-auto relative z-10 drop-shadow-md" />
+      </div>
+      
+      {/* Tipo de cambio */}
+      <div className="px-4 py-2 mx-3 mb-4 bg-white/10 rounded-lg shadow-inner flex justify-center">
+        <ExchangeRateDisplay />
       </div>
       
       {/* Navegación Principal con estilos mejorados */}

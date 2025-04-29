@@ -6,6 +6,7 @@ import { useCurrency } from "@/hooks/use-currency";
 import { useTheme } from "@/hooks/use-theme";
 import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { PWAInstall } from "@/lib/pwa-install";
+import { ExchangeRateDisplay } from "./exchange-rate-display";
 import { 
   MenuIcon, 
   BellIcon, 
@@ -305,6 +306,11 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
           </div>
           
           <div className="flex items-center space-x-2">
+            {/* Mostrar el tipo de cambio en la barra superior */}
+            <div className="hidden sm:block mr-2">
+              <ExchangeRateDisplay />
+            </div>
+            
             <div className="hidden sm:block">
               <PWAInstall />
             </div>

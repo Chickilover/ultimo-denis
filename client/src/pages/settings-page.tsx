@@ -15,6 +15,7 @@ import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/use-theme";
 import { useProfileSettings } from "@/hooks/use-profile-settings";
+import { useCurrency } from "@/hooks/use-currency";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   PlusIcon, 
@@ -58,6 +59,7 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState("es");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { updateExchangeRate: updateGlobalExchangeRate } = useCurrency();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Estado para la sección de perfil - usando hook compartido
@@ -342,6 +344,9 @@ export default function SettingsPage() {
       setLocalExchangeRate(roundedValue);
       setExchangeRate(roundedValue);
       
+      // Actualizar el tipo de cambio global también
+      updateGlobalExchangeRate(roundedValue);
+      
       updateSettingsMutation.mutate({
         defaultCurrency,
         theme,
@@ -392,6 +397,9 @@ export default function SettingsPage() {
       setLocalExchangeRate(roundedValue);
       setExchangeRate(roundedValue);
       
+      // Actualizar el tipo de cambio global en toda la aplicación
+      updateGlobalExchangeRate(roundedValue);
+      
       // Datos a enviar al servidor
       const now = new Date();
       
@@ -403,9 +411,6 @@ export default function SettingsPage() {
         theme,
         language
       });
-      
-      // Invalidar la consulta para forzar actualización de los datos en toda la app
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       
       // Mostrar toast de éxito
       toast({

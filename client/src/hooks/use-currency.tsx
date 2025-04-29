@@ -1,150 +1,117 @@
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
-import { useAuth } from "./use-auth";
-import { Settings } from "@shared/schema";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getQueryFn } from "@/lib/queryClient";
+import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 
-interface CurrencyContextType {
-  defaultCurrency: "UYU" | "USD";
-  setDefaultCurrency: (currency: "UYU" | "USD") => void;
+// Definir el tipo de contexto de moneda
+type CurrencyContextType = {
   exchangeRate: number;
-  setExchangeRate: (rate: number) => void;
-  formatCurrency: (amount: number | string, currency?: "UYU" | "USD") => string;
-  convertCurrency: (amount: number | string, fromCurrency: "UYU" | "USD", toCurrency: "UYU" | "USD") => number;
-}
+  defaultCurrency: string;
+  setDefaultCurrency: (currency: string) => void;
+  formatCurrency: (amount: number, currency?: string) => string;
+  convertCurrency: (amount: number, fromCurrency: string, toCurrency: string) => number;
+  updateExchangeRate: (newRate: string) => void;
+};
 
+// Crear el contexto con valores por defecto
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
+// Proveedor de contexto de moneda
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
-  const [defaultCurrency, setDefaultCurrency] = useState<"UYU" | "USD">("UYU");
-  const [exchangeRate, setExchangeRate] = useState<number>(40.0); // Default exchange rate: 1 USD = 40 UYU
+  const [exchangeRate, setExchangeRate] = useState<number>(38);
+  const [defaultCurrency, setDefaultCurrency] = useState<string>("UYU");
+  const queryClient = useQueryClient();
   
-  // Fetch user settings
-  const { data: settings } = useQuery<Settings>({
+  // Obtener la configuración para el tipo de cambio
+  const { data: settings } = useQuery({
     queryKey: ["/api/settings"],
-    queryFn: getQueryFn({ on401: "throw" }),
-    enabled: !!user,
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    staleTime: 5 * 60 * 1000, // 5 minutos
   });
-  
-  // Update settings when currency preferences change
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (data: { defaultCurrency: string; exchangeRate: number }) => {
-      // Asegurar que el tipo de cambio sea un número entero
-      const roundedRate = Math.round(data.exchangeRate);
-      
-      const res = await apiRequest("PUT", "/api/settings", {
-        defaultCurrency: data.defaultCurrency,
-        exchangeRate: roundedRate.toString(),
-      });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["/api/settings"], data);
-    },
-  });
-  
-  // Initialize from settings
+
+  // Actualizar el tipo de cambio y la moneda predeterminada cuando se cargan los datos
   useEffect(() => {
     if (settings) {
-      setDefaultCurrency(settings.defaultCurrency as "UYU" | "USD");
-      // Asegurar que el tipo de cambio sea un número entero
-      const rateValue = parseFloat(settings.exchangeRate?.toString() || "40.0");
-      const roundedRate = Math.round(rateValue);
-      setExchangeRate(roundedRate);
-    }
-  }, [settings]);
-  
-  // Update settings when currency preferences change
-  useEffect(() => {
-    if (user && settings) {
-      if (
-        settings.defaultCurrency !== defaultCurrency ||
-        parseFloat(settings.exchangeRate.toString()) !== exchangeRate
-      ) {
-        updateSettingsMutation.mutate({
-          defaultCurrency,
-          exchangeRate,
-        });
+      // Actualizar tipo de cambio
+      if (settings.exchangeRate) {
+        const rate = parseFloat(settings.exchangeRate);
+        if (!isNaN(rate) && rate > 0) {
+          setExchangeRate(rate);
+        }
+      }
+      
+      // Actualizar moneda predeterminada
+      if (settings.defaultCurrency) {
+        setDefaultCurrency(settings.defaultCurrency);
       }
     }
-  }, [defaultCurrency, exchangeRate, user, settings]);
-  
-  // Format currency according to UY locale
-  const formatCurrency = (amount: number | string, currency: "UYU" | "USD" = defaultCurrency): string => {
-    let numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
-    
-    // Redondear al entero más cercano
-    numAmount = Math.round(numAmount);
-    
-    if (isNaN(numAmount)) return currency === "UYU" ? "$U 0" : "US$ 0";
-    
-    if (currency === "UYU") {
-      // Format as Uruguayan Peso with the $U symbol
+  }, [settings]);
+
+  // Función para formatear moneda
+  const formatCurrency = (amount: number, currency = "UYU") => {
+    if (currency === "USD") {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(amount);
+    } else {
       return new Intl.NumberFormat("es-UY", {
         style: "currency",
         currency: "UYU",
-        currencyDisplay: "symbol",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      })
-        .format(numAmount)
-        .replace("UYU", "$U");
-    } else {
-      // Format as US Dollar
-      return new Intl.NumberFormat("es-UY", {
-        style: "currency",
-        currency: "USD",
-        currencyDisplay: "symbol",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0
-      })
-        .format(numAmount)
-        .replace("USD", "US$");
+        maximumFractionDigits: 0,
+      }).format(amount);
     }
   };
-  
-  // Convert between currencies
-  const convertCurrency = (
-    amount: number | string,
-    fromCurrency: "UYU" | "USD",
-    toCurrency: "UYU" | "USD"
-  ): number => {
-    let numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
-    
-    // Redondear al entero más cercano
-    numAmount = Math.round(numAmount);
-    
-    if (isNaN(numAmount)) return 0;
-    if (fromCurrency === toCurrency) return numAmount;
-    
-    let result: number;
+
+  // Función para convertir entre monedas
+  const convertCurrency = (amount: number, fromCurrency: string, toCurrency: string) => {
+    if (fromCurrency === toCurrency) {
+      return amount;
+    }
+
+    if (fromCurrency === "USD" && toCurrency === "UYU") {
+      return amount * exchangeRate;
+    }
+
     if (fromCurrency === "UYU" && toCurrency === "USD") {
-      result = numAmount / exchangeRate;
-    } else {
-      result = numAmount * exchangeRate;
+      return amount / exchangeRate;
     }
-    
-    // Redondear el resultado a un número entero
-    return Math.round(result);
+
+    return amount;
   };
   
+  // Función para actualizar el tipo de cambio
+  const updateExchangeRate = (newRate: string) => {
+    const parsedRate = parseFloat(newRate);
+    if (!isNaN(parsedRate) && parsedRate > 0) {
+      setExchangeRate(parsedRate);
+      // Invalidar las consultas de configuración para forzar la actualización en toda la app
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+    }
+  };
+
   const value = {
-    defaultCurrency,
-    setDefaultCurrency,
-    exchangeRate,
-    setExchangeRate,
     formatCurrency,
     convertCurrency,
+    exchangeRate,
+    defaultCurrency,
+    setDefaultCurrency,
+    updateExchangeRate
   };
-  
-  return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;
+
+  return (
+    <CurrencyContext.Provider value={value}>
+      {children}
+    </CurrencyContext.Provider>
+  );
 }
 
+// Hook personalizado para usar el contexto de moneda
 export function useCurrency() {
   const context = useContext(CurrencyContext);
+  
   if (context === undefined) {
-    throw new Error("useCurrency debe ser usado dentro de un CurrencyProvider");
+    throw new Error('useCurrency debe ser usado dentro de un CurrencyProvider');
   }
+  
   return context;
 }
