@@ -15,7 +15,9 @@ import {
   PlusIcon,
   BarChart3Icon, 
   PiggyBankIcon,
-  XIcon
+  XIcon,
+  LogOutIcon,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -59,41 +61,47 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
 
   return (
     <>
-      {/* Mobile Header */}
-      <header className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 shadow-sm fixed top-0 left-0 right-0 z-20 h-16">
+      {/* Mobile Header - Estilo App moderno */}
+      <header className="bg-background/95 backdrop-blur-lg border-b border-border/30 shadow-md fixed top-0 left-0 right-0 z-20 h-16">
         <div className="container mx-auto px-4 h-full flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <MenuIcon className="h-6 w-6" />
+                <Button variant="ghost" size="icon" className="md:hidden rounded-full hover:bg-primary/10">
+                  <MenuIcon className="h-6 w-6 text-primary" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 bg-sidebar text-sidebar-foreground">
-                <SheetHeader className="p-4 border-b border-sidebar-border">
-                  <SheetTitle className="text-white">Mi Hogar Financiero</SheetTitle>
-                  <SheetClose className="absolute top-4 right-4 text-white">
+                <SheetHeader className="p-6 border-b border-sidebar-border/40 relative">
+                  <div className="absolute w-40 h-40 bg-accent/30 rounded-full blur-3xl opacity-20 -top-16 -left-10"></div>
+                  <SheetTitle className="text-white text-xl font-bold relative z-10">Nido Financiero</SheetTitle>
+                  <SheetClose className="absolute top-5 right-5 text-white bg-white/10 rounded-full p-1 hover:bg-white/20 transition-colors">
                     <XIcon className="h-5 w-5" />
                   </SheetClose>
                 </SheetHeader>
-                <div className="mt-4 px-2">
+                <div className="mt-4 px-3">
                   <nav>
-                    <ul className="space-y-1">
-                      {/* Full menu items for mobile sheet */}
+                    <ul className="space-y-2">
+                      {/* Full menu items for mobile sheet - estilo app */}
                       <li>
                         <Link href="/">
-                          <a
+                          <div
                             className={cn(
-                              "flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-colors",
+                              "flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200",
                               location === "/"
-                                ? "bg-white/20 text-white"
-                                : "text-sidebar-foreground/80 hover:bg-white/10 hover:text-white"
+                                ? "bg-white/20 text-white shadow-sm"
+                                : "text-sidebar-foreground/90 hover:bg-white/10 hover:text-white"
                             )}
                             onClick={() => setSheetOpen(false)}
                           >
-                            <HomeIcon className="h-5 w-5" />
-                            <span className="ml-3">Inicio</span>
-                          </a>
+                            <div className={cn(
+                              "flex items-center justify-center w-8 h-8 rounded-lg",
+                              location === "/" ? "bg-white/20" : "bg-transparent"
+                            )}>
+                              <HomeIcon className="h-5 w-5" />
+                            </div>
+                            <span className="ml-3 font-medium">Inicio</span>
+                          </div>
                         </Link>
                       </li>
                       <li>
@@ -227,51 +235,68 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
                     </ul>
                   </nav>
                 </div>
-                <div className="mt-auto px-4 py-6 border-t border-sidebar-border">
+                <div className="mt-auto px-4 py-6 border-t border-sidebar-border/40 backdrop-blur-sm bg-sidebar/90">
                   {user && (
                     <div className="flex flex-col">
-                      <div className="flex items-center mb-4">
-                        <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center text-white font-medium">
+                      <div className="flex items-center mb-5">
+                        <div className="h-12 w-12 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold shadow-inner">
                           {user.username ? user.username.substring(0, 2).toUpperCase() : 'U'}
                         </div>
                         <div className="ml-3">
-                          <p className="text-sm font-medium text-white">{user.username || 'Usuario'}</p>
-                          <p className="text-xs text-white/70">{user.isAdmin ? "Administrador" : "Miembro"}</p>
+                          <p className="text-sm font-bold text-white">{user.username || 'Usuario'}</p>
+                          <p className="text-xs text-white/80 flex items-center">
+                            {user.isAdmin ? (
+                              <>
+                                <span className="inline-block w-2 h-2 bg-secondary rounded-full mr-1.5"></span>
+                                Administrador
+                              </>
+                            ) : (
+                              <>
+                                <span className="inline-block w-2 h-2 bg-primary rounded-full mr-1.5"></span>
+                                Miembro
+                              </>
+                            )}
+                          </p>
                         </div>
                       </div>
                       
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="justify-start text-white/80 hover:text-white hover:bg-white/10 mb-2"
-                      >
-                        <UserIcon className="mr-2 h-4 w-4" />
-                        Mi Perfil
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="justify-start text-white/80 hover:text-white hover:bg-white/10"
-                        onClick={handleLogout}
-                        disabled={logoutMutation.isPending}
-                      >
-                        <MenuIcon className="mr-2 h-4 w-4" />
-                        Cerrar Sesión
-                      </Button>
+                      <div className="space-y-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10 rounded-lg py-2.5"
+                        >
+                          <UserIcon className="mr-2 h-5 w-5" />
+                          Mi Perfil
+                        </Button>
+                        
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10 rounded-lg py-2.5"
+                          onClick={handleLogout}
+                          disabled={logoutMutation.isPending}
+                        >
+                          <LogOutIcon className="mr-2 h-5 w-5" />
+                          Cerrar Sesión
+                          {logoutMutation.isPending && (
+                            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
               </SheetContent>
             </Sheet>
-            <h1 className="text-xl font-semibold text-primary">Mi Hogar Financiero</h1>
+            <h1 className="text-xl font-bold text-primary">Nido Financiero</h1>
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <BellIcon className="h-6 w-6" />
+                <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
+                  <BellIcon className="h-6 w-6 text-primary" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-72">
@@ -306,15 +331,16 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
             <Button 
               variant="ghost" 
               size="icon"
+              className="rounded-full hover:bg-primary/10"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
-              {theme === "dark" ? <SunIcon className="h-6 w-6" /> : <MoonIcon className="h-6 w-6" />}
+              {theme === "dark" ? <SunIcon className="h-6 w-6 text-primary" /> : <MoonIcon className="h-6 w-6 text-primary" />}
             </Button>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white font-medium">
+                <Button variant="ghost" size="icon" className="rounded-full p-0">
+                  <div className="h-9 w-9 bg-primary rounded-full flex items-center justify-center text-white font-bold shadow-md">
                     {user?.username ? user.username.substring(0, 2).toUpperCase() : "U"}
                   </div>
                 </Button>
@@ -344,33 +370,42 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
         </div>
       </header>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
-        <div className="grid grid-cols-5 gap-1">
+      {/* Mobile Bottom Navigation - Estilo App */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-background/95 backdrop-blur-md border-t border-border/30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] rounded-t-xl">
+        <div className="grid grid-cols-5 gap-1 px-1 py-1">
           {menuItems.map((item, index) => (
             <Link href={item.path} key={index}>
               <div
                 className={cn(
-                  "flex flex-col items-center justify-center py-2",
+                  "flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200",
                   location === item.path 
-                    ? "text-primary" 
-                    : "text-gray-500 dark:text-gray-400"
+                    ? "text-primary bg-primary/10 scale-105 shadow-sm" 
+                    : "text-foreground/60 hover:text-primary hover:bg-background"
                 )}
               >
-                {item.icon}
-                <span className="text-xs mt-1">{item.label}</span>
+                <div className={cn(
+                  "flex items-center justify-center w-10 h-10 rounded-full mb-1",
+                  location === item.path 
+                    ? "bg-primary/10" 
+                    : "bg-transparent"
+                )}>
+                  {item.icon}
+                </div>
+                <span className="text-xs font-medium">{item.label}</span>
               </div>
             </Link>
           ))}
           
+          {/* Botón flotante de añadir transacción */}
           <Button
-            className="flex flex-col items-center justify-center py-2 bg-transparent text-gray-500 dark:text-gray-400 hover:bg-transparent"
+            className="flex flex-col items-center justify-center py-2 rounded-lg hover:bg-background"
+            variant="ghost"
             onClick={onOpenTransactionForm}
           >
-            <div className="bg-primary rounded-full p-2">
-              <PlusIcon className="h-5 w-5 text-white" />
+            <div className="bg-primary shadow-lg rounded-full p-3 mb-1 transform hover:scale-110 transition-transform duration-200">
+              <PlusIcon className="h-4 w-4 text-white" />
             </div>
-            <span className="text-xs mt-1">Añadir</span>
+            <span className="text-xs font-medium text-foreground/60">Añadir</span>
           </Button>
         </div>
       </div>
