@@ -232,10 +232,10 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
                     <div className="flex flex-col">
                       <div className="flex items-center mb-4">
                         <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center text-white font-medium">
-                          {user.name.substring(0, 2).toUpperCase()}
+                          {user.username ? user.username.substring(0, 2).toUpperCase() : 'U'}
                         </div>
                         <div className="ml-3">
-                          <p className="text-sm font-medium text-white">{user.name}</p>
+                          <p className="text-sm font-medium text-white">{user.username || 'Usuario'}</p>
                           <p className="text-xs text-white/70">{user.isAdmin ? "Administrador" : "Miembro"}</p>
                         </div>
                       </div>
@@ -315,7 +315,7 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-white font-medium">
-                    {user?.name ? user.name.substring(0, 2).toUpperCase() : "U"}
+                    {user?.username ? user.username.substring(0, 2).toUpperCase() : "U"}
                   </div>
                 </Button>
               </DropdownMenuTrigger>
@@ -328,10 +328,10 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <Link href="/settings">
-                    <a className="flex items-center w-full">
+                    <div className="flex items-center w-full">
                       <MenuIcon className="mr-2 h-4 w-4" />
                       <span>Configuración</span>
-                    </a>
+                    </div>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -349,7 +349,7 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
         <div className="grid grid-cols-5 gap-1">
           {menuItems.map((item, index) => (
             <Link href={item.path} key={index}>
-              <a
+              <div
                 className={cn(
                   "flex flex-col items-center justify-center py-2",
                   location === item.path 
@@ -359,7 +359,7 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
               >
                 {item.icon}
                 <span className="text-xs mt-1">{item.label}</span>
-              </a>
+              </div>
             </Link>
           ))}
           

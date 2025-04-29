@@ -56,7 +56,7 @@ export function Sidebar({ className }: SidebarProps) {
           {menuItems.map((item) => (
             <li key={item.path}>
               <Link href={item.path}>
-                <a
+                <div
                   className={cn(
                     "flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-colors",
                     location === item.path
@@ -66,7 +66,7 @@ export function Sidebar({ className }: SidebarProps) {
                 >
                   {item.icon}
                   <span className="ml-3">{item.label}</span>
-                </a>
+                </div>
               </Link>
             </li>
           ))}
