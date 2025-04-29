@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { 
   HomeIcon, 
   CreditCardIcon, 
@@ -27,8 +28,15 @@ interface SidebarProps {
 }
 
 export function Sidebar({ className }: SidebarProps) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { user, logoutMutation } = useAuth();
+  const { setActiveTab } = useProfileSettings();
+  
+  // Función para navegar a la pestaña de perfil
+  const navigateToProfile = () => {
+    navigate("/settings");
+    setActiveTab("perfil");
+  };
 
   const menuItems = [
     { path: "/", label: "Inicio", icon: <HomeIcon className="h-5 w-5" /> },
@@ -115,6 +123,7 @@ export function Sidebar({ className }: SidebarProps) {
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10 rounded-lg py-2.5"
+                onClick={navigateToProfile}
               >
                 <UserIcon className="mr-2 h-5 w-5" />
                 Mi Perfil
