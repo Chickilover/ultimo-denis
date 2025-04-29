@@ -109,7 +109,6 @@ export default function TransactionsPage() {
             </DialogDescription>
           </DialogHeader>
           <TransactionForm 
-            initialType={activeTab !== "all" ? activeTab : undefined}
             onSuccess={() => setIsNewTransactionOpen(false)}
           />
         </DialogContent>
