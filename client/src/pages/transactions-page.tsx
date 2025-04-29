@@ -32,42 +32,30 @@ export default function TransactionsPage() {
       
       <div className="container px-2 py-4 max-w-7xl">
         <div className="flex justify-between items-center mb-6">
-          <div className="grid w-full grid-cols-4 gap-1 bg-muted rounded-md p-1">
+          <div className="grid w-full grid-cols-3 gap-1 bg-muted rounded-md p-1">
             <Button 
               variant={activeTab === "all" ? "default" : "ghost"}
-              className="flex items-center justify-center"
+              className="flex items-center justify-center py-6"
               onClick={() => setActiveTab("all")}
             >
               <CreditCard className="mr-2 h-4 w-4" />
-              <span className="hidden md:inline">Todas</span>
-              <span className="md:hidden">Todas</span>
+              <span>Todas</span>
             </Button>
             <Button 
               variant={activeTab === "income" ? "default" : "ghost"}
-              className="flex items-center justify-center"
+              className="flex items-center justify-center py-6"
               onClick={() => setActiveTab("income")}
             >
               <ArrowUpCircle className="mr-2 h-4 w-4" />
-              <span className="hidden md:inline">Ingresos</span>
-              <span className="md:hidden">Ingresos</span>
+              <span>Ingresos</span>
             </Button>
             <Button 
               variant={activeTab === "expense" ? "default" : "ghost"}
-              className="flex items-center justify-center"
+              className="flex items-center justify-center py-6"
               onClick={() => setActiveTab("expense")}
             >
               <ArrowDownCircle className="mr-2 h-4 w-4" />
-              <span className="hidden md:inline">Gastos</span>
-              <span className="md:hidden">Gastos</span>
-            </Button>
-            <Button 
-              variant={activeTab === "transfer" ? "default" : "ghost"}
-              className="flex items-center justify-center"
-              onClick={() => setActiveTab("transfer")}
-            >
-              <ArrowLeftRight className="mr-2 h-4 w-4" />
-              <span className="hidden md:inline">Transf.</span>
-              <span className="md:hidden">Transf.</span>
+              <span>Gastos</span>
             </Button>
           </div>
           
@@ -82,7 +70,6 @@ export default function TransactionsPage() {
             <span className="hidden sm:inline">
               {activeTab === "income" ? "Ingreso" : 
                activeTab === "expense" ? "Gasto" : 
-               activeTab === "transfer" ? "Transferencia" : 
                "Transacción"}
             </span>
             <span className="sm:hidden">Nuevo</span>
@@ -92,7 +79,6 @@ export default function TransactionsPage() {
         {activeTab === "all" && <TransactionList transactionType="all" />}
         {activeTab === "income" && <TransactionList transactionType="income" />}
         {activeTab === "expense" && <TransactionList transactionType="expense" />}
-        {activeTab === "transfer" && <TransactionList transactionType="transfer" />}
       </div>
       
       <Dialog open={isNewTransactionOpen} onOpenChange={setIsNewTransactionOpen}>
@@ -101,7 +87,6 @@ export default function TransactionsPage() {
             <DialogTitle>
               Nueva {activeTab === "income" ? "Ingreso" : 
                      activeTab === "expense" ? "Gasto" : 
-                     activeTab === "transfer" ? "Transferencia" : 
                      "Transacción"}
             </DialogTitle>
             <DialogDescription>

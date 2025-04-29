@@ -80,7 +80,7 @@ export function TransactionForm({
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState(defaultValues?.transactionTypeId === 1 ? "income" : defaultValues?.transactionTypeId === 3 ? "transfer" : "expense");
+  const [activeTab, setActiveTab] = useState(defaultValues?.transactionTypeId === 1 ? "income" : "expense");
   const [showSplitSection, setShowSplitSection] = useState(false);
   const [isSplitting, setIsSplitting] = useState(false);
   const [descriptionSuggestions, setDescriptionSuggestions] = useState<string[]>([]);
@@ -109,7 +109,7 @@ export function TransactionForm({
     
     const emptyDefaults = {
       userId: user?.id,
-      transactionTypeId: activeTab === "income" ? 1 : activeTab === "transfer" ? 3 : 2,
+      transactionTypeId: activeTab === "income" ? 1 : 2,
       categoryId: undefined,
       amount: "",
       currency: "UYU", // Default to Uruguayan pesos
@@ -292,7 +292,7 @@ export function TransactionForm({
       isShared: data.isShared || false,
       // Make sure numeric fields are properly converted
       amount: data.amount || "0",
-      transactionTypeId: activeTab === "expense" ? 2 : activeTab === "income" ? 1 : 3,
+      transactionTypeId: activeTab === "expense" ? 2 : 1,
     };
     
     // Prevenir interacciones múltiples durante la operación
@@ -324,10 +324,9 @@ export function TransactionForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="expense">Gasto</TabsTrigger>
             <TabsTrigger value="income">Ingreso</TabsTrigger>
-            <TabsTrigger value="transfer">Transferencia</TabsTrigger>
           </TabsList>
         </Tabs>
         
