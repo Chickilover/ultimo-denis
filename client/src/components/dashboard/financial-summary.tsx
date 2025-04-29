@@ -191,31 +191,43 @@ export function FinancialSummary() {
   
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold">Resumen Financiero</h2>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-md border p-1">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center rounded-xl border border-border/50 bg-background p-1 shadow-sm w-full sm:w-auto">
             <button 
               onClick={() => setViewMode('all')} 
-              className={`px-3 py-1.5 text-sm rounded-sm ${viewMode === 'all' ? 'bg-primary text-white' : 'hover:bg-muted'}`}
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                viewMode === 'all' 
+                  ? 'bg-gradient-to-r from-primary/90 to-primary text-white shadow-md' 
+                  : 'hover:bg-muted/50'
+              }`}
             >
               General
             </button>
             <button 
               onClick={() => setViewMode('personal')} 
-              className={`px-3 py-1.5 text-sm rounded-sm ${viewMode === 'personal' ? 'bg-primary text-white' : 'hover:bg-muted'}`}
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                viewMode === 'personal' 
+                  ? 'bg-gradient-to-r from-blue-500/90 to-blue-600 text-white shadow-md' 
+                  : 'hover:bg-muted/50'
+              }`}
             >
               Personal
             </button>
             <button 
               onClick={() => setViewMode('household')} 
-              className={`px-3 py-1.5 text-sm rounded-sm ${viewMode === 'household' ? 'bg-primary text-white' : 'hover:bg-muted'}`}
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                viewMode === 'household' 
+                  ? 'bg-gradient-to-r from-purple-500/90 to-purple-600 text-white shadow-md' 
+                  : 'hover:bg-muted/50'
+              }`}
             >
               Hogar
             </button>
           </div>
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px] rounded-lg border-border/50">
               <SelectValue placeholder="Seleccionar período" />
             </SelectTrigger>
             <SelectContent>
@@ -433,33 +445,31 @@ export function FinancialSummary() {
           </Card>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">            
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="card-app border-green-500/20 overflow-hidden">
+              <CardContent className="pt-6 pb-4 relative">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full blur-xl"></div>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-sm text-muted-foreground">
-                      Ingresos del Hogar
-                    </p>
-                    <h3 className="text-2xl font-bold font-mono">{formatCurrency(householdIncome)}</h3>
+                    <p className="text-sm text-muted-foreground">Ingresos del Hogar</p>
+                    <h3 className="text-2xl font-bold font-mono mt-1">{formatCurrency(householdIncome)}</h3>
                   </div>
-                  <div className="bg-green-100 dark:bg-green-900/50 rounded-full p-3">
-                    <ArrowUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <div className="bg-green-500/10 backdrop-blur-sm rounded-2xl p-3 shadow-sm">
+                    <ArrowUp className="h-6 w-6 text-green-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="card-app border-red-500/20 overflow-hidden">
+              <CardContent className="pt-6 pb-4 relative">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-xl"></div>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-sm text-muted-foreground">
-                      Gastos del Hogar
-                    </p>
-                    <h3 className="text-2xl font-bold font-mono">{formatCurrency(householdExpense)}</h3>
+                    <p className="text-sm text-muted-foreground">Gastos del Hogar</p>
+                    <h3 className="text-2xl font-bold font-mono mt-1">{formatCurrency(householdExpense)}</h3>
                   </div>
-                  <div className="bg-red-100 dark:bg-red-900/50 rounded-full p-3">
-                    <CreditCard className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  <div className="bg-red-500/10 backdrop-blur-sm rounded-2xl p-3 shadow-sm">
+                    <CreditCard className="h-6 w-6 text-red-600" />
                   </div>
                 </div>
               </CardContent>
