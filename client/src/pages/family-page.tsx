@@ -349,9 +349,10 @@ export default function FamilyPage() {
           <div className="flex space-x-2">
             <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button>
                   <Users className="mr-2 h-4 w-4" />
-                  Invitar Usuario
+                  <span className="hidden sm:inline">Invitar Usuario</span>
+                  <span className="sm:hidden">Invitar</span>
                 </Button>
               </DialogTrigger>
               <DialogContent>
