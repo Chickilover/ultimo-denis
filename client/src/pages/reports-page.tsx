@@ -24,6 +24,10 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   PieChart, 
   Pie, 
@@ -41,11 +45,12 @@ import {
   AreaChart,
   Area
 } from "recharts";
-import { format, subMonths, getMonth, getYear } from "date-fns";
+import { format, subMonths, getMonth, getYear, parse, isValid } from "date-fns";
 import { es } from "date-fns/locale";
-import { Loader2, Download, BarChart3, PieChart as PieChartIcon, TrendingUp, Target, DollarSign } from "lucide-react";
+import { Loader2, Download, BarChart3, PieChart as PieChartIcon, TrendingUp, Target, DollarSign, Calendar as CalendarIcon } from "lucide-react";
 import { Transaction, Budget, Category, SavingsGoal } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 // Colores para los gráficos
 const COLORS = [
@@ -1141,23 +1146,103 @@ const SavingsGoalReport = ({
   );
 };
 
+// Componente para selector de fechas
+interface DateRangePickerProps {
+  startDate: Date | undefined;
+  endDate: Date | undefined;
+  onStartDateChange: (date: Date | undefined) => void;
+  onEndDateChange: (date: Date | undefined) => void;
+}
+
+const DateRangePicker = ({ 
+  startDate, 
+  endDate, 
+  onStartDateChange, 
+  onEndDateChange 
+}: DateRangePickerProps) => {
+  return (
+    <div className="flex flex-col sm:flex-row gap-4 items-end">
+      <div className="grid gap-2">
+        <Label htmlFor="start-date">Fecha inicial</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              id="start-date"
+              variant={"outline"}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !startDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {startDate ? format(startDate, "PP", { locale: es }) : <span>Selecciona una fecha</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={startDate}
+              onSelect={onStartDateChange}
+              initialFocus
+              locale={es}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+      
+      <div className="grid gap-2">
+        <Label htmlFor="end-date">Fecha final</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              id="end-date"
+              variant={"outline"}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !endDate && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {endDate ? format(endDate, "PP", { locale: es }) : <span>Selecciona una fecha</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={endDate}
+              onSelect={onEndDateChange}
+              initialFocus
+              disabled={(date) => startDate ? date < startDate : false}
+              locale={es}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
+  );
+};
+
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
+  
+  // Estado para el rango de fechas
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const [startDate, setStartDate] = useState<Date | undefined>(firstDayOfMonth);
+  const [endDate, setEndDate] = useState<Date | undefined>(today);
+  
+  // Formateamos las fechas para la consulta
+  const startDateParam = startDate ? format(startDate, "yyyy-MM-dd") : undefined;
+  const endDateParam = endDate ? format(endDate, "yyyy-MM-dd") : undefined;
   
   // Cargar datos de transacciones
   const { 
     data: transactions = [], 
     isLoading: isLoadingTransactions 
   } = useQuery({
-    queryKey: ["/api/transactions"],
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar las transacciones",
-        variant: "destructive",
-      });
-    },
+    queryKey: ["/api/transactions", startDateParam, endDateParam],
+    queryFn: getQueryFn({ on401: "throw" }),
   });
   
   // Cargar datos de categorías
@@ -1166,13 +1251,7 @@ export default function ReportsPage() {
     isLoading: isLoadingCategories 
   } = useQuery({
     queryKey: ["/api/categories"],
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar las categorías",
-        variant: "destructive",
-      });
-    },
+    queryFn: getQueryFn({ on401: "throw" }),
   });
   
   // Cargar datos de presupuestos
@@ -1181,13 +1260,7 @@ export default function ReportsPage() {
     isLoading: isLoadingBudgets 
   } = useQuery({
     queryKey: ["/api/budgets"],
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los presupuestos",
-        variant: "destructive",
-      });
-    },
+    queryFn: getQueryFn({ on401: "throw" }),
   });
   
   // Cargar datos de metas de ahorro
@@ -1196,13 +1269,7 @@ export default function ReportsPage() {
     isLoading: isLoadingSavingsGoals 
   } = useQuery({
     queryKey: ["/api/savings-goals"],
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar las metas de ahorro",
-        variant: "destructive",
-      });
-    },
+    queryFn: getQueryFn({ on401: "throw" }),
   });
   
   const isLoading = 
@@ -1217,6 +1284,16 @@ export default function ReportsPage() {
         title="Reportes"
         description="Analiza tus finanzas personales y familiares"
       />
+      
+      <div className="bg-card/50 rounded-lg p-4 mb-6">
+        <h3 className="text-lg font-semibold mb-2">Filtrar por rango de fechas</h3>
+        <DateRangePicker
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+        />
+      </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid grid-cols-2 md:grid-cols-5 gap-2">
