@@ -18,7 +18,9 @@ import {
   UsersIcon,
   FolderIcon
 } from "lucide-react";
-import logoImage from "@/assets/logo.jpg";
+// Import logo from public directory
+// Note: For actual imports we could use @assets path, but using direct path for images in public folder
+// which are accessible via root URL
 
 interface SidebarProps {
   className?: string;
@@ -51,7 +53,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Logo con efecto de brillo */}
       <div className="flex justify-center items-center mb-6 relative">
         <div className="absolute w-40 h-40 bg-accent/30 rounded-full blur-3xl opacity-20 -top-16"></div>
-        <img src={logoImage} alt="Nido Financiero" className="h-16 w-auto relative z-10 drop-shadow-md" />
+        <img src="/images/logo.png" alt="Nido Financiero" className="h-16 w-auto relative z-10 drop-shadow-md" />
       </div>
       
       {/* Navegación Principal con estilos mejorados */}

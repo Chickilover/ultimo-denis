@@ -647,8 +647,15 @@ export default function AuthPage() {
         <div className="bg-white dark:bg-gray-800 p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="flex flex-col items-center mb-6">
+              <div className="flex justify-center mb-3">
+                <img 
+                  src="/images/logo.png" 
+                  alt="Nido Financiero Logo"
+                  className="w-20 h-20 object-contain"
+                />
+              </div>
               <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-2">
-                Mi Hogar Financiero
+                Nido Financiero
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
                 Gestiona las finanzas de tu hogar de manera simple y efectiva

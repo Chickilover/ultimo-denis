@@ -117,6 +117,12 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
     queryFn: getQueryFn({ on401: "throw" }),
   });
   
+  // Fetch family members to display who created each transaction
+  const { data: familyMembers = [] } = useQuery({
+    queryKey: ["/api/family-members"],
+    queryFn: getQueryFn({ on401: "throw" }),
+  });
+  
   // Helper function to get category name
   const getCategoryName = (categoryId: number) => {
     const category = categories.find((c: any) => c.id === categoryId);
@@ -127,6 +133,26 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
   const getAccountName = (accountId: number) => {
     const account = accounts.find((a: any) => a.id === accountId);
     return account ? account.name : "Sin cuenta";
+  };
+  
+  // Helper function to get user info from transaction user ID
+  const getUserInfo = (userId: number) => {
+    // Check in family members first
+    const familyMember = familyMembers.find((m: any) => m.userId === userId);
+    if (familyMember) {
+      return {
+        name: familyMember.name,
+        username: familyMember.username,
+        initials: familyMember.name.substring(0, 2).toUpperCase(),
+      };
+    }
+    
+    // Return default if no match found
+    return {
+      name: "Usuario",
+      username: "usuario",
+      initials: "US"
+    };
   };
   
   // Sort transactions
