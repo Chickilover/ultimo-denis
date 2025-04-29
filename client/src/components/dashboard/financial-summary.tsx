@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Banknote, CreditCard, ArrowUp, ArrowDown } from "lucide-react";
+import { Account, Transaction } from "@shared/schema";
 
 // Helper function to get formatted date ranges
 function getDateRange(periodType: string) {
@@ -46,13 +47,13 @@ export function FinancialSummary() {
   const dateRange = useMemo(() => getDateRange(selectedPeriod), [selectedPeriod]);
   
   // Fetch accounts for total balance
-  const { data: accounts = [] } = useQuery({
+  const { data: accounts = [] } = useQuery<Account[]>({
     queryKey: ["/api/accounts"],
     queryFn: getQueryFn({ on401: "throw" })
   });
   
   // Fetch transactions for income/expense
-  const { data: transactions = [] } = useQuery({
+  const { data: transactions = [] } = useQuery<Transaction[]>({
     queryKey: [
       "/api/transactions", 
       dateRange.startDate, 
@@ -65,8 +66,8 @@ export function FinancialSummary() {
   const totalBalance = useMemo(() => {
     // Si no hay cuentas, calculamos el saldo total como ingresos menos gastos
     if (accounts.length === 0) {
-      return transactions.reduce((balance: number, tx: any) => {
-        const amount = parseFloat(tx.amount);
+      return transactions.reduce((balance: number, tx: Transaction) => {
+        const amount = parseFloat(tx.amount.toString());
         
         // Convert to default currency if needed
         const convertedAmount = tx.currency === defaultCurrency 
@@ -85,9 +86,9 @@ export function FinancialSummary() {
       }, 0);
     } else {
       // Si hay cuentas, usamos el saldo de las cuentas
-      return accounts.reduce((total: number, account: any) => {
+      return accounts.reduce((total: number, account: Account) => {
         // Convert account balance to the default currency if needed
-        const accountBalance = parseFloat(account.currentBalance);
+        const accountBalance = parseFloat(account.currentBalance.toString());
         if (account.currency === defaultCurrency) {
           return total + accountBalance;
         } else {
@@ -110,8 +111,8 @@ export function FinancialSummary() {
       personalExpense: number,
       householdIncome: number,
       householdExpense: number
-    }, tx: any) => {
-      const amount = parseFloat(tx.amount);
+    }, tx: Transaction) => {
+      const amount = parseFloat(tx.amount.toString());
       
       // Convert to default currency if needed
       const convertedAmount = tx.currency === defaultCurrency 

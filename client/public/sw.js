@@ -1,60 +1,92 @@
-// Nombre del caché
+// Nombre del cache
 const CACHE_NAME = 'nido-financiero-v1';
 
-// Lista de recursos para pre-cachear
+// Archivos a cachear (rutas relativas a la raíz del proyecto)
 const urlsToCache = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/icons/icon.svg',
+  '/icons/icon-192x192.png'
 ];
 
-// Instalación del Service Worker
-self.addEventListener('install', event => {
+// Instalación del service worker
+self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
+      .then((cache) => {
         console.log('Cache abierto');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
-// Estrategia de caché: Network First, luego Caché
-self.addEventListener('fetch', event => {
+// Estrategia de cache: Network First, fallback to cache
+self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
-      .then(response => {
-        // Respondemos con la respuesta de la red
-        // y guardamos una copia en el caché
-        let responseClone = response.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          // Solo guardamos en caché recursos de nuestra aplicación
-          if (event.request.url.includes(self.origin)) {
-            cache.put(event.request, responseClone);
-          }
-        });
+      .then((response) => {
+        // Si la respuesta es válida, la clonamos y almacenamos en caché
+        if (event.request.method === 'GET' && response.status === 200) {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+        }
         return response;
       })
       .catch(() => {
-        // Si falla la red, intentamos responder desde el caché
+        // Si la red falla, intentamos recuperar desde el caché
         return caches.match(event.request);
       })
   );
 });
 
-// Activación con limpieza de caché antiguos
-self.addEventListener('activate', event => {
+// Activación y limpieza de caches antiguos
+self.addEventListener('activate', (event) => {
   const cacheWhitelist = [CACHE_NAME];
+  
   event.waitUntil(
-    caches.keys().then(cacheNames => {
+    caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map(cacheName => {
+        cacheNames.map((cacheName) => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
-            // Eliminamos los cachés antiguos
+            // Eliminar caches antiguos
             return caches.delete(cacheName);
           }
         })
       );
     })
   );
+});
+
+// Gestión de notificaciones push
+self.addEventListener('push', (event) => {
+  const data = event.data.json();
+  
+  const options = {
+    body: data.body,
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-192x192.png',
+    vibrate: [100, 50, 100],
+    data: {
+      url: data.url || '/'
+    }
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// Manejar clics en notificaciones
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  
+  if (event.notification.data && event.notification.data.url) {
+    event.waitUntil(
+      clients.openWindow(event.notification.data.url)
+    );
+  }
 });
