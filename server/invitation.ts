@@ -25,7 +25,9 @@ export function generateInvitationCode(
   cleanupExpiredInvitations();
   
   // Verificar si ya existe una invitación para este email
-  for (const [code, invitation] of invitations.entries()) {
+  // Usar Array.from para evitar problemas con MapIterator
+  const entries = Array.from(invitations.entries());
+  for (const [code, invitation] of entries) {
     if (
       invitation.userId === userId &&
       invitation.email === email &&

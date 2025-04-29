@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useForm } from "react-hook-form";
@@ -16,9 +16,22 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loader2, ArrowLeft, Mail, Lock } from "lucide-react";
+import { 
+  Loader2, 
+  ArrowLeft, 
+  Mail, 
+  Lock, 
+  Users,
+  LinkIcon,
+  CheckCircle 
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { 
+  Alert, 
+  AlertTitle, 
+  AlertDescription 
+} from "@/components/ui/alert";
 
 // Validation schemas
 const loginSchema = z.object({
@@ -47,10 +60,15 @@ const resetPasswordSchema = z.object({
   path: ["confirmPassword"], 
 });
 
+const invitationSchema = z.object({
+  code: z.string().min(1, "El código de invitación es requerido"),
+});
+
 type LoginFormValues = z.infer<typeof loginSchema>;
 type RegisterFormValues = z.infer<typeof registerSchema>;
 type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+type InvitationFormValues = z.infer<typeof invitationSchema>;
 
 export default function AuthPage() {
   const [, navigate] = useLocation();
@@ -59,7 +77,110 @@ export default function AuthPage() {
   const [showForgotPassword, setShowForgotPassword] = useState<boolean>(false);
   const [showResetPassword, setShowResetPassword] = useState<boolean>(false);
   const [resetToken, setResetToken] = useState<string>("");
+  const [showInvitation, setShowInvitation] = useState<boolean>(false);
+  const [invitationCode, setInvitationCode] = useState<string>("");
+  const [invitationData, setInvitationData] = useState<{
+    valid: boolean;
+    inviter?: { 
+      id: number; 
+      username: string; 
+      name: string; 
+      email: string;
+    }
+  } | null>(null);
+  const [invitationLoading, setInvitationLoading] = useState<boolean>(false);
+  const [acceptingInvitation, setAcceptingInvitation] = useState<boolean>(false);
   const { toast } = useToast();
+
+  // Invitación por código
+  const invitationForm = useForm<InvitationFormValues>({
+    resolver: zodResolver(invitationSchema),
+    defaultValues: {
+      code: "",
+    },
+  });
+
+  // Extraer el código de invitación de la URL si existe
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("invitation");
+    if (code) {
+      setInvitationCode(code);
+      invitationForm.setValue("code", code);
+      validateInvitationCode(code);
+      setShowInvitation(true);
+    }
+  }, []);
+
+  // Función para validar un código de invitación
+  const validateInvitationCode = async (code: string) => {
+    if (!code) return;
+
+    try {
+      setInvitationLoading(true);
+      const response = await apiRequest("POST", "/api/invitations/validate", { code });
+      const result = await response.json();
+      
+      if (response.ok && result.valid) {
+        setInvitationData(result);
+      } else {
+        setInvitationData(null);
+        toast({
+          title: "Código inválido",
+          description: "El código de invitación es inválido o ha expirado.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      setInvitationData(null);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al validar la invitación.",
+        variant: "destructive",
+      });
+    } finally {
+      setInvitationLoading(false);
+    }
+  };
+
+  // Función para manejar el envío del formulario de invitación
+  const onInvitationSubmit = (data: InvitationFormValues) => {
+    validateInvitationCode(data.code);
+  };
+
+  // Función para aceptar la invitación
+  const acceptInvitation = async () => {
+    if (!invitationData?.valid || !invitationCode) return;
+
+    try {
+      setAcceptingInvitation(true);
+      const response = await apiRequest("POST", "/api/invitations/accept", { code: invitationCode });
+      
+      if (response.ok) {
+        toast({
+          title: "Invitación aceptada",
+          description: "Has sido añadido al hogar correctamente.",
+          variant: "default",
+        });
+        // Actualizar el usuario e ir a la página principal
+        window.location.href = "/";
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo procesar la invitación.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al procesar la invitación.",
+        variant: "destructive",
+      });
+    } finally {
+      setAcceptingInvitation(false);
+    }
+  };
 
   // Redirect if already logged in
   if (user) {
@@ -312,6 +433,155 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </Form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+  
+  // Renderizar página de invitación
+  if (showInvitation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <div className="max-w-md w-full">
+          <Card>
+            <CardHeader>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="absolute left-2 top-2 flex items-center text-gray-500"
+                onClick={() => {
+                  setShowInvitation(false);
+                  setInvitationCode("");
+                  setInvitationData(null);
+                  invitationForm.reset();
+                  setActiveTab("login");
+                }}
+              >
+                <ArrowLeft className="mr-1 h-4 w-4" />
+                Volver
+              </Button>
+              <div className="pt-4">
+                <CardTitle className="text-center">Invitación a Mi Hogar</CardTitle>
+                <CardDescription className="text-center">
+                  Ingresa o confirma el código de invitación
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!invitationData?.valid ? (
+                <Form {...invitationForm}>
+                  <form onSubmit={invitationForm.handleSubmit(onInvitationSubmit)} className="space-y-4">
+                    <FormField
+                      control={invitationForm.control}
+                      name="code"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Código de invitación</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Ingresa el código recibido" 
+                              {...field} 
+                              disabled={invitationLoading}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button 
+                      type="submit" 
+                      className="w-full mt-2"
+                      disabled={invitationLoading}
+                    >
+                      {invitationLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Validando...
+                        </>
+                      ) : "Validar Invitación"}
+                    </Button>
+                  </form>
+                </Form>
+              ) : (
+                <>
+                  <Alert className="bg-primary/10 border-primary/20">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <AlertTitle>Invitación válida</AlertTitle>
+                    <AlertDescription>
+                      Has recibido una invitación para unirte al hogar 
+                      {invitationData.inviter ? ` de ${invitationData.inviter.name}` : ""}.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="rounded-lg border p-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-primary" />
+                        <h3 className="font-medium">Detalles de la invitación</h3>
+                      </div>
+                      {invitationData.inviter && (
+                        <div className="space-y-1 ml-7">
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-medium">Invitado por:</span> {invitationData.inviter.name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            <span className="font-medium">Email:</span> {invitationData.inviter.email}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Si aceptas esta invitación, te unirás al hogar y podrás compartir gastos y finanzas con los miembros.
+                    </p>
+                    
+                    {!user ? (
+                      <div>
+                        <p className="text-sm font-medium mb-2">Necesitas iniciar sesión para aceptar la invitación</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setShowInvitation(false);
+                              setActiveTab("login");
+                            }}
+                            className="w-full"
+                          >
+                            Iniciar Sesión
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setShowInvitation(false);
+                              setActiveTab("register");
+                            }}
+                            className="w-full"
+                          >
+                            Registrarse
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button 
+                        onClick={acceptInvitation}
+                        disabled={acceptingInvitation}
+                        className="w-full"
+                      >
+                        {acceptingInvitation ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Procesando...
+                          </>
+                        ) : "Aceptar Invitación"}
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
