@@ -56,6 +56,7 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
   const [searchQuery, setSearchQuery] = useState("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [userFilter, setUserFilter] = useState<string>("");
   const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
@@ -85,7 +86,9 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
       params.categoryId = categoryFilter;
     }
     
-    // Filtrado por cuenta removido
+    if (userFilter && userFilter !== 'all') {
+      params.userId = userFilter;
+    }
     
     // Add transaction type filter based on the tab
     if (transactionType === 'income') {
@@ -214,6 +217,7 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
     setSearchQuery("");
     setDateRange(undefined);
     setCategoryFilter("all");
+    setUserFilter("all");
     setCurrentPage(1);
   };
   
@@ -269,6 +273,23 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
             </Badge>
           )}
           
+          {userFilter && userFilter !== 'all' && (
+            <Badge 
+              variant="outline" 
+              className="bg-primary/10 text-primary rounded-full flex items-center gap-1"
+            >
+              Miembro: {familyMembers.find((m: any) => m.userId.toString() === userFilter)?.name || 'Usuario'}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-4 w-4 p-0 rounded-full" 
+                onClick={() => setUserFilter("all")}
+              >
+                ×
+              </Button>
+            </Badge>
+          )}
+          
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="w-auto text-xs bg-muted border-none rounded-full px-3 py-1 h-7">
               <span className="whitespace-nowrap">+ Categoría</span>
@@ -284,6 +305,20 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
           </Select>
           
           {/* Selector de cuentas removido */}
+          
+          <Select value={userFilter} onValueChange={setUserFilter}>
+            <SelectTrigger className="w-auto text-xs bg-muted border-none rounded-full px-3 py-1 h-7">
+              <span className="whitespace-nowrap">+ Miembro</span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los miembros</SelectItem>
+              {familyMembers.map((member: any) => (
+                <SelectItem key={member.id} value={member.userId.toString()}>
+                  {member.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           
           <DateRangePicker
             dateRange={dateRange}
@@ -326,6 +361,7 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
                 <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground">Fecha</th>
                 <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground">Descripción</th>
                 <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground">Categoría</th>
+                <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground">Realizada por</th>
                 <th className="py-3 px-4 text-right text-xs font-medium text-muted-foreground">Importe</th>
                 <th className="py-3 px-4 text-right text-xs font-medium text-muted-foreground"></th>
               </tr>
@@ -363,6 +399,16 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
                       </div>
                     </td>
                     <td className="py-3 px-4 text-sm">{getCategoryName(transaction.categoryId)}</td>
+                    <td className="py-3 px-4">
+                      {transaction.userId && (
+                        <div className="flex items-center">
+                          <div className="h-7 w-7 rounded-full bg-accent flex items-center justify-center text-xs font-medium mr-2">
+                            {getUserInfo(transaction.userId).initials}
+                          </div>
+                          <span className="text-sm">{getUserInfo(transaction.userId).name}</span>
+                        </div>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-sm text-right font-medium font-mono">
                       <span className={transaction.transactionTypeId === 1 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
                         {transaction.transactionTypeId === 1 ? "+" : "-"}
