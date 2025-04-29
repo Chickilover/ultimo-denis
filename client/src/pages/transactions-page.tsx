@@ -99,6 +99,9 @@ export default function TransactionsPage() {
           </DialogHeader>
           <TransactionForm 
             onSuccess={() => setIsNewTransactionOpen(false)}
+            defaultValues={{
+              transactionTypeId: activeTab === "income" ? 1 : activeTab === "expense" ? 2 : undefined
+            }}
           />
         </DialogContent>
       </Dialog>
