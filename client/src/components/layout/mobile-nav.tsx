@@ -58,11 +58,40 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
     setActiveTab("perfil");
   };
 
+  // Iconos con colores específicos para cada sección
   const menuItems = [
-    { path: "/", label: "Inicio", icon: <HomeIcon className="h-5 w-5" /> },
-    { path: "/transactions", label: "Transacciones", icon: <CreditCardIcon className="h-5 w-5" /> },
-    { path: "/budgets", label: "Presupuestos", icon: <BarChart3Icon className="h-5 w-5" /> },
-    { path: "/savings", label: "Metas", icon: <PiggyBankIcon className="h-5 w-5" /> },
+    { 
+      path: "/", 
+      label: "Inicio", 
+      icon: <HomeIcon className="h-5 w-5" />,
+      activeColor: "bg-blue-500/20",
+      iconActiveColor: "bg-blue-500/30",
+      iconColor: "text-blue-500" 
+    },
+    { 
+      path: "/transactions", 
+      label: "Transacciones", 
+      icon: <CreditCardIcon className="h-5 w-5" />,
+      activeColor: "bg-purple-500/20",
+      iconActiveColor: "bg-purple-500/30",
+      iconColor: "text-purple-500" 
+    },
+    { 
+      path: "/budgets", 
+      label: "Presupuestos", 
+      icon: <BarChart3Icon className="h-5 w-5" />,
+      activeColor: "bg-amber-500/20",
+      iconActiveColor: "bg-amber-500/30",
+      iconColor: "text-amber-500" 
+    },
+    { 
+      path: "/savings", 
+      label: "Metas", 
+      icon: <PiggyBankIcon className="h-5 w-5" />,
+      activeColor: "bg-emerald-500/20",
+      iconActiveColor: "bg-emerald-500/30",
+      iconColor: "text-emerald-500" 
+    },
   ];
 
   const handleLogout = () => {
@@ -394,26 +423,31 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
 
       {/* Mobile Bottom Navigation - Estilo App */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-background/95 backdrop-blur-md border-t border-border/30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] rounded-t-xl">
-        <div className="grid grid-cols-5 gap-1 px-1 py-1">
+        <div className="grid grid-cols-5 gap-1 px-1 py-2">
           {menuItems.map((item, index) => (
             <Link href={item.path} key={index}>
               <div
                 className={cn(
                   "flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-all duration-200",
                   location === item.path 
-                    ? "text-primary bg-primary/10 scale-105 shadow-sm" 
-                    : "text-foreground/60 hover:text-primary hover:bg-background"
+                    ? `${item.activeColor} scale-105 shadow-sm` 
+                    : "text-foreground/60 hover:bg-background"
                 )}
               >
                 <div className={cn(
-                  "flex items-center justify-center w-10 h-10 rounded-full mb-1",
+                  "flex items-center justify-center w-12 h-12 rounded-full mb-1 shadow-sm",
                   location === item.path 
-                    ? "bg-primary/10" 
-                    : "bg-transparent"
+                    ? `${item.iconActiveColor} ${item.iconColor}` 
+                    : "bg-background/80 border border-border/50"
                 )}>
                   {item.icon}
                 </div>
-                <span className="text-xs font-medium">{item.label}</span>
+                <span className={cn(
+                  "text-xs font-medium",
+                  location === item.path 
+                    ? item.iconColor 
+                    : "text-foreground/70"
+                )}>{item.label}</span>
               </div>
             </Link>
           ))}
@@ -424,10 +458,10 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
             variant="ghost"
             onClick={onOpenTransactionForm}
           >
-            <div className="bg-primary shadow-lg rounded-full p-3 mb-1 transform hover:scale-110 transition-transform duration-200">
-              <PlusIcon className="h-4 w-4 text-white" />
+            <div className="bg-primary shadow-lg rounded-full p-3 w-12 h-12 flex items-center justify-center mb-1 transform hover:scale-110 transition-transform duration-200 scale-105">
+              <PlusIcon className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xs font-medium text-foreground/60">Añadir</span>
+            <span className="text-xs font-medium text-primary">Añadir</span>
           </Button>
         </div>
       </div>
