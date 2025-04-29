@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Shell } from "@/components/layout/shell";
 import { PageHeader } from "@/components/layout/page-header";
+import { getQueryFn } from "@/lib/queryClient";
 import { 
   Card, 
   CardContent, 
@@ -250,8 +251,8 @@ const OverviewReport = ({
   categories,
   isLoading
 }: { 
-  transactions: Transaction[], 
-  categories: Category[],
+  transactions: any[], 
+  categories: any[],
   isLoading: boolean
 }) => {
   const monthlyData = getMonthlyTrends(transactions);
@@ -447,8 +448,8 @@ const ExpenseByCategoryReport = ({
   categories,
   isLoading
 }: { 
-  transactions: Transaction[], 
-  categories: Category[],
+  transactions: any[], 
+  categories: any[],
   isLoading: boolean
 }) => {
   const [period, setPeriod] = useState("all");
@@ -732,7 +733,7 @@ const MonthlyTrendsReport = ({
   transactions,
   isLoading
 }: { 
-  transactions: Transaction[],
+  transactions: any[],
   isLoading: boolean
 }) => {
   const [months, setMonths] = useState("6");
@@ -909,9 +910,9 @@ const BudgetComparisonReport = ({
   categories,
   isLoading
 }: { 
-  budgets: Budget[],
-  transactions: Transaction[],
-  categories: Category[],
+  budgets: any[],
+  transactions: any[],
+  categories: any[],
   isLoading: boolean
 }) => {
   const budgetData = getBudgetComparison(budgets, transactions, categories);
@@ -1033,7 +1034,7 @@ const SavingsGoalReport = ({
   savingsGoals,
   isLoading
 }: { 
-  savingsGoals: SavingsGoal[],
+  savingsGoals: any[],
   isLoading: boolean
 }) => {
   const savingsData = getSavingsProgress(savingsGoals);
@@ -1238,36 +1239,36 @@ export default function ReportsPage() {
   
   // Cargar datos de transacciones
   const { 
-    data: transactions = [], 
+    data: transactions = [] as Transaction[], 
     isLoading: isLoadingTransactions 
-  } = useQuery({
+  } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions", startDateParam, endDateParam],
     queryFn: getQueryFn({ on401: "throw" }),
   });
   
   // Cargar datos de categorías
   const { 
-    data: categories = [], 
+    data: categories = [] as Category[], 
     isLoading: isLoadingCategories 
-  } = useQuery({
+  } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
   
   // Cargar datos de presupuestos
   const { 
-    data: budgets = [], 
+    data: budgets = [] as Budget[], 
     isLoading: isLoadingBudgets 
-  } = useQuery({
+  } = useQuery<Budget[]>({
     queryKey: ["/api/budgets"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
   
   // Cargar datos de metas de ahorro
   const { 
-    data: savingsGoals = [], 
+    data: savingsGoals = [] as SavingsGoal[], 
     isLoading: isLoadingSavingsGoals 
-  } = useQuery({
+  } = useQuery<SavingsGoal[]>({
     queryKey: ["/api/savings-goals"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
