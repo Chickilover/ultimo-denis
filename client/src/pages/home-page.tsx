@@ -13,7 +13,7 @@ import { Advisor } from "@/components/dashboard/advisor";
 import { NewTransactionButton } from "@/components/dashboard/new-transaction-button";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, BarChart3Icon } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -133,7 +133,7 @@ export default function HomePage() {
             <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/30">
               <CardTitle className="text-lg font-bold flex items-center">
                 <span className="bg-secondary/10 p-1.5 rounded-lg mr-2 flex-shrink-0">
-                  <BarChart3Icon className="h-5 w-5 text-secondary" />
+                  <Plus className="h-5 w-5 text-secondary" />
                 </span>
                 Evolución Mensual
               </CardTitle>

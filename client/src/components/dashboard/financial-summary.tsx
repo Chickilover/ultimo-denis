@@ -230,23 +230,33 @@ export function FinancialSummary() {
       {viewMode === 'all' && (
         <>
           {/* Balance neto (destacado) - ahora es su propia tarjeta */}
-          <Card className={`${netBalance >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
-            <CardContent className="pt-6 pb-6">
-              <div className="flex justify-between items-center">
+          <Card className={`card-app relative overflow-hidden border-0 shadow-lg ${
+            netBalance >= 0 
+              ? 'bg-gradient-to-br from-green-500/80 to-green-700 dark:from-green-500/90 dark:to-green-700/90' 
+              : 'bg-gradient-to-br from-red-500/80 to-red-700 dark:from-red-500/90 dark:to-red-700/90'
+          }`}>
+            <CardContent className="pt-6 pb-6 text-white">
+              {/* Elementos decorativos */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mt-32 -mr-32 opacity-70"></div>
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/5 rounded-full blur-2xl"></div>
+              
+              <div className="flex justify-between items-center relative z-10">
                 <div>
-                  <p className="text-base font-semibold text-muted-foreground">Saldo final ({selectedPeriod === "month" ? "Mes" : "Año"})</p>
-                  <div className="flex items-center">
-                    <h3 className="text-3xl font-bold font-mono">{formatCurrency(netBalance)}</h3>
-                    <span className={`ml-2 text-sm ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className="text-base font-semibold text-white/90">
+                    {selectedPeriod === "month" ? "Saldo mensual" : "Saldo anual"}
+                  </p>
+                  <div className="flex flex-col">
+                    <h3 className="text-3xl font-bold font-mono mt-1">{formatCurrency(netBalance)}</h3>
+                    <span className="text-sm text-white/80 mt-1">
                       (Ingresos - Gastos)
                     </span>
                   </div>
                 </div>
-                <div className={`rounded-full p-4 ${netBalance >= 0 ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50'}`}>
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 shadow-inner border border-white/30">
                   {netBalance >= 0 ? (
-                    <ArrowUp className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    <ArrowUp className="h-8 w-8 text-white" />
                   ) : (
-                    <ArrowDown className="h-8 w-8 text-red-600 dark:text-red-400" />
+                    <ArrowDown className="h-8 w-8 text-white" />
                   )}
                 </div>
               </div>
@@ -254,55 +264,58 @@ export function FinancialSummary() {
           </Card>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="card-app border-primary/20 overflow-hidden">
+              <CardContent className="pt-6 pb-4 relative">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-xl"></div>
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-sm text-muted-foreground">Saldo total</p>
-                    <h3 className="text-2xl font-bold font-mono">{formatCurrency(totalBalance)}</h3>
+                    <h3 className="text-2xl font-bold font-mono mt-1">{formatCurrency(totalBalance)}</h3>
                   </div>
-                  <div className="bg-primary-100 dark:bg-primary-900/50 rounded-full p-3">
-                    <Banknote className="h-6 w-6 text-primary" />
+                  <div className="bg-primary/10 backdrop-blur-sm rounded-2xl p-3 shadow-sm">
+                    <Banknote className="h-6 w-6 text-primary/90" />
                   </div>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="card-app border-green-500/20 overflow-hidden">
+              <CardContent className="pt-6 pb-4 relative">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full blur-xl"></div>
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-sm text-muted-foreground">
                       Ingresos ({selectedPeriod === "month" ? "Mes" : "Año"})
                     </p>
-                    <h3 className="text-2xl font-bold font-mono">{formatCurrency(totalIncome)}</h3>
-                    <span className="text-green-500 text-sm flex items-center">
+                    <h3 className="text-2xl font-bold font-mono mt-1">{formatCurrency(totalIncome)}</h3>
+                    <span className="text-green-500 text-sm flex items-center mt-1">
                       <ArrowUp className="h-4 w-4 mr-1" />
                       +{incomeChange}% vs. {selectedPeriod === "month" ? "mes anterior" : "año anterior"}
                     </span>
                   </div>
-                  <div className="bg-green-100 dark:bg-green-900/50 rounded-full p-3">
-                    <ArrowUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <div className="bg-green-500/10 backdrop-blur-sm rounded-2xl p-3 shadow-sm">
+                    <ArrowUp className="h-6 w-6 text-green-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="card-app border-red-500/20 overflow-hidden">
+              <CardContent className="pt-6 pb-4 relative">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-xl"></div>
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-sm text-muted-foreground">
                       Gastos ({selectedPeriod === "month" ? "Mes" : "Año"})
                     </p>
-                    <h3 className="text-2xl font-bold font-mono">{formatCurrency(totalExpense)}</h3>
-                    <span className="text-red-500 text-sm flex items-center">
+                    <h3 className="text-2xl font-bold font-mono mt-1">{formatCurrency(totalExpense)}</h3>
+                    <span className="text-red-500 text-sm flex items-center mt-1">
                       <ArrowDown className="h-4 w-4 mr-1" />
                       +{expenseChange}% vs. {selectedPeriod === "month" ? "mes anterior" : "año anterior"}
                     </span>
                   </div>
-                  <div className="bg-red-100 dark:bg-red-900/50 rounded-full p-3">
-                    <CreditCard className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  <div className="bg-red-500/10 backdrop-blur-sm rounded-2xl p-3 shadow-sm">
+                    <CreditCard className="h-6 w-6 text-red-600" />
                   </div>
                 </div>
               </CardContent>
@@ -315,23 +328,33 @@ export function FinancialSummary() {
       {viewMode === 'personal' && (
         <>
           {/* Balance neto personal - tarjeta destacada */}
-          <Card className={`${personalNetBalance >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
-            <CardContent className="pt-6 pb-6">
-              <div className="flex justify-between items-center">
+          <Card className={`card-app relative overflow-hidden border-0 shadow-lg ${
+            personalNetBalance >= 0 
+              ? 'bg-gradient-to-br from-blue-500/80 to-blue-700 dark:from-blue-500/90 dark:to-blue-700/90' 
+              : 'bg-gradient-to-br from-red-500/80 to-red-700 dark:from-red-500/90 dark:to-red-700/90'
+          }`}>
+            <CardContent className="pt-6 pb-6 text-white">
+              {/* Elementos decorativos */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mt-32 -mr-32 opacity-70"></div>
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/5 rounded-full blur-2xl"></div>
+              
+              <div className="flex justify-between items-center relative z-10">
                 <div>
-                  <p className="text-base font-semibold text-muted-foreground">Saldo Personal ({selectedPeriod === "month" ? "Mes" : "Año"})</p>
-                  <div className="flex items-center">
-                    <h3 className="text-3xl font-bold font-mono">{formatCurrency(personalNetBalance)}</h3>
-                    <span className={`ml-2 text-sm ${personalNetBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className="text-base font-semibold text-white/90">
+                    {selectedPeriod === "month" ? "Saldo personal mensual" : "Saldo personal anual"}
+                  </p>
+                  <div className="flex flex-col">
+                    <h3 className="text-3xl font-bold font-mono mt-1">{formatCurrency(personalNetBalance)}</h3>
+                    <span className="text-sm text-white/80 mt-1">
                       (Ingresos - Gastos)
                     </span>
                   </div>
                 </div>
-                <div className={`rounded-full p-4 ${personalNetBalance >= 0 ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50'}`}>
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 shadow-inner border border-white/30">
                   {personalNetBalance >= 0 ? (
-                    <ArrowUp className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    <ArrowUp className="h-8 w-8 text-white" />
                   ) : (
-                    <ArrowDown className="h-8 w-8 text-red-600 dark:text-red-400" />
+                    <ArrowDown className="h-8 w-8 text-white" />
                   )}
                 </div>
               </div>
@@ -339,33 +362,31 @@ export function FinancialSummary() {
           </Card>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">            
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="card-app border-green-500/20 overflow-hidden">
+              <CardContent className="pt-6 pb-4 relative">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full blur-xl"></div>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-sm text-muted-foreground">
-                      Ingresos Personales
-                    </p>
-                    <h3 className="text-2xl font-bold font-mono">{formatCurrency(personalIncome)}</h3>
+                    <p className="text-sm text-muted-foreground">Ingresos Personales</p>
+                    <h3 className="text-2xl font-bold font-mono mt-1">{formatCurrency(personalIncome)}</h3>
                   </div>
-                  <div className="bg-green-100 dark:bg-green-900/50 rounded-full p-3">
-                    <ArrowUp className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <div className="bg-green-500/10 backdrop-blur-sm rounded-2xl p-3 shadow-sm">
+                    <ArrowUp className="h-6 w-6 text-green-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
-              <CardContent className="pt-6">
+            <Card className="card-app border-red-500/20 overflow-hidden">
+              <CardContent className="pt-6 pb-4 relative">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-xl"></div>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-sm text-muted-foreground">
-                      Gastos Personales
-                    </p>
-                    <h3 className="text-2xl font-bold font-mono">{formatCurrency(personalExpense)}</h3>
+                    <p className="text-sm text-muted-foreground">Gastos Personales</p>
+                    <h3 className="text-2xl font-bold font-mono mt-1">{formatCurrency(personalExpense)}</h3>
                   </div>
-                  <div className="bg-red-100 dark:bg-red-900/50 rounded-full p-3">
-                    <CreditCard className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  <div className="bg-red-500/10 backdrop-blur-sm rounded-2xl p-3 shadow-sm">
+                    <CreditCard className="h-6 w-6 text-red-600" />
                   </div>
                 </div>
               </CardContent>
@@ -378,23 +399,33 @@ export function FinancialSummary() {
       {viewMode === 'household' && (
         <>
           {/* Balance neto del hogar - tarjeta destacada */}
-          <Card className={`${householdNetBalance >= 0 ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
-            <CardContent className="pt-6 pb-6">
-              <div className="flex justify-between items-center">
+          <Card className={`card-app relative overflow-hidden border-0 shadow-lg ${
+            householdNetBalance >= 0 
+              ? 'bg-gradient-to-br from-purple-500/80 to-purple-700 dark:from-purple-500/90 dark:to-purple-700/90' 
+              : 'bg-gradient-to-br from-red-500/80 to-red-700 dark:from-red-500/90 dark:to-red-700/90'
+          }`}>
+            <CardContent className="pt-6 pb-6 text-white">
+              {/* Elementos decorativos */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mt-32 -mr-32 opacity-70"></div>
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/5 rounded-full blur-2xl"></div>
+              
+              <div className="flex justify-between items-center relative z-10">
                 <div>
-                  <p className="text-base font-semibold text-muted-foreground">Saldo del Hogar ({selectedPeriod === "month" ? "Mes" : "Año"})</p>
-                  <div className="flex items-center">
-                    <h3 className="text-3xl font-bold font-mono">{formatCurrency(householdNetBalance)}</h3>
-                    <span className={`ml-2 text-sm ${householdNetBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  <p className="text-base font-semibold text-white/90">
+                    {selectedPeriod === "month" ? "Saldo del hogar mensual" : "Saldo del hogar anual"}
+                  </p>
+                  <div className="flex flex-col">
+                    <h3 className="text-3xl font-bold font-mono mt-1">{formatCurrency(householdNetBalance)}</h3>
+                    <span className="text-sm text-white/80 mt-1">
                       (Ingresos - Gastos)
                     </span>
                   </div>
                 </div>
-                <div className={`rounded-full p-4 ${householdNetBalance >= 0 ? 'bg-green-100 dark:bg-green-900/50' : 'bg-red-100 dark:bg-red-900/50'}`}>
+                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 shadow-inner border border-white/30">
                   {householdNetBalance >= 0 ? (
-                    <ArrowUp className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    <ArrowUp className="h-8 w-8 text-white" />
                   ) : (
-                    <ArrowDown className="h-8 w-8 text-red-600 dark:text-red-400" />
+                    <ArrowDown className="h-8 w-8 text-white" />
                   )}
                 </div>
               </div>
