@@ -41,6 +41,9 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Filter,
+  ArrowUpDown,
+  CalendarIcon
 } from "lucide-react";
 
 import { TransactionForm } from "./transaction-form";
@@ -54,19 +57,24 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
   const { toast } = useToast();
   const { user } = useAuth();
   
-  // State for filters
+  // Estado para filtros y ordenamiento
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [userFilter, setUserFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
-  const [userFilter, setUserFilter] = useState<string>("");
   const [sortOrder, setSortOrder] = useState("newest");
+  
+  // Estado para paginación
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
+  const pageSize = 10;
   
   // State for transaction editing/deleting
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  
+  // Estado para el filtro móvil
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   
   // Format filter params for API request
   const getFilterParams = () => {
@@ -128,35 +136,46 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
     queryFn: getQueryFn({ on401: "throw" }),
   });
   
-  // Helper function to get category name
+  // Helper function to get category name by ID
   const getCategoryName = (categoryId: number) => {
     const category = categories.find((c: any) => c.id === categoryId);
     return category ? category.name : "Sin categoría";
   };
   
-  // Helper function to get account name
+  // Helper function to get account name by ID
   const getAccountName = (accountId: number) => {
     const account = accounts.find((a: any) => a.id === accountId);
-    return account ? account.name : "Sin cuenta";
+    return account ? account.name : "Cuenta";
   };
   
-  // Helper function to get user info from transaction user ID
+  // Helper function to get user info (name and initials)
   const getUserInfo = (userId: number) => {
-    // Check in family members first
-    const familyMember = familyMembers.find((m: any) => m.userId === userId);
-    if (familyMember) {
+    // Current user
+    if (user && user.id === userId) {
+      const name = user.username;
+      const initials = name.substring(0, 2).toUpperCase();
+      
       return {
-        name: familyMember.name,
-        username: familyMember.username,
-        initials: familyMember.name.substring(0, 2).toUpperCase(),
+        name,
+        initials,
       };
     }
     
-    // Return default if no match found
+    // Family member
+    const member = familyMembers.find((m: any) => m.userId === userId);
+    if (member) {
+      const name = member.name;
+      const initials = name.substring(0, 2).toUpperCase();
+      
+      return {
+        name,
+        initials,
+      };
+    };
+    
     return {
       name: "Usuario",
-      username: "usuario",
-      initials: "US"
+      initials: "US",
     };
   };
   
@@ -214,151 +233,197 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
     }
   };
   
-  // Clear all filters
-  const clearFilters = () => {
-    setSearchQuery("");
-    setDateRange(undefined);
-    setCategoryFilter("all");
-    setUserFilter("all");
-    setCurrentPage(1);
+  // Formatear número de transacciones para mostrar
+  const formattedTotalTransactions = () => {
+    const totalTransactions = sortedTransactions.length;
+    
+    if (totalTransactions === 0) {
+      return "No hay transacciones";
+    } else if (totalTransactions === 1) {
+      return "1 transacción";
+    } else {
+      return `${totalTransactions} transacciones`;
+    }
   };
   
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="space-y-4">
-        <div className="flex flex-wrap gap-2 mb-4">
-          <div className="flex items-center bg-muted rounded-full px-3 py-1">
-            <span className="text-sm font-medium mr-2">Filtros:</span>
-            {(!searchQuery && !dateRange && (!categoryFilter || categoryFilter === "all")) ? (
-              <Badge variant="outline" className="bg-primary/10 text-primary rounded-full">Todos</Badge>
-            ) : (
-              <Button variant="ghost" size="sm" className="h-6 px-2 rounded-full" onClick={clearFilters}>
-                Limpiar filtros
+      <div className="rounded-md border">
+        {/* Cabecera con buscador, filtros y ordenamiento */}
+        <div className="p-4 bg-card border-b">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mb-4">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar transacciones..."
+                className="pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-1"
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+              >
+                <Filter className="h-4 w-4" />
+                <span className="hidden sm:inline">Filtros</span>
               </Button>
-            )}
+              
+              <Select value={sortOrder} onValueChange={setSortOrder}>
+                <SelectTrigger className="w-full sm:w-40 h-9">
+                  <div className="flex items-center">
+                    <ArrowUpDown className="h-3.5 w-3.5 mr-1.5" />
+                    <span className="hidden sm:inline">Ordenar</span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Más recientes</SelectItem>
+                  <SelectItem value="oldest">Más antiguas</SelectItem>
+                  <SelectItem value="highest">Mayor importe</SelectItem>
+                  <SelectItem value="lowest">Menor importe</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
-          {categoryFilter && (
-            <Badge 
-              variant="outline" 
-              className="bg-primary/10 text-primary rounded-full flex items-center gap-1"
-            >
-              Categoría: {getCategoryName(parseInt(categoryFilter))}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-4 w-4 p-0 rounded-full" 
-                onClick={() => setCategoryFilter("all")}
-              >
-                ×
-              </Button>
-            </Badge>
+          {/* Filtros expandibles */}
+          {isFilterOpen && (
+            <div className="space-y-3 pt-2 border-t">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium">Categoría</label>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todas las categorías" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las categorías</SelectItem>
+                      {categories.map((category: any) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium">Miembro</label>
+                  <Select value={userFilter} onValueChange={setUserFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos los miembros" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los miembros</SelectItem>
+                      {familyMembers.map((member: any) => (
+                        <SelectItem key={member.id} value={member.userId.toString()}>
+                          {member.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-1.5 col-span-1 sm:col-span-2 md:col-span-1">
+                  <label className="text-xs font-medium">Rango de fechas</label>
+                  <DateRangePicker
+                    dateRange={dateRange}
+                    onDateRangeChange={setDateRange}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 pt-2">
+                {categoryFilter !== 'all' && (
+                  <Badge 
+                    variant="outline" 
+                    className="bg-primary/10 text-primary rounded-full flex items-center gap-1"
+                  >
+                    Categoría: {getCategoryName(parseInt(categoryFilter))}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-4 w-4 p-0 rounded-full" 
+                      onClick={() => setCategoryFilter("all")}
+                    >
+                      ×
+                    </Button>
+                  </Badge>
+                )}
+                
+                {userFilter !== 'all' && (
+                  <Badge 
+                    variant="outline" 
+                    className="bg-primary/10 text-primary rounded-full flex items-center gap-1"
+                  >
+                    Miembro: {familyMembers.find((m: any) => m.userId.toString() === userFilter)?.name || 'Usuario'}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-4 w-4 p-0 rounded-full" 
+                      onClick={() => setUserFilter("all")}
+                    >
+                      ×
+                    </Button>
+                  </Badge>
+                )}
+                
+                {dateRange?.from && (
+                  <Badge 
+                    variant="outline" 
+                    className="bg-primary/10 text-primary rounded-full flex items-center gap-1"
+                  >
+                    Fecha: {formatDate(dateRange.from)} {dateRange.to ? `- ${formatDate(dateRange.to)}` : ""}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-4 w-4 p-0 rounded-full" 
+                      onClick={() => setDateRange(undefined)}
+                    >
+                      ×
+                    </Button>
+                  </Badge>
+                )}
+                
+                {(categoryFilter !== 'all' || userFilter !== 'all' || dateRange?.from) && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-muted-foreground text-xs h-7" 
+                    onClick={() => {
+                      setCategoryFilter("all");
+                      setUserFilter("all");
+                      setDateRange(undefined);
+                    }}
+                  >
+                    Limpiar filtros
+                  </Button>
+                )}
+              </div>
+            </div>
           )}
-          
-          {/* Filtro de cuentas removido */}
-          
-          {dateRange?.from && (
-            <Badge 
-              variant="outline" 
-              className="bg-primary/10 text-primary rounded-full flex items-center gap-1"
-            >
-              Fecha: {formatDate(dateRange.from)} {dateRange.to ? `- ${formatDate(dateRange.to)}` : ""}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-4 w-4 p-0 rounded-full" 
-                onClick={() => setDateRange(undefined)}
-              >
-                ×
-              </Button>
-            </Badge>
-          )}
-          
-          {userFilter && userFilter !== 'all' && (
-            <Badge 
-              variant="outline" 
-              className="bg-primary/10 text-primary rounded-full flex items-center gap-1"
-            >
-              Miembro: {familyMembers.find((m: any) => m.userId.toString() === userFilter)?.name || 'Usuario'}
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-4 w-4 p-0 rounded-full" 
-                onClick={() => setUserFilter("all")}
-              >
-                ×
-              </Button>
-            </Badge>
-          )}
-          
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-auto text-xs bg-muted border-none rounded-full px-3 py-1 h-7">
-              <span className="whitespace-nowrap">+ Categoría</span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las categorías</SelectItem>
-              {categories.map((category: any) => (
-                <SelectItem key={category.id} value={category.id.toString()}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          {/* Selector de cuentas removido */}
-          
-          <Select value={userFilter} onValueChange={setUserFilter}>
-            <SelectTrigger className="w-auto text-xs bg-muted border-none rounded-full px-3 py-1 h-7">
-              <span className="whitespace-nowrap">+ Miembro</span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los miembros</SelectItem>
-              {familyMembers.map((member: any) => (
-                <SelectItem key={member.id} value={member.userId.toString()}>
-                  {member.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <DateRangePicker
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-            className="w-auto"
-          />
         </div>
         
-        <div className="flex flex-col sm:flex-row justify-between gap-4">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar transacciones..."
-              className="pl-9"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+        {/* Resumen de transacciones */}
+        <div className="px-3 py-2 border-b bg-muted/30 text-sm text-muted-foreground flex justify-between items-center">
+          <span>{formattedTotalTransactions()}</span>
           
-          <Select value={sortOrder} onValueChange={setSortOrder}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Ordenar por" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Más recientes</SelectItem>
-              <SelectItem value="oldest">Más antiguos</SelectItem>
-              <SelectItem value="highest">Mayor importe</SelectItem>
-              <SelectItem value="lowest">Menor importe</SelectItem>
-            </SelectContent>
-          </Select>
+          {totalPages > 1 && (
+            <div className="flex items-center space-x-1 text-xs">
+              <span>Página {currentPage} de {totalPages}</span>
+            </div>
+          )}
         </div>
-      </div>
-      
-      {/* Transactions Table */}
-      <div className="rounded-md border">
+
+        {/* Lista de transacciones */}
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead>
+            <thead className="hidden sm:table-header-group">
               <tr className="border-b bg-muted/50">
                 <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground">Fecha</th>
                 <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground">Descripción</th>
@@ -371,21 +436,73 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                  <td colSpan={6} className="py-6 text-center text-muted-foreground">
                     Cargando transacciones...
                   </td>
                 </tr>
               ) : paginatedTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                  <td colSpan={6} className="py-6 text-center text-muted-foreground">
                     No se encontraron transacciones
                   </td>
                 </tr>
               ) : (
                 paginatedTransactions.map((transaction: any) => (
-                  <tr key={transaction.id} className="hover:bg-muted/50">
-                    <td className="py-3 px-4 text-sm">{formatDate(transaction.date)}</td>
-                    <td className="py-3 px-4">
+                  <tr key={transaction.id} className="sm:hover:bg-muted/50 border-b sm:border-b-0">
+                    {/* Versión móvil (responsive) */}
+                    <td className="block sm:hidden p-4">
+                      <div className="flex justify-between mb-1.5">
+                        <div className="text-sm font-medium">{transaction.description}</div>
+                        <div className={`text-sm font-semibold ${
+                          transaction.transactionTypeId === 1 ? "text-green-600" : 
+                          transaction.transactionTypeId === 2 ? "text-red-600" : ""
+                        }`}>
+                          {formatCurrency(transaction.amount, transaction.currency)}
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <div className="space-x-1">
+                          <span>{formatDate(transaction.date)}</span>
+                          <span>•</span>
+                          <span>{getCategoryName(transaction.categoryId)}</span>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => handleEditTransaction(transaction)}
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                            <span className="sr-only">Editar</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive"
+                            onClick={() => handleDeleteTransaction(transaction)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span className="sr-only">Eliminar</span>
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {transaction.userId && (
+                        <div className="flex items-center mt-1.5 text-xs text-muted-foreground">
+                          <div className="h-5 w-5 rounded-full bg-accent flex items-center justify-center text-[10px] font-medium mr-1">
+                            {getUserInfo(transaction.userId).initials}
+                          </div>
+                          <span>{getUserInfo(transaction.userId).name}</span>
+                        </div>
+                      )}
+                    </td>
+                    
+                    {/* Versión escritorio */}
+                    <td className="hidden sm:table-cell py-3 px-4 text-sm">{formatDate(transaction.date)}</td>
+                    <td className="hidden sm:table-cell py-3 px-4">
                       <div className="flex items-center">
                         <div className="bg-primary-100 dark:bg-primary-900/50 rounded-full p-1.5 mr-2">
                           <ShoppingBag className="h-4 w-4 text-primary-600 dark:text-primary-400" />
@@ -400,8 +517,8 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-sm">{getCategoryName(transaction.categoryId)}</td>
-                    <td className="py-3 px-4">
+                    <td className="hidden sm:table-cell py-3 px-4 text-sm">{getCategoryName(transaction.categoryId)}</td>
+                    <td className="hidden sm:table-cell py-3 px-4">
                       {transaction.userId && (
                         <div className="flex items-center">
                           <div className="h-7 w-7 rounded-full bg-accent flex items-center justify-center text-xs font-medium mr-2">
@@ -411,24 +528,20 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
                         </div>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-sm text-right font-medium font-mono">
-                      <span 
-                        className="font-semibold"
-                        style={{
-                          color: transaction.transactionTypeId === 1 
-                            ? (user?.incomeColor || "#10b981") 
-                            : (user?.expenseColor || "#ef4444")
-                        }}
-                      >
-                        {transaction.transactionTypeId === 1 ? "+" : "-"}
+                    <td className="hidden sm:table-cell py-3 px-4 text-right">
+                      <span className={`text-sm font-semibold ${
+                        transaction.transactionTypeId === 1 ? "text-green-600" : 
+                        transaction.transactionTypeId === 2 ? "text-red-600" : ""
+                      }`}>
                         {formatCurrency(transaction.amount, transaction.currency)}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="hidden sm:table-cell py-3 px-4 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
                             <MoreVertical className="h-4 w-4" />
+                            <span className="sr-only">Acciones</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -436,14 +549,14 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleEditTransaction(transaction)}>
                             <Edit className="mr-2 h-4 w-4" />
-                            <span>Editar</span>
+                            Editar
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleDeleteTransaction(transaction)}
-                            className="text-red-600 dark:text-red-400"
+                            className="text-destructive"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            <span>Eliminar</span>
+                            Eliminar
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -455,62 +568,74 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
           </table>
         </div>
         
-        {/* Pagination */}
+        {/* Paginación */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
-            <div className="text-sm text-muted-foreground">
-              Mostrando {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, sortedTransactions.length)} de {sortedTransactions.length} transacciones
+          <div className="flex items-center justify-between px-4 py-4 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Anterior
+            </Button>
+            <div className="hidden sm:flex items-center text-sm text-muted-foreground">
+              Página {currentPage} de {totalPages}
             </div>
-            <div className="flex space-x-1">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Siguiente
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
           </div>
         )}
       </div>
       
-      {/* Edit Transaction Modal */}
+      {/* Modal de edición de transacción */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="md:max-w-2xl max-h-screen overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar transacción</DialogTitle>
+            <DialogDescription>
+              Modifica los detalles de la transacción
+            </DialogDescription>
+          </DialogHeader>
+          
           {selectedTransaction && (
-            <TransactionForm
-              onComplete={() => setIsEditModalOpen(false)}
-              defaultValues={selectedTransaction}
-              editMode={true}
-              transactionId={selectedTransaction.id}
+            <TransactionForm 
+              isEditing 
+              initialData={selectedTransaction}
+              onSuccess={() => setIsEditModalOpen(false)}
             />
           )}
         </DialogContent>
       </Dialog>
       
-      {/* Delete Confirmation Modal */}
+      {/* Modal de confirmación de eliminación */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar eliminación</DialogTitle>
+            <DialogTitle>Eliminar transacción</DialogTitle>
             <DialogDescription>
               ¿Estás seguro de que deseas eliminar esta transacción? Esta acción no se puede deshacer.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button variant="destructive" onClick={deleteTransaction}>
+            <Button 
+              variant="destructive" 
+              onClick={deleteTransaction}
+            >
               Eliminar
             </Button>
           </DialogFooter>
