@@ -84,9 +84,6 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
                 <SheetHeader className="p-6 border-b border-sidebar-border/40 relative">
                   <div className="absolute w-40 h-40 bg-accent/30 rounded-full blur-3xl opacity-20 -top-16 -left-10"></div>
                   <SheetTitle className="text-white text-xl font-bold relative z-10">Nido Financiero</SheetTitle>
-                  <SheetClose className="absolute top-5 right-5 text-white bg-white/10 rounded-full p-1 hover:bg-white/20 transition-colors">
-                    <XIcon className="h-5 w-5" />
-                  </SheetClose>
                 </SheetHeader>
                 <div className="mt-4 px-3">
                   <nav>

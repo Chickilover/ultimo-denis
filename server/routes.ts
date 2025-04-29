@@ -947,7 +947,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Obtener la ruta relativa para el avatar (para uso en el cliente)
-      const relativePath = `/assets/avatars/${path.basename(req.file.path)}`;
+      const relativePath = `/avatars/${path.basename(req.file.path)}`;
       
       // Actualizar el campo avatar del usuario
       const updatedUser = await storage.updateUser(req.user.id, { 
