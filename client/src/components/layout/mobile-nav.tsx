@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrency } from "@/hooks/use-currency";
 import { useTheme } from "@/hooks/use-theme";
+import { PWAInstall } from "@/lib/pwa-install";
 import { 
   MenuIcon, 
   BellIcon, 
@@ -270,6 +271,11 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
                           Mi Perfil
                         </Button>
                         
+                        {/* Componente de instalación PWA en el menú lateral */}
+                        <div className="flex justify-center my-2">
+                          <PWAInstall />
+                        </div>
+                        
                         <Button
                           variant="ghost"
                           size="sm"
@@ -293,6 +299,10 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
           </div>
           
           <div className="flex items-center space-x-2">
+            <div className="hidden sm:block">
+              <PWAInstall />
+            </div>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
