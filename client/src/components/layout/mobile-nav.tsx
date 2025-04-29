@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrency } from "@/hooks/use-currency";
 import { useTheme } from "@/hooks/use-theme";
+import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { PWAInstall } from "@/lib/pwa-install";
 import { 
   MenuIcon, 
@@ -43,11 +44,18 @@ interface MobileNavProps {
 }
 
 export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { user, logoutMutation } = useAuth();
   const { theme, setTheme } = useTheme();
   const { defaultCurrency, setDefaultCurrency } = useCurrency();
+  const { setActiveTab } = useProfileSettings();
   const [sheetOpen, setSheetOpen] = useState(false);
+  
+  // Función para navegar a la pestaña de perfil
+  const navigateToProfile = () => {
+    navigate("/settings");
+    setActiveTab("perfil");
+  };
 
   const menuItems = [
     { path: "/", label: "Inicio", icon: <HomeIcon className="h-5 w-5" /> },
@@ -266,6 +274,7 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
                           variant="ghost"
                           size="sm"
                           className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10 rounded-lg py-2.5"
+                          onClick={navigateToProfile}
                         >
                           <UserIcon className="mr-2 h-5 w-5" />
                           Mi Perfil
@@ -357,7 +366,7 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
-                <DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => navigateToProfile()}>
                   <UserIcon className="mr-2 h-4 w-4" />
                   <span>Mi Perfil</span>
                 </DropdownMenuItem>

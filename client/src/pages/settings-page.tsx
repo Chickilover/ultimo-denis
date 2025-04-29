@@ -58,13 +58,8 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Estado para la sección de perfil
-  const [activeSettingsTab, setActiveSettingsTab] = useState("general");
-  
-  // Función para cambiar directamente a la pestaña de perfil
-  const showProfileTab = () => {
-    setActiveSettingsTab("perfil");
-  };
+  // Estado para la sección de perfil - usando hook compartido
+  const { activeTab: activeSettingsTab, setActiveTab: setActiveSettingsTab } = useProfileSettings();
   const [avatar, setAvatar] = useState<string | null>(null);
 
   // Estado para el formulario de categoría
