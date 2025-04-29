@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
@@ -14,9 +14,50 @@ import {
   insertTagSchema, 
   insertSettingsSchema, 
   insertRecurringTransactionSchema,
-  insertFamilyMemberSchema
+  insertFamilyMemberSchema,
+  users
 } from "@shared/schema";
 import { seedDatabase } from "./seed";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
+
+// Funciones para el manejo de contraseñas
+const scryptAsync = promisify(scrypt);
+
+async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
+
+async function comparePasswords(supplied: string, stored: string) {
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
+// Configuración para guardar avatares
+const avatarStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const dir = path.join(__dirname, '../client/src/assets/avatars');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: function (req: Request, file, cb) {
+    if (!req.user) {
+      return cb(new Error('No autenticado'), '');
+    }
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `avatar-${req.user.id}-${uniqueSuffix}${ext}`);
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database with default data
