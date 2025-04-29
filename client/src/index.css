@@ -3,82 +3,94 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  /* Colores base modernos con estilo app */
+  --background: 210 20% 98%;
+  --foreground: 224 71% 4%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 8% 46%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
+  --popover-foreground: 224 71% 4%;
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --primary: 205 100% 30%; /* Azul más intenso del logo */
+  --card-foreground: 224 71% 4%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  
+  /* Esquema de colores más vibrante y atractivo */
+  --primary: 215 100% 40%; /* Azul principal más vibrante */
   --primary-foreground: 0 0% 100%;
-  --secondary: 142 72% 35%; /* Verde del gráfico en el logo */
-  --secondary-foreground: 0 0% 100%;
-  --accent: 205 80% 45%; /* Azul medio para acentos */
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --ring: 207 90% 54%;
-  --radius: 0.5rem;
+  --secondary: 130 55% 50%; /* Verde más fresco */
+  --secondary-foreground: 210 20% 98%;
+  --accent: 262 83% 58%; /* Púrpura como acento para más variedad */
+  --accent-foreground: 210 20% 98%;
+  --success: 142 76% 36%; /* Verde para éxito */
+  --info: 200 100% 54%; /* Azul claro para información */
+  --warning: 38 92% 50%; /* Amarillo para advertencias */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 20% 98%;
+  --ring: 215 100% 40%;
+  --radius: 1rem; /* Bordes más redondeados para estilo móvil */
   
-  /* Chart colors */
-  --chart-1: 207 90% 54%;
-  --chart-2: 174 100% 29%;
-  --chart-3: 45 93% 47%;
-  --chart-4: 142 72% 29%;
-  --chart-5: 0 84% 60%;
+  /* Chart colors - más vibrantes */
+  --chart-1: 215 100% 50%;
+  --chart-2: 130 55% 50%;
+  --chart-3: 38 92% 50%;
+  --chart-4: 262 83% 58%;
+  --chart-5: 354 70% 54%;
   
-  /* Sidebar colors */
-  --sidebar-background: 207 90% 54%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-primary: 210 40% 98%;
-  --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-  --sidebar-accent: 45 93% 47%;
-  --sidebar-accent-foreground: 45 86% 17%;
-  --sidebar-border: 207 80% 65%;
-  --sidebar-ring: 210 40% 98%;
+  /* Sidebar colors - más vibrante y moderno */
+  --sidebar-background: 215 100% 50%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 0 0% 100%;
+  --sidebar-primary-foreground: 224 71% 4%;
+  --sidebar-accent: 38 92% 50%;
+  --sidebar-accent-foreground: 0 0% 0%;
+  --sidebar-border: 214 100% 60%;
+  --sidebar-ring: 0 0% 100%;
 }
 
 .dark {
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --primary: 205 90% 40%; /* Azul intenso más oscuro para dark mode */
+  /* Colores base modernos con estilo app - modo oscuro */
+  --background: 230 15% 12%;
+  --foreground: 210 20% 98%;
+  --muted: 230 15% 20%;
+  --muted-foreground: 210 10% 70%;
+  --popover: 230 15% 14%;
+  --popover-foreground: 210 20% 98%;
+  --card: 230 15% 16%;
+  --card-foreground: 210 20% 98%;
+  --border: 230 15% 25%;
+  --input: 230 15% 25%;
+  
+  /* Esquema de colores más vibrante y atractivo - modo oscuro */
+  --primary: 215 90% 50%; /* Azul brillante para darkmode */
   --primary-foreground: 0 0% 100%;
-  --secondary: 142 62% 40%; /* Verde más oscuro para dark mode */
+  --secondary: 130 60% 45%; /* Verde ajustado para dark mode */
   --secondary-foreground: 0 0% 100%;
-  --accent: 205 70% 55%; /* Azul más brillante para acentos en dark mode */
+  --accent: 262 83% 65%; /* Púrpura brillante como acento */
   --accent-foreground: 0 0% 100%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  --ring: 240 4.9% 83.9%;
+  --success: 142 70% 45%; /* Verde para éxito */
+  --info: 200 90% 60%; /* Azul claro para información */
+  --warning: 38 92% 50%; /* Amarillo para advertencias */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 215 90% 50%;
   
-  /* Chart colors */
-  --chart-1: 207 90% 54%;
-  --chart-2: 174 70% 39%;
-  --chart-3: 45 93% 47%;
-  --chart-4: 142 72% 29%;
-  --chart-5: 0 84% 60%;
+  /* Chart colors - más vibrantes para dark mode */
+  --chart-1: 215 90% 60%;
+  --chart-2: 130 60% 55%;
+  --chart-3: 38 92% 60%;
+  --chart-4: 262 83% 65%;
+  --chart-5: 354 70% 65%;
   
-  /* Sidebar colors - darkened for dark mode */
-  --sidebar-background: 207 70% 29%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-primary: 210 40% 98%;
-  --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-  --sidebar-accent: 45 93% 47%;
-  --sidebar-accent-foreground: 45 86% 17%;
-  --sidebar-border: 207 50% 40%;
-  --sidebar-ring: 210 40% 98%;
+  /* Sidebar colors - más vibrante y moderno para dark mode */
+  --sidebar-background: 215 80% 30%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-primary: 0 0% 100%;
+  --sidebar-primary-foreground: 0 0% 0%;
+  --sidebar-accent: 38 92% 50%;
+  --sidebar-accent-foreground: 0 0% 0%;
+  --sidebar-border: 215 70% 40%;
+  --sidebar-ring: 0 0% 100%;
 }
 
 @layer base {
@@ -89,10 +101,80 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
+  
+  /* Estilos de tipografía mejorados para una apariencia más moderna */
+  h1 {
+    @apply text-2xl font-bold tracking-tight leading-tight;
+  }
+  
+  h2 {
+    @apply text-xl font-semibold leading-tight;
+  }
+  
+  h3 {
+    @apply text-lg font-medium;
+  }
+  
+  /* Botones con estilo de app móvil */
+  button, .btn {
+    @apply transition-all duration-200;
+  }
+  
+  /* Links con mejor estilo */
+  a {
+    @apply transition-colors duration-200;
+  }
 }
 
+/* Animación mejorada de entrada */
 .animate-in {
-  animation: animateIn 0.3s ease-in-out;
+  animation: animateIn 0.3s cubic-bezier(0.2, 0.0, 0.2, 1);
+}
+
+/* Estilo de app móvil */
+.mobile-app-style {
+  @apply max-w-md mx-auto shadow-lg rounded-2xl overflow-hidden bg-background;
+}
+
+/* Cards con estilo móvil */
+.card-app {
+  @apply rounded-xl shadow-md transition-all duration-200 hover:shadow-lg;
+}
+
+/* Botones flotantes de app móvil */
+.floating-action-button {
+  @apply fixed bottom-20 right-6 h-14 w-14 rounded-full flex items-center justify-center shadow-lg text-primary-foreground bg-primary hover:bg-primary/90 transition-all;
+}
+
+/* Navegación inferior estilo app */
+.bottom-nav-app {
+  @apply fixed bottom-0 left-0 right-0 bg-background shadow-[0_-2px_10px_rgba(0,0,0,0.1)] rounded-t-xl z-50;
+}
+
+/* Íconos con coloreado moderno */
+.icon-primary {
+  @apply text-primary;
+}
+
+.icon-secondary {
+  @apply text-secondary;
+}
+
+.icon-accent {
+  @apply text-accent;
+}
+
+.icon-destructive {
+  @apply text-destructive;
+}
+
+.icon-muted {
+  @apply text-muted-foreground;
+}
+
+/* Glasmorphism para efectos especiales */
+.glass {
+  @apply bg-background/80 backdrop-blur-md border border-white/20;
 }
 
 @keyframes animateIn {
