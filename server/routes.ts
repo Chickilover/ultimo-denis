@@ -852,6 +852,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error al verificar secretos" });
     }
   });
+
+  // Nota: Las APIs de invitaciones se han movido a la sección de "Invitaciones para miembros familiares" más abajo
   
   // Simple OCR API simulation for receipt scanning
   app.post("/api/ocr/scan", async (req, res) => {

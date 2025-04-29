@@ -81,10 +81,29 @@ type FamilyMember = {
   userId: number;
 };
 
+// Interfaz para las invitaciones
+type Invitation = {
+  code: string;
+  email: string;
+  expires: string;
+  householdId: number | null;
+};
+
+// Esquema para el formulario de invitación
+const invitationSchema = z.object({
+  email: z.string().email("Correo electrónico inválido"),
+});
+
 export default function FamilyPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
+  const [activeTab, setActiveTab] = useState("members");
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [invitationCode, setInvitationCode] = useState<string | null>(null);
+  const [invitationLink, setInvitationLink] = useState<string | null>(null);
+  const linkRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   
   // Obtener la lista de miembros familiares
@@ -93,6 +112,16 @@ export default function FamilyPage() {
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/family-members');
       if (!response.ok) throw new Error('Error al obtener los miembros de la familia');
+      return response.json();
+    }
+  });
+  
+  // Obtener invitaciones activas
+  const { data: invitations, isLoading: isLoadingInvitations } = useQuery<Invitation[]>({
+    queryKey: ['/api/invitations'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/invitations');
+      if (!response.ok) throw new Error('Error al obtener las invitaciones');
       return response.json();
     }
   });
@@ -232,33 +261,12 @@ export default function FamilyPage() {
     }
   };
   
-  // Esquema para validar el formulario de invitación
-  const invitationSchema = z.object({
-    email: z.string().email("Correo electrónico inválido").min(1, "El correo electrónico es obligatorio"),
-  });
-  
-  // Estado para el modal de invitación
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-  const [invitationCode, setInvitationCode] = useState<string | null>(null);
-  const [invitationLink, setInvitationLink] = useState<string | null>(null);
-  const linkRef = useRef<HTMLInputElement>(null);
-  
   // Form para invitar
   const inviteForm = useForm<z.infer<typeof invitationSchema>>({
     resolver: zodResolver(invitationSchema),
     defaultValues: {
       email: "",
     },
-  });
-  
-  // Obtener invitaciones activas
-  const { data: invitations } = useQuery<{ code: string; email: string; expires: string }[]>({
-    queryKey: ['/api/invitations'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/invitations');
-      if (!response.ok) throw new Error('Error al obtener las invitaciones');
-      return response.json();
-    }
   });
   
   // Mutation para crear invitación
