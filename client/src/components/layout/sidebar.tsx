@@ -78,10 +78,10 @@ export function Sidebar({ className }: SidebarProps) {
           <div className="flex flex-col">
             <div className="flex items-center mb-4">
               <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center text-white font-medium">
-                {user.name.substring(0, 2).toUpperCase()}
+                {user.username ? user.username.substring(0, 2).toUpperCase() : 'U'}
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-white">{user.name}</p>
+                <p className="text-sm font-medium text-white">{user.username || 'Usuario'}</p>
                 <p className="text-xs text-white/70">{user.isAdmin ? "Administrador" : "Miembro"}</p>
               </div>
             </div>
