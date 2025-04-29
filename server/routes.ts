@@ -16,6 +16,7 @@ import {
   insertFamilyMemberSchema
 } from "@shared/schema";
 import { seedDatabase } from "./seed";
+import { generateInvitationCode, validateInvitationCode, consumeInvitationCode, getActiveInvitationsForUser } from "./invitation";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize database with default data
@@ -953,6 +954,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.sendStatus(204);
     } catch (error) {
       res.status(500).json({ message: "Error al eliminar el miembro familiar" });
+    }
+  });
+  
+  // Invitaciones para miembros familiares
+  app.post("/api/invitations", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Se requiere un correo electrónico" });
+      }
+      
+      // Generar código de invitación
+      const invitationCode = generateInvitationCode(req.user.id, email, req.user.householdId);
+      
+      res.status(201).json({ 
+        code: invitationCode,
+        email,
+        link: `${req.protocol}://${req.get('host')}/auth?invitation=${invitationCode}`
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error al generar la invitación" });
+    }
+  });
+  
+  app.get("/api/invitations", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const invitations = getActiveInvitationsForUser(req.user.id);
+      res.json(invitations);
+    } catch (error) {
+      res.status(500).json({ message: "Error al obtener las invitaciones" });
+    }
+  });
+  
+  app.post("/api/invitations/validate", async (req, res) => {
+    try {
+      const { code } = req.body;
+      
+      if (!code) {
+        return res.status(400).json({ message: "Se requiere un código de invitación" });
+      }
+      
+      const validation = validateInvitationCode(code);
+      
+      if (!validation.valid) {
+        return res.status(400).json({ message: "Código de invitación inválido o expirado" });
+      }
+      
+      res.json({
+        valid: true,
+        inviter: await storage.getUser(validation.userId as number)
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error al validar la invitación" });
+    }
+  });
+  
+  app.post("/api/invitations/accept", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { code } = req.body;
+      
+      if (!code) {
+        return res.status(400).json({ message: "Se requiere un código de invitación" });
+      }
+      
+      const validation = validateInvitationCode(code);
+      
+      if (!validation.valid) {
+        return res.status(400).json({ message: "Código de invitación inválido o expirado" });
+      }
+      
+      // El usuario ya está autenticado, actualizar para añadirlo al hogar del invitador
+      const inviter = await storage.getUser(validation.userId as number);
+      
+      if (!inviter) {
+        return res.status(404).json({ message: "El usuario que envió la invitación no existe" });
+      }
+      
+      // Añadir el usuario al mismo hogar que el invitador
+      if (inviter.householdId) {
+        await storage.updateUser(req.user.id, { householdId: inviter.householdId });
+      }
+      
+      // Consumir el código de invitación
+      consumeInvitationCode(code);
+      
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: "Error al aceptar la invitación" });
     }
   });
 
