@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Edit, PlusCircle, Trash2, User, Users, Mail, Copy, Link as LinkIcon, CheckCircle, Clock, AlertCircle } from "lucide-react";
@@ -346,7 +347,7 @@ export default function FamilyPage() {
         title="Mi Hogar"
         description="Administra los miembros de tu familia o grupo de convivencia"
         actions={
-          <div className="flex space-x-2">
+          <div className="flex">
             <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
@@ -355,7 +356,7 @@ export default function FamilyPage() {
                   <span className="sm:hidden">Invitar</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>Invitar a un Usuario</DialogTitle>
                   <DialogDescription>
@@ -478,112 +479,12 @@ export default function FamilyPage() {
                 )}
               </DialogContent>
             </Dialog>
-            
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Añadir Miembro
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Añadir Miembro Familiar</DialogTitle>
-                  <DialogDescription>
-                    Introduce los datos del nuevo miembro familiar.
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <Form {...addForm}>
-                  <form onSubmit={addForm.handleSubmit(onAddSubmit)} className="space-y-4 pt-4">
-                    <FormField
-                      control={addForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nombre</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Nombre del miembro" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={addForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Correo electrónico</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="email" 
-                              placeholder="correo@ejemplo.com" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Para enviar invitaciones si este miembro tendrá acceso a la aplicación.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={addForm.control}
-                      name="relationship"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Relación</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Ej: Padre, Madre, Hijo, etc." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={addForm.control}
-                      name="canAccess"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                          <div className="space-y-0.5">
-                            <FormLabel>Permitir Acceso</FormLabel>
-                            <FormDescription>
-                              ¿Permitir que este miembro pueda acceder a la aplicación?
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <DialogFooter>
-                      <Button
-                        type="submit"
-                        disabled={createMutation.isPending}
-                      >
-                        {createMutation.isPending ? "Añadiendo..." : "Añadir Miembro"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
           </div>
         }
       />
 
       <Tabs defaultValue="members" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="members">
             <User className="h-4 w-4 mr-2" />
             Miembros
