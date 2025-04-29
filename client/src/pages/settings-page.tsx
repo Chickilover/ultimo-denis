@@ -60,6 +60,11 @@ export default function SettingsPage() {
   
   // Estado para la sección de perfil
   const [activeSettingsTab, setActiveSettingsTab] = useState("general");
+  
+  // Función para cambiar directamente a la pestaña de perfil
+  const showProfileTab = () => {
+    setActiveSettingsTab("perfil");
+  };
   const [avatar, setAvatar] = useState<string | null>(null);
 
   // Estado para el formulario de categoría
