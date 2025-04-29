@@ -11,10 +11,42 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlusIcon, Pencil, Trash2 } from "lucide-react";
+import { 
+  PlusIcon, 
+  Pencil, 
+  Trash2, 
+  User, 
+  Camera, 
+  Lock, 
+  Palette, 
+  ArrowRightLeft,
+  Check 
+} from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+// Esquema para actualizar perfil
+const profileFormSchema = z.object({
+  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+  avatarColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Debe ser un color hexadecimal válido"),
+  incomeColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Debe ser un color hexadecimal válido"),
+  expenseColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Debe ser un color hexadecimal válido"),
+})
+
+// Esquema para cambiar contraseña
+const passwordFormSchema = z.object({
+  currentPassword: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  newPassword: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  confirmPassword: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"],
+})
 
 export default function SettingsPage() {
   const [defaultCurrency, setDefaultCurrency] = useState("UYU");
@@ -24,6 +56,11 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState("es");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Estado para la sección de perfil
+  const [activeSettingsTab, setActiveSettingsTab] = useState("general");
+  const [avatar, setAvatar] = useState<string | null>(null);
 
   // Estado para el formulario de categoría
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -33,6 +70,12 @@ export default function SettingsPage() {
   const [categoryColor, setCategoryColor] = useState("#6366f1");
   const [categoryIsIncome, setCategoryIsIncome] = useState(false);
   const [activeTab, setActiveTab] = useState("gastos");
+
+  // Obtener el usuario actual
+  const { data: user, isLoading: userLoading } = useQuery({
+    queryKey: ["/api/user"],
+    queryFn: getQueryFn({ on401: "throw" })
+  });
 
   // Obtener la configuración actual
   const { data: settings, isLoading: settingsLoading } = useQuery({
@@ -44,6 +87,27 @@ export default function SettingsPage() {
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ["/api/categories"],
     queryFn: getQueryFn({ on401: "throw" })
+  });
+  
+  // Formulario de perfil
+  const profileForm = useForm({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      name: "",
+      avatarColor: "#6366f1",
+      incomeColor: "#10b981",
+      expenseColor: "#ef4444",
+    },
+  });
+  
+  // Formulario de cambio de contraseña
+  const passwordForm = useForm({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
   });
 
   // Actualizar los estados cuando llegan los datos
@@ -146,6 +210,83 @@ export default function SettingsPage() {
       toast({
         title: "Error",
         description: `Error al actualizar la configuración: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Mutación para actualizar perfil de usuario
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("PUT", "/api/user", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: "Perfil actualizado",
+        description: "Tu perfil se ha actualizado correctamente"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: `Error al actualizar el perfil: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Mutación para cambiar contraseña
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("PUT", "/api/user/password", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Contraseña actualizada",
+        description: "Tu contraseña se ha actualizado correctamente"
+      });
+      passwordForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: `Error al actualizar la contraseña: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Mutación para subir avatar
+  const uploadAvatarMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const res = await fetch("/api/user/avatar", {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Error al subir el avatar");
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      setAvatar(data.avatar);
+      toast({
+        title: "Avatar actualizado",
+        description: "Tu avatar se ha actualizado correctamente"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: `Error al subir el avatar: ${error.message}`,
         variant: "destructive"
       });
     }

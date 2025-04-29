@@ -9,6 +9,10 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(), // Email para invitaciones y recuperación de contraseña
   password: text("password").notNull(),
   name: text("name").notNull(),
+  avatar: text("avatar"), // URL o ruta a la imagen de avatar
+  avatarColor: text("avatar_color").default("#6366f1"), // Color para las iniciales cuando no hay avatar
+  incomeColor: text("income_color").default("#10b981"), // Color para los ingresos
+  expenseColor: text("expense_color").default("#ef4444"), // Color para los gastos
   isAdmin: boolean("is_admin").notNull().default(false),
   householdId: integer("household_id"), // ID del grupo familiar al que pertenece
   createdAt: timestamp("created_at").defaultNow().notNull(),
