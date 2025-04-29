@@ -33,6 +33,7 @@ export function Sidebar({ className }: SidebarProps) {
     { path: "/income", label: "Ingresos", icon: <ArrowUpCircleIcon className="h-5 w-5 text-green-500" /> },
     { path: "/expenses", label: "Gastos", icon: <ArrowDownCircleIcon className="h-5 w-5 text-red-500" /> },
     { path: "/budgets", label: "Proyectos", icon: <FolderIcon className="h-5 w-5" /> },
+    { path: "/accounts", label: "Invitaciones", icon: <CreditCardIcon className="h-5 w-5" /> },
     { path: "/family", label: "Hogar", icon: <UsersIcon className="h-5 w-5" /> },
     { path: "/savings", label: "Metas de Ahorro", icon: <PiggyBankIcon className="h-5 w-5" /> },
     { path: "/reports", label: "Reportes", icon: <LineChartIcon className="h-5 w-5" /> },

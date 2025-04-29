@@ -13,13 +13,14 @@ import ExpensesPage from "@/pages/expenses-page";
 import BudgetsPage from "@/pages/budgets-page";
 import TransactionsPage from "@/pages/transactions-page";
 
-// Páginas que aún debemos crear
+// Páginas adicionales
 import FamilyPage from "@/pages/family-page";
 import SavingsPage from "@/pages/savings-page";
 import ReportsPage from "@/pages/reports-page";
 import ScannerPage from "@/pages/scanner-page";
 import AdvisorPage from "@/pages/advisor-page";
 import SettingsPage from "@/pages/settings-page";
+import AccountsPage from "@/pages/accounts-page";
 
 function Router() {
   return (
@@ -35,6 +36,7 @@ function Router() {
       <ProtectedRoute path="/scanner" component={ScannerPage} />
       <ProtectedRoute path="/advisor" component={AdvisorPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
+      <ProtectedRoute path="/accounts" component={AccountsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
