@@ -352,58 +352,77 @@ export default function SettingsPage() {
   };
 
   // Función para actualizar el tipo de cambio
-  const updateExchangeRate = () => {
-    if (!updateSettingsMutation.isPending) {
-      try {
-        // Asegurar que tenemos un valor para procesar
-        if (!localExchangeRate || localExchangeRate.trim() === "") {
-          toast({
-            title: "Error",
-            description: "Por favor ingresa un valor para el tipo de cambio",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        // Convertir a número y redondear al entero más cercano
-        const numValue = parseFloat(localExchangeRate);
-        if (isNaN(numValue)) {
-          toast({
-            title: "Error",
-            description: "El valor del tipo de cambio debe ser un número válido",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        // Redondear siempre a un número entero
-        const roundedValue = Math.round(numValue).toString();
-        
-        // Actualizar estado local
-        setLocalExchangeRate(roundedValue);
-        setExchangeRate(roundedValue);
-        
-        // Datos a enviar al servidor
-        const now = new Date();
-        
-        // Enviar al servidor - Incluir solo el exchangeRate para evitar conflictos
-        updateSettingsMutation.mutate({
-          exchangeRate: roundedValue,
-          // Establecer fecha en formato compatible con PostgreSQL
-          lastExchangeRateUpdate: now.toISOString(),
-          // Mantener las demás configuraciones para no perderlas
-          defaultCurrency,
-          theme,
-          language
-        });
-      } catch (err) {
-        console.error("Error al actualizar tipo de cambio:", err);
+  const updateExchangeRate = async () => {
+    if (updateSettingsMutation.isPending) {
+      return; // No hacer nada si ya hay una actualización en curso
+    }
+    
+    try {
+      // Asegurar que tenemos un valor para procesar
+      if (!localExchangeRate || localExchangeRate.trim() === "") {
         toast({
           title: "Error",
-          description: "Ocurrió un error al actualizar el tipo de cambio",
+          description: "Por favor ingresa un valor para el tipo de cambio",
           variant: "destructive"
         });
+        return;
       }
+      
+      // Convertir a número y redondear al entero más cercano
+      const numValue = parseFloat(localExchangeRate);
+      if (isNaN(numValue)) {
+        toast({
+          title: "Error",
+          description: "El valor del tipo de cambio debe ser un número válido",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Redondear siempre a un número entero
+      const roundedValue = Math.round(numValue).toString();
+      
+      // Mostrar toast de carga
+      toast({
+        title: "Actualizando...",
+        description: "Actualizando tipo de cambio",
+      });
+      
+      // Actualizar estado local primero
+      setLocalExchangeRate(roundedValue);
+      setExchangeRate(roundedValue);
+      
+      // Datos a enviar al servidor
+      const now = new Date();
+      
+      // Enviar al servidor y esperar la respuesta
+      const response = await updateSettingsMutation.mutateAsync({
+        exchangeRate: roundedValue,
+        lastExchangeRateUpdate: now.toISOString(),
+        defaultCurrency,
+        theme,
+        language
+      });
+      
+      // Invalidar la consulta para forzar actualización de los datos en toda la app
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      
+      // Mostrar toast de éxito
+      toast({
+        title: "Tipo de cambio actualizado",
+        description: `El tipo de cambio ha sido actualizado a ${roundedValue}`,
+      });
+      
+    } catch (err) {
+      console.error("Error al actualizar tipo de cambio:", err);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al actualizar el tipo de cambio",
+        variant: "destructive"
+      });
+      
+      // Restaurar valor anterior en caso de error
+      setLocalExchangeRate(exchangeRate);
     }
   };
 
