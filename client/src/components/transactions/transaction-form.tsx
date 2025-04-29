@@ -325,8 +325,18 @@ export function TransactionForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="expense">Gasto</TabsTrigger>
-            <TabsTrigger value="income">Ingreso</TabsTrigger>
+            <TabsTrigger 
+              value="expense" 
+              className="bg-red-100 data-[state=active]:bg-red-500 data-[state=active]:text-white hover:bg-red-200"
+            >
+              Gasto
+            </TabsTrigger>
+            <TabsTrigger 
+              value="income"
+              className="bg-green-100 data-[state=active]:bg-green-500 data-[state=active]:text-white hover:bg-green-200"
+            >
+              Ingreso
+            </TabsTrigger>
           </TabsList>
         </Tabs>
         
@@ -545,6 +555,7 @@ export function TransactionForm({
           <Button 
             type="submit"
             disabled={createTransactionMutation.isPending || updateTransactionMutation.isPending}
+            className={activeTab === "income" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
           >
             {(createTransactionMutation.isPending || updateTransactionMutation.isPending) && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
