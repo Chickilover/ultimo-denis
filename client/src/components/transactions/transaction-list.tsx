@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { useCurrency } from "@/hooks/use-currency";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +52,7 @@ interface TransactionListProps {
 export function TransactionList({ transactionType = "all" }: TransactionListProps) {
   const { formatCurrency } = useCurrency();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   // State for filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -410,7 +412,14 @@ export function TransactionList({ transactionType = "all" }: TransactionListProp
                       )}
                     </td>
                     <td className="py-3 px-4 text-sm text-right font-medium font-mono">
-                      <span className={transaction.transactionTypeId === 1 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                      <span 
+                        className="font-semibold"
+                        style={{
+                          color: transaction.transactionTypeId === 1 
+                            ? (user?.incomeColor || "#10b981") 
+                            : (user?.expenseColor || "#ef4444")
+                        }}
+                      >
                         {transaction.transactionTypeId === 1 ? "+" : "-"}
                         {formatCurrency(transaction.amount, transaction.currency)}
                       </span>
