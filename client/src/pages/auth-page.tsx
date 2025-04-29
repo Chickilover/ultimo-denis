@@ -593,12 +593,27 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
       <div className="grid grid-cols-1 lg:grid-cols-2 max-w-4xl w-full shadow-lg rounded-lg overflow-hidden">
         {/* Hero Section */}
-        <div className="bg-primary text-white p-8 hidden lg:flex flex-col justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-4">Mi Hogar Financiero</h1>
-            <p className="text-lg opacity-90">
+        <div className="bg-primary text-white p-8 hidden lg:flex flex-col justify-between relative overflow-hidden">
+          <div className="z-10 relative">
+            <div className="flex items-center justify-center mb-6">
+              <img 
+                src="/images/logo.png" 
+                alt="Nido Financiero Logo" 
+                className="w-32 h-32 object-contain"
+              />
+            </div>
+            <h1 className="text-3xl font-bold mb-4 text-center">Nido Financiero</h1>
+            <p className="text-lg opacity-90 text-center">
               Gestiona las finanzas de tu hogar de manera inteligente y colaborativa
             </p>
+          </div>
+          {/* Background semi-transparent logo */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-10">
+            <img 
+              src="/images/logo.png" 
+              alt="Background Logo" 
+              className="w-64 h-64 object-contain"
+            />
           </div>
           <div className="space-y-4">
             <div className="flex items-start space-x-3">
