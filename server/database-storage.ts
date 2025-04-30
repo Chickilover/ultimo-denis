@@ -1,6 +1,6 @@
 import { users, accounts, categories, tags, transactions, transactionTags, transactionSplits, recurringTransactions, budgets, savingsGoals, savingsContributions, settings, transactionTypes, accountTypes, familyMembers } from "@shared/schema";
 import type { User, InsertUser, Account, InsertAccount, Category, InsertCategory, Tag, InsertTag, Transaction, InsertTransaction, TransactionTag, InsertTransactionTag, TransactionSplit, InsertTransactionSplit, RecurringTransaction, InsertRecurringTransaction, Budget, InsertBudget, SavingsGoal, InsertSavingsGoal, SavingsContribution, InsertSavingsContribution, Settings, InsertSettings, FamilyMember, InsertFamilyMember } from "@shared/schema";
-import { eq, and, gte, lte, like, isNull, desc, asc, or } from "drizzle-orm";
+import { eq, and, gte, lte, like, isNull, desc, asc, or, inArray } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
@@ -173,10 +173,30 @@ export class DatabaseStorage implements IStorage {
 
   // Transaction methods
   async getTransactions(userId: number, filters?: any): Promise<Transaction[]> {
-    let query = db
-      .select()
-      .from(transactions)
-      .where(eq(transactions.userId, userId));
+    // Obtener primero el usuario para verificar su householdId
+    const user = await this.getUser(userId);
+    
+    let query = db.select().from(transactions);
+    
+    if (user && user.householdId) {
+      // Si el usuario pertenece a un hogar, obtener sus transacciones y las compartidas del mismo hogar
+      const householdUsers = await db.select().from(users).where(eq(users.householdId, user.householdId));
+      const householdUserIds = householdUsers.map(u => u.id);
+      
+      // Obtener las transacciones del usuario o las compartidas de su hogar
+      query = query.where(
+        or(
+          eq(transactions.userId, userId),
+          and(
+            eq(transactions.isShared, true),
+            inArray(transactions.userId, householdUserIds)
+          )
+        )
+      );
+    } else {
+      // Si no tiene hogar, solo obtener sus propias transacciones
+      query = query.where(eq(transactions.userId, userId));
+    }
 
     if (filters) {
       if (filters.startDate) {
@@ -267,10 +287,32 @@ export class DatabaseStorage implements IStorage {
 
   // RecurringTransaction methods
   async getRecurringTransactions(userId: number): Promise<RecurringTransaction[]> {
-    return db
-      .select()
-      .from(recurringTransactions)
-      .where(eq(recurringTransactions.userId, userId));
+    // Obtener primero el usuario para verificar su householdId
+    const user = await this.getUser(userId);
+    
+    let query = db.select().from(recurringTransactions);
+    
+    if (user && user.householdId) {
+      // Si el usuario pertenece a un hogar, obtener sus transacciones recurrentes y las compartidas del mismo hogar
+      const householdUsers = await db.select().from(users).where(eq(users.householdId, user.householdId));
+      const householdUserIds = householdUsers.map(u => u.id);
+      
+      // Obtener las transacciones recurrentes del usuario o las compartidas de su hogar
+      query = query.where(
+        or(
+          eq(recurringTransactions.userId, userId),
+          and(
+            eq(recurringTransactions.isShared, true),
+            inArray(recurringTransactions.userId, householdUserIds)
+          )
+        )
+      );
+    } else {
+      // Si no tiene hogar, solo obtener sus propias transacciones recurrentes
+      query = query.where(eq(recurringTransactions.userId, userId));
+    }
+    
+    return query;
   }
 
   async getRecurringTransaction(id: number): Promise<RecurringTransaction | undefined> {
@@ -307,7 +349,32 @@ export class DatabaseStorage implements IStorage {
 
   // Budget methods
   async getBudgets(userId: number): Promise<Budget[]> {
-    return db.select().from(budgets).where(eq(budgets.userId, userId));
+    // Obtener primero el usuario para verificar su householdId
+    const user = await this.getUser(userId);
+    
+    let query = db.select().from(budgets);
+    
+    if (user && user.householdId) {
+      // Si el usuario pertenece a un hogar, obtener sus presupuestos y los compartidos del mismo hogar
+      const householdUsers = await db.select().from(users).where(eq(users.householdId, user.householdId));
+      const householdUserIds = householdUsers.map(u => u.id);
+      
+      // Obtener los presupuestos del usuario o los compartidos de su hogar
+      query = query.where(
+        or(
+          eq(budgets.userId, userId),
+          and(
+            eq(budgets.isShared, true),
+            inArray(budgets.userId, householdUserIds)
+          )
+        )
+      );
+    } else {
+      // Si no tiene hogar, solo obtener sus propios presupuestos
+      query = query.where(eq(budgets.userId, userId));
+    }
+    
+    return query;
   }
 
   async getBudget(id: number): Promise<Budget | undefined> {
@@ -336,7 +403,32 @@ export class DatabaseStorage implements IStorage {
 
   // SavingsGoal methods
   async getSavingsGoals(userId: number): Promise<SavingsGoal[]> {
-    return db.select().from(savingsGoals).where(eq(savingsGoals.userId, userId));
+    // Obtener primero el usuario para verificar su householdId
+    const user = await this.getUser(userId);
+    
+    let query = db.select().from(savingsGoals);
+    
+    if (user && user.householdId) {
+      // Si el usuario pertenece a un hogar, obtener sus metas de ahorro y las compartidas del mismo hogar
+      const householdUsers = await db.select().from(users).where(eq(users.householdId, user.householdId));
+      const householdUserIds = householdUsers.map(u => u.id);
+      
+      // Obtener las metas de ahorro del usuario o las compartidas de su hogar
+      query = query.where(
+        or(
+          eq(savingsGoals.userId, userId),
+          and(
+            eq(savingsGoals.isShared, true),
+            inArray(savingsGoals.userId, householdUserIds)
+          )
+        )
+      );
+    } else {
+      // Si no tiene hogar, solo obtener sus propias metas de ahorro
+      query = query.where(eq(savingsGoals.userId, userId));
+    }
+    
+    return query;
   }
 
   async getSavingsGoal(id: number): Promise<SavingsGoal | undefined> {
