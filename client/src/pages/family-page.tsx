@@ -65,6 +65,7 @@ import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { BalanceSection } from "@/components/balance";
+import { Textarea } from "@/components/ui/textarea";
 
 // Schema para validar los datos del formulario
 const familyMemberSchema = z.object({
@@ -109,7 +110,9 @@ export default function FamilyPage() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [invitationCode, setInvitationCode] = useState<string | null>(null);
   const [invitationLink, setInvitationLink] = useState<string | null>(null);
+  const [invitationMessage, setInvitationMessage] = useState<string | null>(null);
   const linkRef = useRef<HTMLInputElement>(null);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   
   // Obtener la lista de miembros familiares
@@ -336,6 +339,28 @@ export default function FamilyPage() {
     createInvitationMutation.mutate(data);
   };
   
+  // Función para generar mensaje de texto para invitación
+  const generateTextMessage = () => {
+    if (invitationCode) {
+      const msg = `¡Hola! Te invito a unirte a mi grupo familiar en Nido Financiero. Usa este código de invitación: ${invitationCode} o visita este enlace: ${invitationLink}`;
+      setInvitationMessage(msg);
+      return msg;
+    }
+    return "";
+  };
+  
+  // Función para copiar mensaje de texto al portapapeles
+  const copyTextMessageToClipboard = () => {
+    const msg = generateTextMessage();
+    if (msg) {
+      navigator.clipboard.writeText(msg);
+      toast({
+        title: "Mensaje copiado",
+        description: "El mensaje de invitación ha sido copiado al portapapeles."
+      });
+    }
+  };
+  
   // Formatear fecha de expiración
   const formatExpireDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -429,7 +454,7 @@ export default function FamilyPage() {
                         </div>
                       </div>
                       
-                      <div>
+                      <div className="mb-3">
                         <Label>Enlace de invitación</Label>
                         <div className="flex mt-1.5">
                           <Input 
@@ -457,10 +482,34 @@ export default function FamilyPage() {
                           </TooltipProvider>
                         </div>
                       </div>
+                      
+                      <div>
+                        <Label>Mensaje para enviar por SMS</Label>
+                        <div className="mt-1.5">
+                          <Textarea 
+                            ref={messageRef}
+                            value={invitationMessage || generateTextMessage()} 
+                            readOnly 
+                            rows={3}
+                            className="font-sm resize-none"
+                          />
+                          <div className="flex justify-end mt-2">
+                            <Button 
+                              variant="secondary" 
+                              size="sm"
+                              onClick={copyTextMessageToClipboard}
+                              className="w-full"
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copiar mensaje para SMS
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     
                     <p className="text-sm text-muted-foreground">
-                      Comparte este código o enlace con la persona a la que quieres invitar. El código será válido por 7 días.
+                      Comparte este código, enlace o mensaje de texto con la persona a la que quieres invitar. El código será válido por 7 días.
                     </p>
                     
                     <DialogFooter>
@@ -468,6 +517,7 @@ export default function FamilyPage() {
                         onClick={() => {
                           setInvitationCode(null);
                           setInvitationLink(null);
+                          setInvitationMessage(null);
                           inviteForm.reset();
                           setIsInviteDialogOpen(false);
                         }}
