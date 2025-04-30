@@ -41,9 +41,9 @@ export const householdInvitations = pgTable("household_invitations", {
   id: serial("id").primaryKey(),
   householdId: integer("household_id").references(() => households.id).notNull(),
   invitedByUserId: integer("invited_by_user_id").references(() => users.id).notNull(),
-  invitedEmail: text("invited_email").notNull(),
+  invitedUsername: text("invited_username").notNull(), // Ahora usamos username en lugar de email
+  invitedUserId: integer("invited_user_id").references(() => users.id), // Usuario invitado (si se encuentra)
   status: text("status").notNull().default("pending"), // pending, accepted, rejected
-  token: text("token").notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at").notNull(),
 });
@@ -51,8 +51,7 @@ export const householdInvitations = pgTable("household_invitations", {
 export const insertHouseholdInvitationSchema = createInsertSchema(householdInvitations).pick({
   householdId: true,
   invitedByUserId: true,
-  invitedEmail: true,
-  token: true,
+  invitedUsername: true, // Cambiado de invitedEmail a invitedUsername
   expiresAt: true,
 });
 

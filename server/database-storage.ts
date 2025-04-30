@@ -128,16 +128,36 @@ export class DatabaseStorage implements IStorage {
 
   async createCategory(category: InsertCategory): Promise<Category> {
     try {
-      // Omitir ID al insertar para dejar que la base de datos genere automáticamente el ID
-      const categoryValues = { ...category };
-      
       // Asegurar que isSystem sea false para categorías creadas por usuarios
-      if (categoryValues.isSystem === undefined) {
-        categoryValues.isSystem = false;
+      const categoryValues = {
+        ...category,
+        isSystem: false
+      };
+      
+      // Verificar si la categoría ya existe antes de intentar insertarla
+      const existingCategories = await db.select()
+        .from(categories)
+        .where(eq(categories.name, categoryValues.name));
+      
+      if (existingCategories.length > 0) {
+        throw new Error(`Ya existe una categoría con el nombre '${categoryValues.name}'`);
       }
       
       console.log("Intentando crear categoría con valores:", categoryValues);
-      const result = await db.insert(categories).values(categoryValues).returning();
+      
+      // Omitir campos que no deben ser insertados para evitar conflictos 
+      // con la generación automática de ID
+      const result = await db.insert(categories)
+        .values({
+          name: categoryValues.name,
+          icon: categoryValues.icon,
+          color: categoryValues.color,
+          isIncome: categoryValues.isIncome,
+          isSystem: categoryValues.isSystem,
+          ...(categoryValues.parentId ? { parentId: categoryValues.parentId } : {})
+        })
+        .returning();
+        
       console.log("Categoría creada exitosamente:", result[0]);
       return result[0];
     } catch (error) {
