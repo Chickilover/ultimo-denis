@@ -26,7 +26,10 @@ import {
   Lock, 
   Palette, 
   ArrowRightLeft,
-  Check 
+  Check,
+  ShoppingCart, Home, Car, Utensils, HeartPulse, Shirt, GraduationCap, PartyPopper, Wallet,
+  PiggyBank, Building, PlugZap, Cable, Gift, Banknote, Wrench, PencilRuler, Baby, Plane, Coffee, Gamepad2, 
+  Activity, CreditCard, Folder
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -1037,12 +1040,37 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="category-icon">Icono</Label>
-              <Input 
-                id="category-icon"
-                value={categoryIcon}
-                onChange={(e) => setCategoryIcon(e.target.value)}
-                placeholder="ShoppingCart"
-              />
+              <Select value={categoryIcon} onValueChange={setCategoryIcon}>
+                <SelectTrigger id="category-icon" className="w-full">
+                  <SelectValue placeholder="Selecciona un icono" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ShoppingCart">🛒 Compras</SelectItem>
+                  <SelectItem value="Home">🏠 Hogar</SelectItem>
+                  <SelectItem value="Car">🚗 Transporte</SelectItem>
+                  <SelectItem value="Utensils">🍔 Alimentación</SelectItem>
+                  <SelectItem value="HeartPulse">💊 Salud</SelectItem>
+                  <SelectItem value="Shirt">👕 Ropa</SelectItem>
+                  <SelectItem value="GraduationCap">🎓 Educación</SelectItem>
+                  <SelectItem value="PartyPopper">🎉 Ocio</SelectItem>
+                  <SelectItem value="Wallet">💰 Finanzas</SelectItem>
+                  <SelectItem value="PiggyBank">🐷 Ahorros</SelectItem>
+                  <SelectItem value="Building">🏢 Trabajo</SelectItem>
+                  <SelectItem value="PlugZap">⚡ Servicios</SelectItem>
+                  <SelectItem value="Cable">📱 Comunicaciones</SelectItem>
+                  <SelectItem value="Gift">🎁 Regalos</SelectItem>
+                  <SelectItem value="Banknote">💵 Ingresos</SelectItem>
+                  <SelectItem value="Wrench">🔧 Mantenimiento</SelectItem>
+                  <SelectItem value="PencilRuler">✏️ Material Oficina</SelectItem>
+                  <SelectItem value="Baby">👶 Niños</SelectItem>
+                  <SelectItem value="Plane">✈️ Viajes</SelectItem>
+                  <SelectItem value="Coffee">☕ Café</SelectItem>
+                  <SelectItem value="Gamepad2">🎮 Juegos</SelectItem>
+                  <SelectItem value="Activity">📊 Inversiones</SelectItem>
+                  <SelectItem value="CreditCard">💳 Tarjetas</SelectItem>
+                  <SelectItem value="Folder">📁 Otros</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="category-color">Color</Label>
