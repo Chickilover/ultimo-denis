@@ -145,10 +145,17 @@ export class DatabaseStorage implements IStorage {
       
       console.log("Intentando crear categoría con valores:", categoryValues);
       
-      // Omitir campos que no deben ser insertados para evitar conflictos 
-      // con la generación automática de ID
+      // Obtener el valor máximo actual de ID para evitar conflictos
+      const maxIdResult = await db.select({ maxId: sql`MAX(id)` }).from(categories);
+      const nextId = (maxIdResult[0]?.maxId || 0) + 1;
+      
+      console.log("Próximo ID para categoría:", nextId);
+      
+      // Usar explícitamente el nuevo ID para evitar conflictos con secuencias
       const result = await db.insert(categories)
         .values({
+          // Explícitamente incluimos el ID para evitar conflictos con la secuencia
+          id: nextId,
           name: categoryValues.name,
           icon: categoryValues.icon,
           color: categoryValues.color,
