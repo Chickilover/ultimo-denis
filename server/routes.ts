@@ -1120,31 +1120,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/invitations", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const { username } = req.body;
+      const { username, email } = req.body;
       
       if (!username) {
         return res.status(400).json({ message: "Se requiere un nombre de usuario" });
       }
       
       // Verificar si el usuario existe
+      let invitedUser;
       try {
-        const invitedUser = await storage.getUserByUsername(username);
+        invitedUser = await storage.getUserByUsername(username);
         if (!invitedUser) {
           return res.status(404).json({ message: "Usuario no encontrado" });
         }
       } catch (err) {
         console.error("Error al buscar usuario:", err);
+        return res.status(500).json({ message: "Error al buscar el usuario" });
       }
       
       // Generar código de invitación
       const invitationCode = generateInvitationCode(req.user.id, username, req.user.householdId);
+      const invitationLink = `${req.protocol}://${req.get('host')}/auth?invitation=${invitationCode}`;
+      
+      // Si se proporciona un correo electrónico, enviar invitación por email
+      let emailSent = false;
+      if (email || invitedUser.email) {
+        try {
+          const { sendFamilyInvitationEmail } = await import('./email-service');
+          emailSent = await sendFamilyInvitationEmail({
+            to: email || invitedUser.email,
+            inviterName: req.user.username,
+            invitationCode,
+          });
+        } catch (emailError) {
+          console.error('Error al enviar invitación por correo:', emailError);
+          // Continuamos con el proceso aunque falle el email
+        }
+      }
       
       res.status(201).json({ 
         code: invitationCode,
         username,
-        link: `${req.protocol}://${req.get('host')}/auth?invitation=${invitationCode}`
+        link: invitationLink,
+        emailSent
       });
     } catch (error) {
+      console.error("Error completo al generar invitación:", error);
       res.status(500).json({ message: "Error al generar la invitación" });
     }
   });

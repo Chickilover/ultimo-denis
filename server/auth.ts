@@ -154,8 +154,10 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     // Remove sensitive information
-    const userResponse = { ...req.user };
-    delete userResponse.password;
+    const userResponse = { ...req.user } as any;
+    if (userResponse.password) {
+      userResponse.password = undefined;
+    }
     res.json(userResponse);
   });
 
