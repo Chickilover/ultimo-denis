@@ -1,0 +1,174 @@
+Sí, te puedo detallar todo para que lo entiendas bien y puedas usarlo en Replit. Vamos a dividirlo en partes: sistema de usuarios, gestión del grupo (hogar), invitaciones, y todo el sistema de correos (incluido recuperación de contraseña). Esto sirve como guía completa para desarrollo o para dárselo a una IA que programe la app en Replit.
+
+
+---
+
+Sistema de Usuarios – Especificación detallada
+
+1. Registro de Usuario
+
+Campos requeridos:
+
+nombre
+
+email (debe ser único)
+
+contraseña (se guarda hasheada)
+
+
+Validaciones:
+
+Email único y válido.
+
+Contraseña segura (mínimo 6 caracteres, idealmente con mayúsculas y símbolos).
+
+
+Al registrarse, se crea automáticamente un nuevo usuario sin hogar asignado (hogar_id = null).
+
+
+
+---
+
+2. Inicio de sesión
+
+Login por email y contraseña.
+
+Verificación de credenciales contra la base de datos (comparación con el hash).
+
+Si es exitoso, devolver token de sesión o JWT (si se usa autenticación tokenizada).
+
+
+
+---
+
+3. Recuperación de contraseña (correo)
+
+Endpoint: /auth/forgot-password
+
+Flujo:
+
+1. El usuario ingresa su email.
+
+
+2. El sistema genera un token único y temporal (ej. válido por 30 minutos).
+
+
+3. Se envía un correo electrónico con un enlace de recuperación que incluye el token.
+
+
+4. Al hacer clic, el usuario llega a un formulario para ingresar una nueva contraseña.
+
+
+5. El sistema verifica el token, cambia la contraseña, y lo invalida.
+
+
+
+Problemas comunes a revisar:
+
+Verificar que estás usando una cuenta de correo válida (SMTP).
+
+Si usás servicios como Gmail, activar el "acceso de apps menos seguras" o usar una app password.
+
+Revisar el envío desde backend: puerto SMTP, host, autenticación, y que no esté bloqueado.
+
+
+
+
+---
+
+4. Gestión de Grupos del Hogar
+
+4. Crear hogar
+
+Un usuario puede crear un hogar nuevo (nombre del hogar).
+
+El usuario que lo crea se convierte en el administrador del hogar (aunque esto puede ser opcional).
+
+Se genera un hogar_id único y se asigna al usuario.
+
+
+5. Invitar a otro usuario
+
+El usuario ingresa el email de la persona a invitar.
+
+Flujo:
+
+1. Se verifica si el email corresponde a un usuario ya registrado:
+
+Si ya está registrado, se crea una entrada en la tabla Invitaciones.
+
+Si no está registrado, se le envía un correo con invitación para registrarse, y al registrarse se lo asigna al hogar del que lo invitó.
+
+
+
+2. Cuando la invitación es aceptada (por link o por confirmación manual), se le asigna el mismo hogar_id al nuevo usuario.
+
+
+3. Un usuario solo puede pertenecer a un hogar a la vez.
+
+
+
+
+6. Base de datos (modelo) sugerido para la invitación
+
+Invitacion {
+  id: int,
+  emisor_id: int,           // Usuario que invita
+  receptor_email: string,   // Email del invitado
+  hogar_id: int,            // Grupo al que se lo quiere agregar
+  estado: string,           // "pendiente", "aceptada", "rechazada"
+  token: string,            // Token para validar la invitación (en el email)
+  fecha_envio: datetime
+}
+
+
+---
+
+7. Visibilidad de datos
+
+Gastos personales: solo visibles por el usuario que los carga.
+
+Gastos del hogar: visibles por todos los miembros que comparten el mismo hogar_id.
+
+Ingreso: es personal, pero parte de ese ingreso puede asignarse al hogar.
+
+
+
+---
+
+8. Correos electrónicos del sistema
+
+Debés asegurarte de tener configurado un sistema de envíos de correos. Ejemplos:
+
+SMTP directo (con Gmail u otro):
+
+Requiere host (smtp.gmail.com), puerto (587 o 465), usuario, contraseña.
+
+Activar autenticación y TLS/SSL según el puerto.
+
+
+Servicios externos (recomendado):
+
+SendGrid, Mailgun, Amazon SES: todos tienen APIs para enviar mails más fácilmente y no ser bloqueados como spam.
+
+
+
+Tipos de correos a configurar:
+
+1. Confirmación de cuenta (opcional)
+
+
+2. Recuperación de contraseña
+
+
+3. Invitación a un hogar
+
+
+4. Notificaciones opcionales (ej. resumen semanal)
+
+
+
+
+---
+
+¿Querés que te genere una API REST completa con estos endpoints o los modelos en base a esto?

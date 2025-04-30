@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertTransactionSchema } from "@shared/schema";
+import { insertTransactionSchema, InsertTransaction } from "@shared/schema";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
@@ -222,6 +222,8 @@ export function TransactionForm({
   useEffect(() => {
     if (activeTab === "income") {
       form.setValue("transactionTypeId", 1);
+      // Para ingresos, no cambiamos automáticamente la opción de compartido
+      // El usuario decidirá después cómo distribuirlo manualmente
     } else if (activeTab === "expense") {
       form.setValue("transactionTypeId", 2);
     } else if (activeTab === "transfer") {
@@ -267,32 +269,47 @@ export function TransactionForm({
       data.userId = user.id;
     }
     
-    // Convertir la fecha a formato ISO string (YYYY-MM-DD)
-    let formattedDate: string;
+    // Asegurarnos de que la fecha sea un objeto Date
+    let formattedDate: Date;
     if (data.date) {
-      const date = new Date(data.date);
-      formattedDate = date.toISOString().split('T')[0];
+      // Si ya es un objeto Date, usarlo directamente
+      if (data.date instanceof Date) {
+        formattedDate = data.date;
+      } else {
+        // Si es una cadena, convertirla a Date
+        formattedDate = new Date(data.date);
+      }
     } else {
-      formattedDate = new Date().toISOString().split('T')[0];
+      formattedDate = new Date();
     }
     
-    // Ensure all required fields have values and convert properly
+    // Verificar que el userId esté presente
+    if (!user || !user.id) {
+      toast({
+        title: "Error",
+        description: "Debes iniciar sesión para realizar esta acción",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Crear un nuevo objeto con los campos obligatorios
     const completeData = {
-      ...data,
-      // Sobrescribimos la fecha con el formato correcto
-      date: formattedDate,
-      // Set default values for required fields if not present
+      userId: user.id,
+      categoryId: data.categoryId || 1,
+      transactionTypeId: activeTab === "expense" ? 2 : 1,
+      amount: data.amount || "0",
       currency: data.currency || 'UYU',
+      description: data.description || "",
+      date: formattedDate,
       time: data.time || null,
       accountId: data.accountId || null,
       notes: data.notes || '',
       receiptUrl: data.receiptUrl || null,
-      userId: user?.id,
-      categoryId: data.categoryId || 1, // Categoría por defecto para evitar errores
       isShared: data.isShared || false,
-      // Make sure numeric fields are properly converted
-      amount: data.amount || "0",
-      transactionTypeId: activeTab === "expense" ? 2 : 1,
+      isReconciled: data.isReconciled || false,
+      isReimbursable: activeTab === "expense" ? (data.isReimbursable || false) : false,
+      isReimbursed: false
     };
     
     // Prevenir interacciones múltiples durante la operación
@@ -471,7 +488,9 @@ export function TransactionForm({
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  Personal: solo visible para ti. Hogar: visible para todos los miembros familiares.
+                  {activeTab === "income" 
+                    ? "Selecciona si este ingreso es para gastos personales o compartidos del hogar." 
+                    : "Personal: solo visible para ti. Hogar: visible para todos los miembros familiares."}
                 </FormDescription>
               </FormItem>
             )}
