@@ -467,34 +467,64 @@ export function TransactionForm({
           />
           
           {/* Transaction Type: Personal vs. Hogar */}
-          <FormField
-            control={form.control}
-            name="isShared"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{activeTab === "income" ? "Destinar fondos a" : "Tipo de transacción"}</FormLabel>
-                <Select
-                  value={field.value ? "hogar" : "personal"}
-                  onValueChange={(value) => field.onChange(value === "hogar")}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar tipo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="personal">Fondos Personales</SelectItem>
-                    <SelectItem value="hogar">Fondos del Hogar</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  {activeTab === "income" 
-                    ? "Especifica si estos fondos son para tu uso personal o para el presupuesto compartido del hogar." 
-                    : "Personal: solo visible para ti. Hogar: visible para todos los miembros familiares."}
-                </FormDescription>
-              </FormItem>
-            )}
-          />
+          {activeTab === "income" && (
+            <FormField
+              control={form.control}
+              name="isShared"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Distribución de Fondos</FormLabel>
+                  <Select
+                    value={field.value ? "hogar" : "personal"}
+                    onValueChange={(value) => field.onChange(value === "hogar")}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar destino" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="personal">Añadir a Fondos Personales</SelectItem>
+                      <SelectItem value="hogar">Añadir a Fondos del Hogar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Especifica a qué cuenta de fondos se agregará este ingreso
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+          )}
+          
+          {activeTab === "expense" && (
+            <FormField
+              control={form.control}
+              name="isShared"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Gasto</FormLabel>
+                  <Select
+                    value={field.value ? "hogar" : "personal"}
+                    onValueChange={(value) => field.onChange(value === "hogar")}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar tipo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="personal">Gasto Personal</SelectItem>
+                      <SelectItem value="hogar">Gasto del Hogar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Personal: solo visible para ti y afecta tu balance personal.
+                    Hogar: visible para todos los miembros y afecta el balance compartido.
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+          )}
           
           {/* Additional options */}
           {activeTab === "expense" && (

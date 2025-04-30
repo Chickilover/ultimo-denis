@@ -39,11 +39,11 @@ export default function IncomePage() {
     <Shell>
       <PageHeader
         title="Ingresos"
-        description="Registra tus ingresos y distribuye fondos entre gastos personales y del hogar"
+        description="Registra tus ingresos y asígnalos a tu cuenta personal o al fondo compartido del hogar"
         actions={
-          <Button onClick={handleOpenDialog}>
+          <Button onClick={handleOpenDialog} className="bg-green-600 hover:bg-green-700">
             <PlusCircle className="mr-2 h-4 w-4" />
-            Nuevo Ingreso
+            Registrar Ingreso
           </Button>
         }
       />
@@ -54,9 +54,9 @@ export default function IncomePage() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" aria-describedby="income-dialog-description">
           <div className="space-y-4 py-2 pb-4">
             <div className="space-y-2">
-              <h2 className="text-xl font-bold text-center">Nuevo Ingreso</h2>
+              <h2 className="text-xl font-bold text-center">Registrar Ingreso</h2>
               <DialogDescription id="income-dialog-description" className="text-center">
-                Registra un nuevo ingreso y elige si destinarlo a gastos personales o compartidos
+                Ingresa el monto y selecciona si lo quieres agregar a tus fondos personales o a los fondos compartidos del hogar
               </DialogDescription>
             </div>
             <TransactionForm 
