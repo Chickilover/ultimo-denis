@@ -55,7 +55,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, PlusCircle, Trash2, User, Users, Mail, Copy, Link as LinkIcon, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Edit, PlusCircle, Trash2, User, Users, Mail, Copy, Link as LinkIcon, CheckCircle, Clock, AlertCircle, Wallet } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useState, useRef } from "react";
@@ -64,6 +64,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { BalanceSection } from "@/components/balance";
 
 // Schema para validar los datos del formulario
 const familyMemberSchema = z.object({
@@ -484,14 +485,21 @@ export default function FamilyPage() {
       />
 
       <Tabs defaultValue="members" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="members">
             <User className="h-4 w-4 mr-2" />
-            Miembros
+            <span className="hidden sm:inline">Miembros</span>
+            <span className="sm:hidden">Miembros</span>
           </TabsTrigger>
           <TabsTrigger value="invitations">
             <Mail className="h-4 w-4 mr-2" />
-            Invitaciones
+            <span className="hidden sm:inline">Invitaciones</span>
+            <span className="sm:hidden">Invitar</span>
+          </TabsTrigger>
+          <TabsTrigger value="balance">
+            <Wallet className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Balances</span>
+            <span className="sm:hidden">Balance</span>
           </TabsTrigger>
         </TabsList>
         
@@ -723,6 +731,10 @@ export default function FamilyPage() {
               </AlertDescription>
             </Alert>
           </div>
+        </TabsContent>
+        
+        <TabsContent value="balance" className="space-y-4">
+          <BalanceSection />
         </TabsContent>
       </Tabs>
       

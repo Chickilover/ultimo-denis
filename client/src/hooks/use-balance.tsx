@@ -1,22 +1,21 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/use-auth";
 
 export interface UserBalance {
   personalBalance: number;
   familyBalance: number;
+  id?: number;
 }
 
 export interface BalanceTransfer {
   id: number;
-  userId: number;
+  date: string;
   fromPersonal: boolean;
   amount: number;
   currency: string;
-  description?: string;
-  date: string;
-  createdAt: string;
+  description: string | null;
+  userId: number;
 }
 
 export interface TransferData {
@@ -28,7 +27,6 @@ export interface TransferData {
 
 export function useBalance() {
   const { toast } = useToast();
-  const { user } = useAuth();
 
   // Obtener el balance del usuario
   const {
@@ -36,34 +34,46 @@ export function useBalance() {
     isLoading: isBalanceLoading,
     error: balanceError,
   } = useQuery<UserBalance>({
-    queryKey: ["/api/user/balance"],
-    enabled: !!user,
+    queryKey: ["/api/balance"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/balance");
+      if (!response.ok) throw new Error("Error al obtener el balance");
+      return response.json();
+    },
   });
 
-  // Obtener el historial de transferencias
+  // Obtener historial de transferencias
   const {
     data: transfers,
     isLoading: isTransfersLoading,
     error: transfersError,
   } = useQuery<BalanceTransfer[]>({
-    queryKey: ["/api/balance-transfers"],
-    enabled: !!user,
+    queryKey: ["/api/balance/transfers"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/balance/transfers");
+      if (!response.ok) throw new Error("Error al obtener las transferencias");
+      return response.json();
+    },
   });
 
-  // Mutación para crear una transferencia
-  const createTransferMutation = useMutation({
+  // Mutation para realizar una transferencia
+  const {
+    mutate: createTransfer,
+    isPending: isTransferring,
+    error: transferError,
+  } = useMutation({
     mutationFn: async (data: TransferData) => {
-      const response = await apiRequest("POST", "/api/balance-transfers", data);
+      const response = await apiRequest("POST", "/api/balance/transfer", data);
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Error al realizar la transferencia");
+        const error = await response.json();
+        throw new Error(error.message || "Error al realizar la transferencia");
       }
       return response.json();
     },
     onSuccess: () => {
-      // Invalidar consultas para actualizar los datos
-      queryClient.invalidateQueries({ queryKey: ["/api/user/balance"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/balance-transfers"] });
+      // Invalidar consultas de balance y transferencias para actualizar los datos
+      queryClient.invalidateQueries({ queryKey: ["/api/balance"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/balance/transfers"] });
       
       toast({
         title: "Transferencia exitosa",
@@ -72,7 +82,7 @@ export function useBalance() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
+        title: "Error en la transferencia",
         description: error.message,
         variant: "destructive",
       });
@@ -81,12 +91,13 @@ export function useBalance() {
 
   return {
     balance,
-    transfers,
     isBalanceLoading,
-    isTransfersLoading,
     balanceError,
+    transfers,
+    isTransfersLoading,
     transfersError,
-    createTransfer: createTransferMutation.mutate,
-    isTransferring: createTransferMutation.isPending,
+    createTransfer,
+    isTransferring,
+    transferError,
   };
 }
