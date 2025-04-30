@@ -1120,18 +1120,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/invitations", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const { email } = req.body;
+      const { username } = req.body;
       
-      if (!email) {
-        return res.status(400).json({ message: "Se requiere un correo electrónico" });
+      if (!username) {
+        return res.status(400).json({ message: "Se requiere un nombre de usuario" });
+      }
+      
+      // Verificar si el usuario existe
+      try {
+        const invitedUser = await storage.getUserByUsername(username);
+        if (!invitedUser) {
+          return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+      } catch (err) {
+        console.error("Error al buscar usuario:", err);
       }
       
       // Generar código de invitación
-      const invitationCode = generateInvitationCode(req.user.id, email, req.user.householdId);
+      const invitationCode = generateInvitationCode(req.user.id, username, req.user.householdId);
       
       res.status(201).json({ 
         code: invitationCode,
-        email,
+        username,
         link: `${req.protocol}://${req.get('host')}/auth?invitation=${invitationCode}`
       });
     } catch (error) {
@@ -1163,9 +1173,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Código de invitación inválido o expirado" });
       }
       
+      // Obtener información del invitador
+      const inviter = await storage.getUser(validation.userId as number);
+      
+      // Obtener información del usuario invitado (por username)
+      const invitedUser = validation.username 
+        ? await storage.getUserByUsername(validation.username)
+        : null;
+      
       res.json({
         valid: true,
-        inviter: await storage.getUser(validation.userId as number)
+        inviter: inviter,
+        invitedUser: invitedUser ? {
+          id: invitedUser.id,
+          username: invitedUser.username,
+          name: invitedUser.name
+        } : null
       });
     } catch (error) {
       res.status(500).json({ message: "Error al validar la invitación" });

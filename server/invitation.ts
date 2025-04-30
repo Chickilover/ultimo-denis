@@ -2,10 +2,10 @@ import { randomBytes } from 'crypto';
 import { storage } from './storage';
 
 // Almacén en memoria para invitaciones activas
-// clave: código de invitación, valor: { userId, expires, householdId, email }
+// clave: código de invitación, valor: { userId, expires, householdId, username }
 const invitations = new Map<string, {
   userId: number;
-  email: string;
+  username: string;
   expires: Date;
   householdId: number | null;
 }>();
@@ -18,19 +18,19 @@ const INVITATION_EXPIRES_MS = 7 * 24 * 60 * 60 * 1000;
  */
 export function generateInvitationCode(
   userId: number, 
-  email: string,
+  username: string,
   householdId: number | null = null
 ): string {
   // Limpiar invitaciones expiradas
   cleanupExpiredInvitations();
   
-  // Verificar si ya existe una invitación para este email
+  // Verificar si ya existe una invitación para este usuario
   // Usar Array.from para evitar problemas con MapIterator
   const entries = Array.from(invitations.entries());
   for (const [code, invitation] of entries) {
     if (
       invitation.userId === userId &&
-      invitation.email === email &&
+      invitation.username === username &&
       invitation.householdId === householdId
     ) {
       // Si ya existe y aún no ha expirado, devolvemos el mismo código
@@ -53,7 +53,7 @@ export function generateInvitationCode(
   // Guardar invitación
   invitations.set(code, {
     userId,
-    email,
+    username,
     expires,
     householdId
   });
@@ -68,7 +68,7 @@ export function generateInvitationCode(
 export function validateInvitationCode(code: string): { 
   valid: boolean; 
   userId?: number; 
-  email?: string;
+  username?: string;
   householdId?: number | null;
 } {
   // Código no existe
@@ -87,7 +87,7 @@ export function validateInvitationCode(code: string): {
   return {
     valid: true,
     userId: invitation.userId,
-    email: invitation.email,
+    username: invitation.username,
     householdId: invitation.householdId
   };
 }
@@ -122,13 +122,13 @@ function cleanupExpiredInvitations() {
  */
 export function getActiveInvitationsForUser(userId: number): { 
   code: string; 
-  email: string; 
+  username: string; 
   expires: Date;
   householdId: number | null;
 }[] {
   const result: { 
     code: string; 
-    email: string; 
+    username: string; 
     expires: Date;
     householdId: number | null;
   }[] = [];
@@ -140,7 +140,7 @@ export function getActiveInvitationsForUser(userId: number): {
     if (invitation.userId === userId && invitation.expires > now) {
       result.push({
         code,
-        email: invitation.email,
+        username: invitation.username,
         expires: invitation.expires,
         householdId: invitation.householdId
       });
