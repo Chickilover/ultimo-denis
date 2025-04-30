@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
+import { validateInvitationCode, consumeInvitationCode } from "./invitation";
 
 declare global {
   namespace Express {
@@ -101,8 +102,14 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "El correo electrónico ya está registrado" });
       }
 
+      // Extraer el código de invitación si existe (como puede estar en registrationData como propiedad adicional)
+      const invitationCode = (registrationData as any).invitationCode;
+      // Crear una copia sin el código de invitación
+      const { invitationCode: _, ...registrationDataWithoutCode } = { ...(registrationData as any) };
+
+      // Crear el usuario
       const user = await storage.createUser({
-        ...registrationData,
+        ...registrationDataWithoutCode,
         password: await hashPassword(registrationData.password),
       });
 
@@ -115,11 +122,69 @@ export function setupAuth(app: Express) {
         exchangeRate: "40.0",
       });
 
-      req.login(user, (err) => {
+      // Procesar el código de invitación si existe
+      let invitationResult = null;
+      if (invitationCode) {
+        try {
+          // Importar desde invitación para validar el código
+          const { validateInvitationCode, consumeInvitationCode } = require('./invitation');
+          
+          // Validar el código
+          const validation = validateInvitationCode(invitationCode);
+          if (validation.valid && validation.userId) {
+            // Guardar los datos de la invitación para procesar después de login
+            invitationResult = {
+              valid: true,
+              inviterUserId: validation.userId,
+              householdId: validation.householdId
+            };
+            
+            // Consume el código
+            consumeInvitationCode(invitationCode);
+          }
+        } catch (invitationError) {
+          console.error("Error al procesar invitación:", invitationError);
+          // Continuamos con el registro aunque falle la invitación
+        }
+      }
+
+      req.login(user, async (err) => {
         if (err) return next(err);
-        // Remove sensitive information
-        const userResponse = { ...user };
-        delete userResponse.password;
+        
+        // Procesar la invitación después del login si es válida
+        if (invitationResult && invitationResult.valid) {
+          try {
+            // Agregar al usuario a la familia
+            // Usamos 'as any' para evitar errores de tipo ya que el schema puede haber cambiado
+            await storage.createFamilyMember({
+              userId: invitationResult.inviterUserId,
+              familyMemberId: user.id,
+              name: user.name,
+              relationship: "Familiar", // Usar el campo correcto según el esquema
+              isActive: true
+            } as any);
+            
+            // Si hay un ID de hogar, establecer el hogar del usuario
+            if (invitationResult.householdId) {
+              await storage.updateUser(user.id, {
+                householdId: invitationResult.householdId
+              });
+            }
+          } catch (familyError) {
+            console.error("Error al agregar usuario a la familia:", familyError);
+            // Continuamos aunque falle
+          }
+        }
+        
+        // Remove sensitive information and crear result object
+        const userResponse = { ...user } as any;
+        userResponse.password = undefined;
+        
+        // Incluir información sobre la invitación en la respuesta
+        if (invitationResult && invitationResult.valid) {
+          userResponse.invitationAccepted = true;
+        }
+        
         res.status(201).json(userResponse);
       });
     } catch (error) {
