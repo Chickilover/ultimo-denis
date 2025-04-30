@@ -77,7 +77,7 @@ const familyMemberSchema = z.object({
 
 // Esquema para el formulario de invitación
 const invitationSchema = z.object({
-  email: z.string().email("Correo electrónico inválido").min(1, "El correo electrónico es obligatorio"),
+  username: z.string().min(1, "El nombre de usuario es obligatorio"),
 });
 
 type FamilyMember = {
@@ -95,7 +95,7 @@ type FamilyMember = {
 // Interfaz para las invitaciones
 type Invitation = {
   code: string;
-  email: string;
+  username: string;
   expires: string;
   householdId: number | null;
 };
@@ -246,7 +246,7 @@ export default function FamilyPage() {
   const inviteForm = useForm<z.infer<typeof invitationSchema>>({
     resolver: zodResolver(invitationSchema),
     defaultValues: {
-      email: "",
+      username: "",
     },
   });
   
@@ -370,19 +370,18 @@ export default function FamilyPage() {
                     <form onSubmit={inviteForm.handleSubmit(onInviteSubmit)} className="space-y-4 pt-4">
                       <FormField
                         control={inviteForm.control}
-                        name="email"
+                        name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Correo electrónico</FormLabel>
+                            <FormLabel>Nombre de usuario</FormLabel>
                             <FormControl>
                               <Input 
-                                type="email" 
-                                placeholder="correo@ejemplo.com" 
+                                placeholder="usuario123" 
                                 {...field} 
                               />
                             </FormControl>
                             <FormDescription>
-                              La invitación será enviada a este correo electrónico.
+                              Ingresa el nombre de usuario registrado.
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -659,12 +658,12 @@ export default function FamilyPage() {
                     <Avatar>
                       <AvatarImage src={undefined} />
                       <AvatarFallback className="bg-primary/10 text-primary">
-                        <Mail className="h-5 w-5" />
+                        <User className="h-5 w-5" />
                       </AvatarFallback>
                     </Avatar>
                     
                     <div className="flex-1">
-                      <div className="font-medium">{invitation.email}</div>
+                      <div className="font-medium">{invitation.username}</div>
                       <div className="text-sm text-muted-foreground flex items-center">
                         <Clock className="h-3.5 w-3.5 mr-1" /> 
                         Expira: {formatExpireDate(invitation.expires)}
