@@ -1122,15 +1122,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, email } = req.body;
       
-      if (!username) {
-        return res.status(400).json({ message: "Se requiere un nombre de usuario" });
+      if (!username && !email) {
+        return res.status(400).json({ message: "Se requiere un nombre de usuario o correo electrónico" });
       }
       
       // Verificar si el usuario existe
       let invitedUser;
       try {
-        invitedUser = await storage.getUserByUsername(username);
-        if (!invitedUser) {
+        if (username) {
+          invitedUser = await storage.getUserByUsername(username);
+        } else if (email) {
+          invitedUser = await storage.getUserByEmail(email);
+        }
+        
+        // Si no encontramos al usuario pero tenemos email, continuamos para enviar invitación por email
+        if (!invitedUser && !email) {
           return res.status(404).json({ message: "Usuario no encontrado" });
         }
       } catch (err) {
@@ -1138,13 +1144,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Error al buscar el usuario" });
       }
       
+      // Si encontramos al usuario, usamos su nombre de usuario, si no, usamos el email
+      const recipientUsername = invitedUser ? invitedUser.username : email;
+      
       // Generar código de invitación
-      const invitationCode = generateInvitationCode(req.user.id, username, req.user.householdId);
+      const invitationCode = generateInvitationCode(req.user.id, recipientUsername, req.user.householdId);
       const invitationLink = `${req.protocol}://${req.get('host')}/auth?invitation=${invitationCode}`;
       
       // Si se proporciona un correo electrónico, enviar invitación por email
       let emailSent = false;
-      if (email || invitedUser.email) {
+      if (email || (invitedUser && invitedUser.email)) {
         try {
           const { sendFamilyInvitationEmail } = await import('./email-service');
           emailSent = await sendFamilyInvitationEmail({
