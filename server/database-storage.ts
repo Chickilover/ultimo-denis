@@ -127,8 +127,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCategory(category: InsertCategory): Promise<Category> {
-    const result = await db.insert(categories).values(category).returning();
-    return result[0];
+    try {
+      // Omitir ID al insertar para dejar que la base de datos genere automáticamente el ID
+      const categoryValues = { ...category };
+      
+      // Asegurar que isSystem sea false para categorías creadas por usuarios
+      if (categoryValues.isSystem === undefined) {
+        categoryValues.isSystem = false;
+      }
+      
+      console.log("Intentando crear categoría con valores:", categoryValues);
+      const result = await db.insert(categories).values(categoryValues).returning();
+      console.log("Categoría creada exitosamente:", result[0]);
+      return result[0];
+    } catch (error) {
+      console.error("Error en createCategory:", error);
+      throw error;
+    }
   }
 
   async updateCategory(id: number, categoryData: Partial<Category>): Promise<Category | undefined> {

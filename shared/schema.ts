@@ -15,6 +15,8 @@ export const users = pgTable("users", {
   expenseColor: text("expense_color").default("#ef4444"), // Color para los gastos
   isAdmin: boolean("is_admin").notNull().default(false),
   householdId: integer("household_id"), // ID del grupo familiar al que pertenece
+  personalBalance: numeric("personal_balance").notNull().default("0"), // Balance personal (privado)
+  familyBalance: numeric("family_balance").notNull().default("0"), // Balance familiar (compartido)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

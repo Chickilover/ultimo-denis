@@ -433,6 +433,15 @@ export default function SettingsPage() {
 
   // Función para guardar una categoría
   const saveCategory = () => {
+    if (!categoryName || !categoryIcon || !categoryColor) {
+      toast({
+        title: "Error",
+        description: "Todos los campos son obligatorios",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const categoryData = {
       name: categoryName,
       icon: categoryIcon,
@@ -443,12 +452,10 @@ export default function SettingsPage() {
     if (editingCategoryId) {
       if (!updateCategoryMutation.isPending) {
         updateCategoryMutation.mutate(categoryData);
-        setCategoryDialogOpen(false);
       }
     } else {
       if (!createCategoryMutation.isPending) {
         createCategoryMutation.mutate(categoryData);
-        setCategoryDialogOpen(false);
       }
     }
   };
