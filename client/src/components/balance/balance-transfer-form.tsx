@@ -102,10 +102,10 @@ export function BalanceTransferForm({ onSuccess }: BalanceTransferFormProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ArrowRightLeft className="h-5 w-5" />
-          Transferir Fondos
+          Distribuir Fondos
         </CardTitle>
         <CardDescription>
-          Distribuya fondos entre su cuenta personal y la del hogar
+          Mueva fondos entre su cuenta personal y la compartida del hogar
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -131,7 +131,7 @@ export function BalanceTransferForm({ onSuccess }: BalanceTransferFormProps) {
               name="direction"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Dirección</FormLabel>
+                  <FormLabel>Acción a realizar</FormLabel>
                   <Select
                     onValueChange={(value: "toFamily" | "toPersonal") => {
                       field.onChange(value);
@@ -141,12 +141,12 @@ export function BalanceTransferForm({ onSuccess }: BalanceTransferFormProps) {
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar dirección" />
+                        <SelectValue placeholder="Seleccionar acción" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="toFamily">De Personal a Familiar</SelectItem>
-                      <SelectItem value="toPersonal">De Familiar a Personal</SelectItem>
+                      <SelectItem value="toFamily">Asignar a Fondos del Hogar</SelectItem>
+                      <SelectItem value="toPersonal">Recuperar a Fondos Personales</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

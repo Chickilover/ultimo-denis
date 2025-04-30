@@ -21,20 +21,22 @@ export function BalanceDisplay() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <BalanceCard
-        title="Fondos Personales"
+        title="Tus Fondos Personales"
         amount={balance?.personalBalance || 0}
         currency={defaultCurrency || "UYU"}
         icon={<User className="h-8 w-8 text-blue-500 group-hover:text-blue-600 transition-colors" />}
         colorClass="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-blue-200 dark:border-blue-800 shadow-blue-100 dark:shadow-blue-900/20"
         textColorClass="text-blue-700 dark:text-blue-300"
+        description="Fondos para gastos privados"
       />
       <BalanceCard
-        title="Fondos del Hogar"
+        title="Fondos Compartidos"
         amount={balance?.familyBalance || 0}
         currency={defaultCurrency || "UYU"}
         icon={<Users className="h-8 w-8 text-purple-500 group-hover:text-purple-600 transition-colors" />}
         colorClass="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 border-purple-200 dark:border-purple-800 shadow-purple-100 dark:shadow-purple-900/20"
         textColorClass="text-purple-700 dark:text-purple-300"
+        description="Fondos para gastos del hogar"
       />
     </div>
   );
