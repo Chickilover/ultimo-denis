@@ -432,3 +432,27 @@ export const insertSettingsSchema = createInsertSchema(settings).pick({
 
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type Settings = typeof settings.$inferSelect;
+
+// Transferencias de balance entre personal y familiar
+export const balanceTransfers = pgTable("balance_transfers", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  fromPersonal: boolean("from_personal").notNull(), // true si es de personal a familiar, false si es de familiar a personal
+  amount: numeric("amount").notNull(),
+  currency: text("currency").notNull().default("UYU"),
+  description: text("description"),
+  date: date("date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBalanceTransferSchema = createInsertSchema(balanceTransfers).pick({
+  userId: true,
+  fromPersonal: true,
+  amount: true,
+  currency: true,
+  description: true,
+  date: true,
+});
+
+export type InsertBalanceTransfer = z.infer<typeof insertBalanceTransferSchema>;
+export type BalanceTransfer = typeof balanceTransfers.$inferSelect;

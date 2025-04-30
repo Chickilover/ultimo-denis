@@ -1,5 +1,5 @@
-import { users, accounts, categories, tags, transactions, transactionTags, transactionSplits, recurringTransactions, budgets, savingsGoals, savingsContributions, settings, transactionTypes, accountTypes, familyMembers } from "@shared/schema";
-import type { User, InsertUser, Account, InsertAccount, Category, InsertCategory, Tag, InsertTag, Transaction, InsertTransaction, TransactionTag, InsertTransactionTag, TransactionSplit, InsertTransactionSplit, RecurringTransaction, InsertRecurringTransaction, Budget, InsertBudget, SavingsGoal, InsertSavingsGoal, SavingsContribution, InsertSavingsContribution, Settings, InsertSettings, FamilyMember, InsertFamilyMember } from "@shared/schema";
+import { users, accounts, categories, tags, transactions, transactionTags, transactionSplits, recurringTransactions, budgets, savingsGoals, savingsContributions, settings, transactionTypes, accountTypes, familyMembers, balanceTransfers } from "@shared/schema";
+import type { User, InsertUser, Account, InsertAccount, Category, InsertCategory, Tag, InsertTag, Transaction, InsertTransaction, TransactionTag, InsertTransactionTag, TransactionSplit, InsertTransactionSplit, RecurringTransaction, InsertRecurringTransaction, Budget, InsertBudget, SavingsGoal, InsertSavingsGoal, SavingsContribution, InsertSavingsContribution, Settings, InsertSettings, FamilyMember, InsertFamilyMember, BalanceTransfer, InsertBalanceTransfer } from "@shared/schema";
 import { eq, and, gte, lte, like, isNull, desc, asc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -96,6 +96,13 @@ export interface IStorage {
   
   // Account types
   getAccountTypes(): Promise<typeof accountTypes.$inferSelect[]>;
+  
+  // Balance transfers
+  getBalanceTransfers(userId: number): Promise<BalanceTransfer[]>;
+  createBalanceTransfer(transfer: InsertBalanceTransfer): Promise<BalanceTransfer>;
+  
+  // Update user balance
+  updateUserBalance(userId: number, personalAmount: number, familyAmount: number): Promise<User | undefined>;
   
   // Session store
   sessionStore: session.SessionStore;

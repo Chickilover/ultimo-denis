@@ -1,5 +1,5 @@
-import { users, accounts, categories, tags, transactions, transactionTags, transactionSplits, recurringTransactions, budgets, savingsGoals, savingsContributions, settings, transactionTypes, accountTypes, familyMembers } from "@shared/schema";
-import type { User, InsertUser, Account, InsertAccount, Category, InsertCategory, Tag, InsertTag, Transaction, InsertTransaction, TransactionTag, InsertTransactionTag, TransactionSplit, InsertTransactionSplit, RecurringTransaction, InsertRecurringTransaction, Budget, InsertBudget, SavingsGoal, InsertSavingsGoal, SavingsContribution, InsertSavingsContribution, Settings, InsertSettings, FamilyMember, InsertFamilyMember } from "@shared/schema";
+import { users, accounts, categories, tags, transactions, transactionTags, transactionSplits, recurringTransactions, budgets, savingsGoals, savingsContributions, settings, transactionTypes, accountTypes, familyMembers, balanceTransfers } from "@shared/schema";
+import type { User, InsertUser, Account, InsertAccount, Category, InsertCategory, Tag, InsertTag, Transaction, InsertTransaction, TransactionTag, InsertTransactionTag, TransactionSplit, InsertTransactionSplit, RecurringTransaction, InsertRecurringTransaction, Budget, InsertBudget, SavingsGoal, InsertSavingsGoal, SavingsContribution, InsertSavingsContribution, Settings, InsertSettings, FamilyMember, InsertFamilyMember, BalanceTransfer, InsertBalanceTransfer } from "@shared/schema";
 import { eq, and, gte, lte, like, isNull, desc, asc, or, inArray } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -550,5 +550,48 @@ export class DatabaseStorage implements IStorage {
   // Account types
   async getAccountTypes(): Promise<typeof accountTypes.$inferSelect[]> {
     return db.select().from(accountTypes);
+  }
+  
+  // Balance transfers
+  async getBalanceTransfers(userId: number): Promise<BalanceTransfer[]> {
+    return db
+      .select()
+      .from(balanceTransfers)
+      .where(eq(balanceTransfers.userId, userId))
+      .orderBy(desc(balanceTransfers.date));
+  }
+  
+  async createBalanceTransfer(transfer: InsertBalanceTransfer): Promise<BalanceTransfer> {
+    const result = await db.insert(balanceTransfers).values(transfer).returning();
+    return result[0];
+  }
+  
+  async updateUserBalance(userId: number, personalAmount: number, familyAmount: number): Promise<User | undefined> {
+    try {
+      // Primero obtenemos el usuario
+      const user = await this.getUser(userId);
+      if (!user) {
+        return undefined;
+      }
+      
+      // Calculamos los nuevos balances
+      const newPersonalBalance = Number(user.personalBalance || 0) + personalAmount;
+      const newFamilyBalance = Number(user.familyBalance || 0) + familyAmount;
+      
+      // Actualizamos el usuario con los nuevos balances
+      const result = await db
+        .update(users)
+        .set({
+          personalBalance: newPersonalBalance,
+          familyBalance: newFamilyBalance
+        })
+        .where(eq(users.id, userId))
+        .returning();
+        
+      return result[0];
+    } catch (error) {
+      console.error("Error en updateUserBalance:", error);
+      throw error;
+    }
   }
 }

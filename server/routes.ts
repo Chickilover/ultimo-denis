@@ -15,6 +15,7 @@ import {
   insertSettingsSchema, 
   insertRecurringTransactionSchema,
   insertFamilyMemberSchema,
+  insertBalanceTransferSchema,
   users
 } from "@shared/schema";
 import { seedDatabase } from "./seed";
