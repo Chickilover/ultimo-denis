@@ -472,7 +472,7 @@ export function TransactionForm({
             name="isShared"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Tipo de transacción</FormLabel>
+                <FormLabel>{activeTab === "income" ? "Destinar fondos a" : "Tipo de transacción"}</FormLabel>
                 <Select
                   value={field.value ? "hogar" : "personal"}
                   onValueChange={(value) => field.onChange(value === "hogar")}
@@ -483,13 +483,13 @@ export function TransactionForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="personal">Personal</SelectItem>
-                    <SelectItem value="hogar">Hogar</SelectItem>
+                    <SelectItem value="personal">Fondos Personales</SelectItem>
+                    <SelectItem value="hogar">Fondos del Hogar</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormDescription>
                   {activeTab === "income" 
-                    ? "Selecciona si este ingreso es para gastos personales o compartidos del hogar." 
+                    ? "Especifica si estos fondos son para tu uso personal o para el presupuesto compartido del hogar." 
                     : "Personal: solo visible para ti. Hogar: visible para todos los miembros familiares."}
                 </FormDescription>
               </FormItem>
