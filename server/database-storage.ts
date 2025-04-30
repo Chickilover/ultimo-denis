@@ -1,6 +1,6 @@
 import { users, accounts, categories, tags, transactions, transactionTags, transactionSplits, recurringTransactions, budgets, savingsGoals, savingsContributions, settings, transactionTypes, accountTypes, familyMembers, balanceTransfers } from "@shared/schema";
 import type { User, InsertUser, Account, InsertAccount, Category, InsertCategory, Tag, InsertTag, Transaction, InsertTransaction, TransactionTag, InsertTransactionTag, TransactionSplit, InsertTransactionSplit, RecurringTransaction, InsertRecurringTransaction, Budget, InsertBudget, SavingsGoal, InsertSavingsGoal, SavingsContribution, InsertSavingsContribution, Settings, InsertSettings, FamilyMember, InsertFamilyMember, BalanceTransfer, InsertBalanceTransfer } from "@shared/schema";
-import { eq, and, gte, lte, like, isNull, desc, asc, or, inArray } from "drizzle-orm";
+import { eq, and, gte, lte, like, isNull, desc, asc, or, inArray, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
