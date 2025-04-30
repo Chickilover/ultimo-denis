@@ -805,6 +805,21 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
+                      
+                      <FormField
+                        control={registerForm.control}
+                        name="invitationCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Código de invitación (opcional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ingresa un código si fuiste invitado" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            <p className="text-xs text-muted-foreground">Si tienes un código de invitación, ingrésalo aquí para unirte directamente a un hogar.</p>
+                          </FormItem>
+                        )}
+                      />
 
                       <Button 
                         type="submit" 
