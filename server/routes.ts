@@ -394,14 +394,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const transaction = await storage.createTransaction(transactionData);
       
-      // Si la transacción es un gasto compartido (de hogar), actualizar el balance familiar
-      if (transaction.transactionTypeId === 2 && transaction.isShared) { // 2 = Gasto
-        // Convertir el monto a número para el cálculo
-        const amount = Number(transaction.amount);
-        if (!isNaN(amount)) {
-          // Cuando se registra un gasto de hogar, se considera como ingreso a los fondos familiares
-          await storage.updateUserBalance(req.user.id, 0, amount);
-          console.log(`Actualizado balance familiar con +${amount} por gasto compartido`);
+      // Convertir el monto a número para los cálculos
+      const amount = Number(transaction.amount);
+      if (!isNaN(amount)) {
+        // 1. Si es un ingreso, actualizar el balance personal
+        if (transaction.transactionTypeId === 1) { // 1 = Ingreso
+          await storage.updateUserBalance(req.user.id, amount, 0);
+          console.log(`Actualizado balance personal con +${amount} por ingreso`);
+        }
+        // 2. Si es un gasto personal, actualizar el balance personal
+        else if (transaction.transactionTypeId === 2 && !transaction.isShared) { // 2 = Gasto personal
+          await storage.updateUserBalance(req.user.id, -amount, 0);
+          console.log(`Actualizado balance personal con -${amount} por gasto personal`);
+        }
+        // 3. Si es un gasto compartido (de hogar), actualizar el balance familiar
+        else if (transaction.transactionTypeId === 2 && transaction.isShared) { // 2 = Gasto de hogar
+          // Cuando se registra un gasto de hogar, se considera como ingreso a los fondos familiares,
+          // pero también debe descontarse del balance personal
+          await storage.updateUserBalance(req.user.id, -amount, amount);
+          console.log(`Actualizado balance personal con -${amount} y familiar con +${amount} por gasto compartido`);
         }
       }
       
@@ -453,31 +464,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactionData = req.body;
       const updatedTransaction = await storage.updateTransaction(parseInt(req.params.id), transactionData);
       
-      // Comprobar si ha cambiado el estado compartido de la transacción
-      // Si ahora es compartida y no lo era antes, actualizar el balance familiar
-      if (
-        updatedTransaction.transactionTypeId === 2 && // Es un gasto
-        updatedTransaction.isShared === true && 
-        transaction.isShared === false
-      ) {
-        // Convertir a gasto compartido, agregar al balance familiar
-        const amount = Number(updatedTransaction.amount);
-        if (!isNaN(amount)) {
-          await storage.updateUserBalance(req.user.id, 0, amount);
-          console.log(`Actualizado balance familiar con +${amount} al convertir a gasto compartido`);
+      // Convertir ambos montos a números para los cálculos
+      const oldAmount = Number(transaction.amount);
+      const newAmount = Number(updatedTransaction.amount);
+      
+      if (!isNaN(oldAmount) && !isNaN(newAmount)) {
+        // 1. Si es un ingreso, ajustar el balance personal con la diferencia
+        if (updatedTransaction.transactionTypeId === 1) { // 1 = Ingreso
+          // Calcular la diferencia entre el nuevo y viejo monto
+          const difference = newAmount - oldAmount;
+          if (difference !== 0) {
+            await storage.updateUserBalance(req.user.id, difference, 0);
+            console.log(`Actualizado balance personal con ${difference > 0 ? '+' : ''}${difference} por cambio en ingreso`);
+          }
         }
-      } 
-      // Si ya no es compartida y sí lo era antes, restar del balance familiar
-      else if (
-        updatedTransaction.transactionTypeId === 2 && // Es un gasto
-        updatedTransaction.isShared === false && 
-        transaction.isShared === true
-      ) {
-        // Ya no es un gasto compartido, restar del balance familiar
-        const amount = Number(updatedTransaction.amount);
-        if (!isNaN(amount)) {
-          await storage.updateUserBalance(req.user.id, 0, -amount);
-          console.log(`Actualizado balance familiar con -${amount} al convertir a gasto personal`);
+        // 2. Para gastos, hay varios escenarios
+        else if (updatedTransaction.transactionTypeId === 2) { // 2 = Gasto
+          // 2.1 Cambio de gasto personal a gasto compartido
+          if (!transaction.isShared && updatedTransaction.isShared) {
+            // Quitar todo el monto anterior del balance personal
+            await storage.updateUserBalance(req.user.id, 0, newAmount); // Agregar al balance familiar
+            console.log(`Actualizado balance familiar con +${newAmount} al convertir a gasto compartido`);
+          }
+          // 2.2 Cambio de gasto compartido a gasto personal
+          else if (transaction.isShared && !updatedTransaction.isShared) {
+            // Quitar el monto del balance familiar
+            await storage.updateUserBalance(req.user.id, 0, -oldAmount);
+            console.log(`Actualizado balance familiar con -${oldAmount} al convertir a gasto personal`);
+          }
+          // 2.3 Sigue siendo gasto compartido pero cambió el monto
+          else if (transaction.isShared && updatedTransaction.isShared && oldAmount !== newAmount) {
+            // Actualizar sólo la diferencia en el balance familiar
+            const difference = newAmount - oldAmount;
+            await storage.updateUserBalance(req.user.id, 0, difference);
+            console.log(`Actualizado balance familiar con ${difference > 0 ? '+' : ''}${difference} por cambio en gasto compartido`);
+          }
+          // 2.4 Sigue siendo gasto personal pero cambió el monto
+          else if (!transaction.isShared && !updatedTransaction.isShared && oldAmount !== newAmount) {
+            // Actualizar la diferencia en el balance personal (ajuste negativo, por ser gasto)
+            const difference = newAmount - oldAmount;
+            await storage.updateUserBalance(req.user.id, -difference, 0);
+            console.log(`Actualizado balance personal con ${difference > 0 ? '-' : '+'}${Math.abs(difference)} por cambio en gasto personal`);
+          }
         }
       }
       
@@ -498,12 +526,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "No tienes permiso para eliminar esta transacción" });
       }
       
-      // Si la transacción es un gasto compartido, actualizar el balance familiar
-      if (transaction.transactionTypeId === 2 && transaction.isShared) {
-        const amount = Number(transaction.amount);
-        if (!isNaN(amount)) {
-          await storage.updateUserBalance(req.user.id, 0, -amount);
-          console.log(`Actualizado balance familiar con -${amount} al eliminar gasto compartido`);
+      // Convertir el monto a número para el cálculo
+      const amount = Number(transaction.amount);
+      if (!isNaN(amount)) {
+        // 1. Si era un ingreso, restar del balance personal
+        if (transaction.transactionTypeId === 1) {
+          await storage.updateUserBalance(req.user.id, -amount, 0);
+          console.log(`Actualizado balance personal con -${amount} al eliminar ingreso`);
+        }
+        // 2. Si era un gasto personal, sumar al balance personal
+        else if (transaction.transactionTypeId === 2 && !transaction.isShared) {
+          await storage.updateUserBalance(req.user.id, amount, 0);
+          console.log(`Actualizado balance personal con +${amount} al eliminar gasto personal`);
+        }
+        // 3. Si era un gasto compartido, restar del balance familiar y sumar al personal
+        else if (transaction.transactionTypeId === 2 && transaction.isShared) {
+          await storage.updateUserBalance(req.user.id, amount, -amount);
+          console.log(`Actualizado balance personal con +${amount} y familiar con -${amount} al eliminar gasto compartido`);
         }
       }
       
