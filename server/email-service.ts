@@ -36,6 +36,12 @@ export async function sendEmail(params: {
       return true;
     }
     
+    // Validar que la clave API tenga el formato correcto
+    if (!process.env.SENDGRID_API_KEY.startsWith("SG.")) {
+      console.error("Error: La clave API de SendGrid no tiene el formato correcto. Debe comenzar con 'SG.'");
+      return false;
+    }
+    
     await mailService.send({
       to: params.to,
       from: {

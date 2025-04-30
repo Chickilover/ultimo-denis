@@ -1167,11 +1167,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Crear mensaje para el cliente sobre estado del correo
+      let emailMessage = '';
+      if (email || (invitedUser && invitedUser.email)) {
+        if (emailSent) {
+          emailMessage = 'Se ha enviado una invitación por correo electrónico.';
+        } else {
+          emailMessage = 'No se pudo enviar la invitación por correo electrónico. Por favor, comparte el código manualmente.';
+        }
+      }
+      
       res.status(201).json({ 
         code: invitationCode,
-        username,
+        username: username || null,
+        email: email || (invitedUser ? invitedUser.email : null),
         link: invitationLink,
-        emailSent
+        emailSent,
+        message: emailMessage
       });
     } catch (error) {
       console.error("Error completo al generar invitación:", error);
