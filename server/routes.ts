@@ -1208,6 +1208,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Balance transfers
+  app.get("/api/user/balance", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+      
+      res.json({
+        personalBalance: user.personalBalance || 0,
+        familyBalance: user.familyBalance || 0
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Error al obtener el balance" });
+    }
+  });
+  
+  app.get("/api/balance-transfers", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const transfers = await storage.getBalanceTransfers(req.user.id);
+      res.json(transfers);
+    } catch (error) {
+      res.status(500).json({ message: "Error al obtener las transferencias de balance" });
+    }
+  });
+  
+  app.post("/api/balance-transfers", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      // Obtener usuario actual
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+      
+      // Validar datos de la transferencia
+      const transferData = await insertBalanceTransferSchema.parseAsync({
+        ...req.body,
+        userId: req.user.id,
+        date: new Date()
+      });
+      
+      // Verificar que el monto sea válido
+      const amount = Number(transferData.amount);
+      if (isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: "El monto debe ser un número positivo" });
+      }
+      
+      // Verificar suficiente saldo según dirección de transferencia
+      if (transferData.fromPersonal) {
+        // Transferencia de personal a familiar
+        if (Number(user.personalBalance || 0) < amount) {
+          return res.status(400).json({ message: "Saldo personal insuficiente" });
+        }
+      } else {
+        // Transferencia de familiar a personal
+        if (Number(user.familyBalance || 0) < amount) {
+          return res.status(400).json({ message: "Saldo familiar insuficiente" });
+        }
+      }
+      
+      // Crear la transferencia
+      const transfer = await storage.createBalanceTransfer(transferData);
+      
+      // Actualizar saldos
+      const personalChange = transferData.fromPersonal ? -amount : amount;
+      const familyChange = transferData.fromPersonal ? amount : -amount;
+      
+      await storage.updateUserBalance(req.user.id, personalChange, familyChange);
+      
+      res.status(201).json(transfer);
+    } catch (error) {
+      console.error("Error al crear transferencia:", error);
+      res.status(400).json({ 
+        message: "Datos de transferencia inválidos", 
+        error: error instanceof z.ZodError ? JSON.stringify(error.errors) : String(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
