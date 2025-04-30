@@ -59,13 +59,19 @@ export type InsertHouseholdInvitation = z.infer<typeof insertHouseholdInvitation
 export type HouseholdInvitation = typeof householdInvitations.$inferSelect;
 
 // Actualización del esquema de usuario para incluir email
-export const insertUserSchema = createInsertSchema(users).pick({
+// Base schema para usuarios
+const baseUserSchema = createInsertSchema(users).pick({
   username: true,
   email: true,
   password: true,
   name: true,
   isAdmin: true,
   householdId: true,
+});
+
+// Esquema extendido para incluir el campo de código de invitación opcional
+export const insertUserSchema = baseUserSchema.extend({
+  invitationCode: z.string().optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
