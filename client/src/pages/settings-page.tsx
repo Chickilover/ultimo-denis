@@ -373,7 +373,7 @@ export default function SettingsPage() {
         return;
       }
       
-      // Convertir a número y redondear al entero más cercano
+      // Convertir a número y formatear con 2 decimales
       const numValue = parseFloat(localExchangeRate);
       if (isNaN(numValue)) {
         toast({
@@ -384,8 +384,8 @@ export default function SettingsPage() {
         return;
       }
       
-      // Redondear siempre a un número entero
-      const roundedValue = Math.round(numValue).toString();
+      // Formatear a 2 decimales
+      const formattedValue = numValue.toFixed(2);
       
       // Mostrar toast de carga
       toast({
@@ -394,18 +394,18 @@ export default function SettingsPage() {
       });
       
       // Actualizar estado local primero
-      setLocalExchangeRate(roundedValue);
-      setExchangeRate(roundedValue);
+      setLocalExchangeRate(formattedValue);
+      setExchangeRate(formattedValue);
       
       // Actualizar el tipo de cambio global en toda la aplicación
-      updateGlobalExchangeRate(roundedValue);
+      updateGlobalExchangeRate(formattedValue);
       
       // Datos a enviar al servidor
       const now = new Date();
       
       // Enviar al servidor y esperar la respuesta
       const response = await updateSettingsMutation.mutateAsync({
-        exchangeRate: roundedValue,
+        exchangeRate: formattedValue,
         lastExchangeRateUpdate: now.toISOString(),
         defaultCurrency,
         theme,
@@ -415,7 +415,7 @@ export default function SettingsPage() {
       // Mostrar toast de éxito
       toast({
         title: "Tipo de cambio actualizado",
-        description: `El tipo de cambio ha sido actualizado a ${roundedValue}`,
+        description: `El tipo de cambio ha sido actualizado a ${formattedValue}`,
       });
       
     } catch (err) {
@@ -587,9 +587,9 @@ export default function SettingsPage() {
                   <div className="flex space-x-2">
                     <Input
                       id="exchange-rate"
-                      placeholder="38"
+                      placeholder="38.50"
                       type="number"
-                      step="1"  
+                      step="0.01"  
                       min="0"
                       value={localExchangeRate}
                       onChange={(e) => {
@@ -603,9 +603,8 @@ export default function SettingsPage() {
                           // Intentar convertir a número
                           const numValue = parseFloat(inputValue);
                           if (!isNaN(numValue)) {
-                            // Siempre guardar como entero
-                            const intValue = Math.round(numValue).toString();
-                            setLocalExchangeRate(intValue);
+                            // Mantener el valor decimal
+                            setLocalExchangeRate(inputValue);
                           }
                         }
                       }}
@@ -613,6 +612,12 @@ export default function SettingsPage() {
                         // Si el campo está vacío al perder el foco, restaurar el valor anterior
                         if (localExchangeRate === "") {
                           setLocalExchangeRate(exchangeRate);
+                        } else {
+                          // Formatear a dos decimales al perder el foco
+                          const numValue = parseFloat(localExchangeRate);
+                          if (!isNaN(numValue)) {
+                            setLocalExchangeRate(numValue.toFixed(2));
+                          }
                         }
                       }}
                     />

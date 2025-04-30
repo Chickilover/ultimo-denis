@@ -172,11 +172,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/categories", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const categoryData = await insertCategorySchema.parseAsync(req.body);
+      console.log("Datos de categoría recibidos:", req.body);
+      
+      // Asegurar que isIncome es booleano
+      const formattedData = {
+        ...req.body,
+        isIncome: typeof req.body.isIncome === 'string' 
+          ? req.body.isIncome === 'true' 
+          : !!req.body.isIncome,
+        // La categoría nunca será del sistema cuando la crea un usuario
+        isSystem: false
+      };
+      
+      const categoryData = await insertCategorySchema.parseAsync(formattedData);
+      console.log("Datos de categoría validados:", categoryData);
+      
       const category = await storage.createCategory(categoryData);
+      console.log("Categoría creada:", category);
       res.status(201).json(category);
     } catch (error) {
-      res.status(400).json({ message: "Datos de categoría inválidos", error });
+      console.error("Error al crear categoría:", error);
+      res.status(400).json({ 
+        message: "Datos de categoría inválidos", 
+        error: error instanceof z.ZodError 
+          ? JSON.stringify(error.errors) 
+          : String(error)
+      });
     }
   });
 
@@ -836,12 +857,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Redondear el tipo de cambio a un entero si está presente
+      // Formatear el tipo de cambio a 2 decimales si está presente
       if (settingsData.exchangeRate) {
         try {
           const exchangeRateValue = parseFloat(settingsData.exchangeRate);
           if (!isNaN(exchangeRateValue)) {
-            settingsData.exchangeRate = Math.round(exchangeRateValue).toString();
+            // Mantener el valor decimal con hasta 2 decimales
+            settingsData.exchangeRate = exchangeRateValue.toFixed(2);
           }
         } catch (err) {
           console.error("Error al parsear exchangeRate:", err);
