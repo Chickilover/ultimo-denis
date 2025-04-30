@@ -128,15 +128,17 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: Error | null, user: SelectUser | false, info: { message?: string } | undefined) => {
       if (err) return next(err);
       if (!user) return res.status(401).json({ message: info?.message || "Credenciales inválidas" });
       
-      req.login(user, (err) => {
-        if (err) return next(err);
+      req.login(user, (loginErr: Error | null) => {
+        if (loginErr) return next(loginErr);
         // Remove sensitive information
-        const userResponse = { ...user };
-        delete userResponse.password;
+        const userResponse = { ...user } as any;
+        if (userResponse.password) {
+          userResponse.password = undefined;
+        }
         res.status(200).json(userResponse);
       });
     })(req, res, next);
@@ -196,15 +198,27 @@ export function setupAuth(app: Express) {
       // Guardar token
       resetTokens.set(token, { userId: user.id, expires });
 
-      // En un entorno real aquí enviaríamos un correo electrónico con el token
-      // Pero para esta demo, simplemente retornamos el token en la respuesta
-      console.log(`Token de restablecimiento para ${email}: ${token}`);
-      
-      res.status(200).json({ 
-        message: "Si el correo electrónico está registrado, recibirás instrucciones para restablecer tu contraseña.",
-        // Solo para desarrollo - Eliminar en producción
-        token
-      });
+      // Enviar correo electrónico con el token
+      try {
+        const { sendPasswordResetEmail } = await import('./email-service');
+        await sendPasswordResetEmail({
+          to: email,
+          token,
+          username: user.username,
+        });
+        
+        res.status(200).json({ 
+          message: "Si el correo electrónico está registrado, recibirás instrucciones para restablecer tu contraseña."
+        });
+      } catch (emailError) {
+        console.error('Error al enviar correo de recuperación:', emailError);
+        // Aunque falló el envío, por seguridad mantenemos el mismo mensaje
+        res.status(200).json({ 
+          message: "Si el correo electrónico está registrado, recibirás instrucciones para restablecer tu contraseña.",
+          // Solo para desarrollo - Eliminar en producción si no está en modo debug
+          token: process.env.NODE_ENV === 'development' ? token : undefined
+        });
+      }
     } catch (error) {
       res.status(400).json({ message: "Error en la solicitud", error });
     }
