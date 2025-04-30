@@ -90,8 +90,8 @@ export function BalanceTransferForm({ onSuccess }: BalanceTransferFormProps) {
     : balance?.familyBalance ?? 0;
 
   const balanceLabel = direction === "toFamily" 
-    ? "Balance Personal" 
-    : "Balance Familiar";
+    ? "Fondos Personales" 
+    : "Fondos del Hogar";
 
   // Determinar color según el tipo de balance
   const personalBalanceColor = "text-blue-600 dark:text-blue-400";
@@ -105,7 +105,7 @@ export function BalanceTransferForm({ onSuccess }: BalanceTransferFormProps) {
           Transferir Fondos
         </CardTitle>
         <CardDescription>
-          Mueva dinero entre su balance personal y familiar
+          Distribuya fondos entre su cuenta personal y la del hogar
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -113,13 +113,13 @@ export function BalanceTransferForm({ onSuccess }: BalanceTransferFormProps) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="flex justify-between mb-4">
               <div>
-                <p className="text-sm font-medium">Balance Personal:</p>
+                <p className="text-sm font-medium">Fondos Personales:</p>
                 <p className={`text-lg font-bold ${personalBalanceColor}`}>
                   {formatCurrency(balance?.personalBalance || 0, defaultCurrency || "UYU")}
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium">Balance Familiar:</p>
+                <p className="text-sm font-medium">Fondos del Hogar:</p>
                 <p className={`text-lg font-bold ${familyBalanceColor}`}>
                   {formatCurrency(balance?.familyBalance || 0, defaultCurrency || "UYU")}
                 </p>

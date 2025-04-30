@@ -21,7 +21,7 @@ export function BalanceDisplay() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <BalanceCard
-        title="Balance Personal"
+        title="Fondos Personales"
         amount={balance?.personalBalance || 0}
         currency={defaultCurrency || "UYU"}
         icon={<User className="h-8 w-8 text-blue-500 group-hover:text-blue-600 transition-colors" />}
@@ -29,7 +29,7 @@ export function BalanceDisplay() {
         textColorClass="text-blue-700 dark:text-blue-300"
       />
       <BalanceCard
-        title="Balance Familiar"
+        title="Fondos del Hogar"
         amount={balance?.familyBalance || 0}
         currency={defaultCurrency || "UYU"}
         icon={<Users className="h-8 w-8 text-purple-500 group-hover:text-purple-600 transition-colors" />}

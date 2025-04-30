@@ -39,7 +39,7 @@ export default function IncomePage() {
     <Shell>
       <PageHeader
         title="Ingresos"
-        description="Administra tus ingresos personales y familiares"
+        description="Registra tus ingresos y distribuye fondos entre gastos personales y del hogar"
         actions={
           <Button onClick={handleOpenDialog}>
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -56,7 +56,7 @@ export default function IncomePage() {
             <div className="space-y-2">
               <h2 className="text-xl font-bold text-center">Nuevo Ingreso</h2>
               <DialogDescription id="income-dialog-description" className="text-center">
-                Registra un nuevo ingreso en tu cuenta
+                Registra un nuevo ingreso y elige si destinarlo a gastos personales o compartidos
               </DialogDescription>
             </div>
             <TransactionForm 
