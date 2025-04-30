@@ -102,15 +102,17 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "El correo electrónico ya está registrado" });
       }
 
-      // Extraer el código de invitación si existe (como puede estar en registrationData como propiedad adicional)
-      const invitationCode = (registrationData as any).invitationCode;
-      // Crear una copia sin el código de invitación
-      const { invitationCode: _, ...registrationDataWithoutCode } = { ...(registrationData as any) };
+      // Extraer el código de invitación si existe
+      const invitationCode = registrationData.invitationCode;
+      
+      // Crear una copia sin el código de invitación para la base de datos
+      // (ya que invitationCode no es parte del schema de la tabla users)
+      const { invitationCode: _, ...userDataForDB } = registrationData;
 
       // Crear el usuario
       const user = await storage.createUser({
-        ...registrationDataWithoutCode,
-        password: await hashPassword(registrationData.password),
+        ...userDataForDB,
+        password: await hashPassword(userDataForDB.password),
       });
 
       // Create default settings for the user
@@ -126,9 +128,6 @@ export function setupAuth(app: Express) {
       let invitationResult = null;
       if (invitationCode) {
         try {
-          // Importar desde invitación para validar el código
-          const { validateInvitationCode, consumeInvitationCode } = require('./invitation');
-          
           // Validar el código
           const validation = validateInvitationCode(invitationCode);
           if (validation.valid && validation.userId) {
@@ -155,14 +154,14 @@ export function setupAuth(app: Express) {
         if (invitationResult && invitationResult.valid) {
           try {
             // Agregar al usuario a la familia
-            // Usamos 'as any' para evitar errores de tipo ya que el schema puede haber cambiado
             await storage.createFamilyMember({
               userId: invitationResult.inviterUserId,
-              familyMemberId: user.id,
               name: user.name,
-              relationship: "Familiar", // Usar el campo correcto según el esquema
-              isActive: true
-            } as any);
+              email: user.email,
+              relationship: "Familiar",
+              isActive: true,
+              canAccess: true
+            });
             
             // Si hay un ID de hogar, establecer el hogar del usuario
             if (invitationResult.householdId) {
