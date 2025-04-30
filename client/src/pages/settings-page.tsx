@@ -446,7 +446,8 @@ export default function SettingsPage() {
       name: categoryName,
       icon: categoryIcon,
       color: categoryColor,
-      isIncome: categoryIsIncome
+      isIncome: categoryIsIncome,
+      parentId: null
     };
 
     if (editingCategoryId) {
