@@ -1143,11 +1143,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, email } = req.body;
       
-      if (!username && !email) {
-        return res.status(400).json({ message: "Se requiere un nombre de usuario o correo electrónico" });
-      }
+      // No requerimos un usuario o correo, ahora permitimos generar códigos sin asociarlos a un usuario
+      // if (!username && !email) {
+      //   return res.status(400).json({ message: "Se requiere un nombre de usuario o correo electrónico" });
+      // }
       
-      // Verificar si el usuario existe
+      // Verificar si el usuario existe si se proporcionó un username o email
       let invitedUser;
       try {
         if (username) {
@@ -1157,7 +1158,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Si no encontramos al usuario pero tenemos email, continuamos para enviar invitación por email
-        if (!invitedUser && !email) {
+        // Si no hay username ni email, generamos un código sin asociarlo a nadie específico
+        if (!invitedUser && !email && username) {
           return res.status(404).json({ message: "Usuario no encontrado" });
         }
       } catch (err) {

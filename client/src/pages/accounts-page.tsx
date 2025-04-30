@@ -176,10 +176,21 @@ export default function AccountsPage() {
         <TabsContent value="invitations" className="space-y-4">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Invitaciones Enviadas</h3>
-            <Button variant="outline" onClick={() => setIsInviteDialogOpen(true)}>
-              <Mail className="mr-2 h-4 w-4" />
-              Nueva Invitación
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  createInvitationMutation.mutate({ email: "" });
+                }}
+              >
+                <LinkIcon className="mr-2 h-4 w-4" />
+                Crear Código de Invitación
+              </Button>
+              <Button variant="outline" onClick={() => setIsInviteDialogOpen(true)}>
+                <Mail className="mr-2 h-4 w-4" />
+                Nueva Invitación
+              </Button>
+            </div>
           </div>
           
           {isLoadingInvitations ? (
