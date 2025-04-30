@@ -1,15 +1,23 @@
 import { MailService } from '@sendgrid/mail';
 
+// Verificar y registrar el estado de la API key
 if (!process.env.SENDGRID_API_KEY) {
   console.warn("SENDGRID_API_KEY no está definida. El envío de correos no funcionará correctamente.");
+} else {
+  console.log("SENDGRID_API_KEY está configurada. Longitud:", process.env.SENDGRID_API_KEY.length);
 }
 
 // Configurar el servicio de correo
 const mailService = new MailService();
-if (process.env.SENDGRID_API_KEY) {
-  mailService.setApiKey(process.env.SENDGRID_API_KEY);
-} else {
-  console.error('SENDGRID_API_KEY no está definida. El servicio de correo no funcionará correctamente.');
+try {
+  if (process.env.SENDGRID_API_KEY) {
+    mailService.setApiKey(process.env.SENDGRID_API_KEY);
+    console.log("API key de SendGrid configurada correctamente");
+  } else {
+    console.error('SENDGRID_API_KEY no está definida. El servicio de correo no funcionará correctamente.');
+  }
+} catch (error) {
+  console.error('Error al configurar la API key de SendGrid:', error);
 }
 
 // Dirección de correo desde la cual se enviarán los mensajes

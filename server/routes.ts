@@ -63,6 +63,26 @@ const avatarStorage = multer.diskStorage({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Ruta de prueba para la API de SendGrid
+  app.post('/api/test-email', async (req, res) => {
+    console.log('Intentando enviar email de prueba...');
+    try {
+      const { to } = req.body;
+      const result = await sendEmail({
+        to: to || 'test@example.com',
+        subject: 'Prueba de Nido Financiero',
+        text: 'Este es un email de prueba desde Nido Financiero',
+        html: '<p>Este es un email de prueba desde <strong>Nido Financiero</strong></p>'
+      });
+      
+      console.log('Resultado del envío de email:', result);
+      res.json({ success: result });
+    } catch (error) {
+      console.error('Error completo al enviar email:', error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
   // Initialize database with default data
   await seedDatabase();
   
