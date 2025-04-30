@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { generateInvitationCode, validateInvitationCode, consumeInvitationCode, getActiveInvitationsForUser } from './invitation';
+import { sendEmail, sendFamilyInvitationEmail } from './email-service';
 import { z } from "zod";
 import { 
   insertAccountSchema, 
