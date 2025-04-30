@@ -50,6 +50,7 @@ interface BalanceCardProps {
   colorClass?: string;
   textColorClass?: string;
   isLoading?: boolean;
+  description?: string;
 }
 
 function BalanceCard({
@@ -60,6 +61,7 @@ function BalanceCard({
   colorClass = "",
   textColorClass = "",
   isLoading = false,
+  description,
 }: BalanceCardProps) {
   const { formatCurrency } = useCurrency();
 
@@ -90,7 +92,7 @@ function BalanceCard({
         <div className={`${textColorClass} text-2xl font-bold mb-1`}>
           {formatCurrency(amount ?? 0, currency ?? "UYU")}
         </div>
-        <p className="text-sm opacity-70">Balance actual</p>
+        <p className="text-sm opacity-70">{description || "Balance actual"}</p>
       </CardContent>
       {/* Efecto decorativo */}
       <div className="absolute -right-12 -bottom-12 h-32 w-32 rounded-full bg-white/10 dark:bg-white/5 backdrop-blur-sm" />

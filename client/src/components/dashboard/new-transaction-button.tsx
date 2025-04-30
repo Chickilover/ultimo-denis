@@ -77,13 +77,9 @@ export function NewTransactionButton({
                   <UserCircle className="w-4 h-4 text-primary" />
                   <span>Gasto personal</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center gap-2" onClick={() => handleOpenDialog("income", true)}>
-                  <HomeIcon className="w-4 h-4 text-green-600" />
-                  <span>Ingreso del hogar</span>
-                </DropdownMenuItem>
                 <DropdownMenuItem className="flex items-center gap-2" onClick={() => handleOpenDialog("income", false)}>
-                  <UserCircle className="w-4 h-4 text-green-600" />
-                  <span>Ingreso personal</span>
+                  <Banknote className="w-4 h-4 text-green-600" />
+                  <span>Registrar ingreso</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -94,8 +90,9 @@ export function NewTransactionButton({
           <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" aria-describedby="transaction-dialog-description">
             <DialogHeader>
               <DialogTitle>
-                {transactionType === "expense" ? "Nuevo gasto" : "Nuevo ingreso"} 
-                {isShared ? " del hogar" : " personal"}
+                {transactionType === "expense" 
+                  ? `Nuevo gasto${isShared ? " del hogar" : " personal"}`
+                  : "Registrar ingreso"}
               </DialogTitle>
             </DialogHeader>
             <p id="transaction-dialog-description" className="sr-only">
@@ -150,21 +147,9 @@ export function NewTransactionButton({
           onClick={() => handleOpenDialog("income", false)}
         >
           <div className="bg-green-100 dark:bg-green-900/30 p-1.5 rounded-full">
-            <UserCircle className="h-4 w-4 text-green-500" />
-          </div>
-          <span>Ingreso personal</span>
-        </Button>
-        
-        <Button 
-          variant="outline" 
-          size="default"
-          className="flex-1 border-green-500 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20 hover:text-green-700 hover:border-green-600 gap-2 rounded-xl h-14 shadow-sm transition-all duration-200 hover:shadow-md"
-          onClick={() => handleOpenDialog("income", true)}
-        >
-          <div className="bg-green-100 dark:bg-green-900/30 p-1.5 rounded-full">
             <Banknote className="h-4 w-4 text-green-500" />
           </div>
-          <span>Ingreso del hogar</span>
+          <span>Registrar ingreso</span>
         </Button>
       </div>
       
@@ -172,8 +157,9 @@ export function NewTransactionButton({
         <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" aria-describedby="transaction-dialog-description-main">
           <DialogHeader>
             <DialogTitle>
-              {transactionType === "expense" ? "Nuevo gasto" : "Nuevo ingreso"} 
-              {isShared ? " del hogar" : " personal"}
+              {transactionType === "expense" 
+                ? `Nuevo gasto${isShared ? " del hogar" : " personal"}`
+                : "Registrar ingreso"}
             </DialogTitle>
           </DialogHeader>
           <p id="transaction-dialog-description-main" className="sr-only">
