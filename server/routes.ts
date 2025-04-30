@@ -394,6 +394,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const transaction = await storage.createTransaction(transactionData);
       
+      // Si la transacción es un gasto compartido (de hogar), actualizar el balance familiar
+      if (transaction.transactionTypeId === 2 && transaction.isShared) { // 2 = Gasto
+        // Convertir el monto a número para el cálculo
+        const amount = Number(transaction.amount);
+        if (!isNaN(amount)) {
+          // Cuando se registra un gasto de hogar, se considera como ingreso a los fondos familiares
+          await storage.updateUserBalance(req.user.id, 0, amount);
+          console.log(`Actualizado balance familiar con +${amount} por gasto compartido`);
+        }
+      }
+      
       // Handle splits if present
       if (req.body.splits && Array.isArray(req.body.splits)) {
         for (const split of req.body.splits) {
@@ -441,6 +452,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const transactionData = req.body;
       const updatedTransaction = await storage.updateTransaction(parseInt(req.params.id), transactionData);
+      
+      // Comprobar si ha cambiado el estado compartido de la transacción
+      // Si ahora es compartida y no lo era antes, actualizar el balance familiar
+      if (
+        updatedTransaction.transactionTypeId === 2 && // Es un gasto
+        updatedTransaction.isShared === true && 
+        transaction.isShared === false
+      ) {
+        // Convertir a gasto compartido, agregar al balance familiar
+        const amount = Number(updatedTransaction.amount);
+        if (!isNaN(amount)) {
+          await storage.updateUserBalance(req.user.id, 0, amount);
+          console.log(`Actualizado balance familiar con +${amount} al convertir a gasto compartido`);
+        }
+      } 
+      // Si ya no es compartida y sí lo era antes, restar del balance familiar
+      else if (
+        updatedTransaction.transactionTypeId === 2 && // Es un gasto
+        updatedTransaction.isShared === false && 
+        transaction.isShared === true
+      ) {
+        // Ya no es un gasto compartido, restar del balance familiar
+        const amount = Number(updatedTransaction.amount);
+        if (!isNaN(amount)) {
+          await storage.updateUserBalance(req.user.id, 0, -amount);
+          console.log(`Actualizado balance familiar con -${amount} al convertir a gasto personal`);
+        }
+      }
+      
       res.json(updatedTransaction);
     } catch (error) {
       res.status(400).json({ message: "Datos de transacción inválidos", error });
@@ -456,6 +496,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       if (transaction.userId !== req.user.id) {
         return res.status(403).json({ message: "No tienes permiso para eliminar esta transacción" });
+      }
+      
+      // Si la transacción es un gasto compartido, actualizar el balance familiar
+      if (transaction.transactionTypeId === 2 && transaction.isShared) {
+        const amount = Number(transaction.amount);
+        if (!isNaN(amount)) {
+          await storage.updateUserBalance(req.user.id, 0, -amount);
+          console.log(`Actualizado balance familiar con -${amount} al eliminar gasto compartido`);
+        }
       }
       
       await storage.deleteTransaction(parseInt(req.params.id));
