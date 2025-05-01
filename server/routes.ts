@@ -1229,12 +1229,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/invitations", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const { username, email } = req.body;
+      const { username } = req.body;
       
-      // No requerimos un usuario o correo, ahora permitimos generar códigos sin asociarlos a un usuario
-      // if (!username && !email) {
-      //   return res.status(400).json({ message: "Se requiere un nombre de usuario o correo electrónico" });
-      // }
+      if (!username) {
+        return res.status(400).json({ message: "Se requiere un nombre de usuario" });
+      }
+
+      // Verificar si el usuario existe
+      const invitedUser = await storage.getUserByUsername(username);
+      if (!invitedUser) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
       
       // Verificar si el usuario existe si se proporcionó un username o email
       let invitedUser;
@@ -1259,42 +1264,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const recipientUsername = invitedUser ? invitedUser.username : email;
       
       // Generar código de invitación
-      const invitationCode = generateInvitationCode(req.user.id, recipientUsername, req.user.householdId);
+      const invitationCode = generateInvitationCode(req.user.id, req.user.username, req.user.householdId, username);
       const invitationLink = `${req.protocol}://${req.get('host')}/auth?invitation=${invitationCode}`;
-      
-      // Si se proporciona un correo electrónico, enviar invitación por email
-      let emailSent = false;
-      if (email || (invitedUser && invitedUser.email)) {
-        try {
-          const { sendFamilyInvitationEmail } = await import('./email-service');
-          emailSent = await sendFamilyInvitationEmail({
-            to: email || invitedUser.email,
-            inviterName: req.user.username,
-            invitationCode,
-          });
-        } catch (emailError) {
-          console.error('Error al enviar invitación por correo:', emailError);
-          // Continuamos con el proceso aunque falle el email
-        }
-      }
-      
-      // Crear mensaje para el cliente sobre estado del correo
-      let emailMessage = '';
-      if (email || (invitedUser && invitedUser.email)) {
-        if (emailSent) {
-          emailMessage = 'Se ha enviado una invitación por correo electrónico.';
-        } else {
-          emailMessage = 'No se pudo enviar la invitación por correo electrónico. Por favor, comparte el código manualmente.';
-        }
-      }
       
       res.status(201).json({ 
         code: invitationCode,
-        username: username || null,
-        email: email || (invitedUser ? invitedUser.email : null),
+        username: username,
         link: invitationLink,
-        emailSent,
-        message: emailMessage
+        message: "Invitación creada exitosamente"
       });
     } catch (error) {
       console.error("Error completo al generar invitación:", error);
