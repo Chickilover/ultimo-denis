@@ -1241,23 +1241,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Usuario no encontrado" });
       }
       
-      // Verificar si el usuario existe si se proporcionó un username o email
-      let invitedUser;
-      try {
-        if (username) {
-          invitedUser = await storage.getUserByUsername(username);
-        } else if (email) {
-          invitedUser = await storage.getUserByEmail(email);
-        }
-        
-        // Si no encontramos al usuario pero tenemos email, continuamos para enviar invitación por email
-        // Si no hay username ni email, generamos un código sin asociarlo a nadie específico
-        if (!invitedUser && !email && username) {
-          return res.status(404).json({ message: "Usuario no encontrado" });
-        }
-      } catch (err) {
-        console.error("Error al buscar usuario:", err);
-        return res.status(500).json({ message: "Error al buscar el usuario" });
+      // Verificar si el usuario existe
+      if (!username) {
+        return res.status(400).json({ message: "Se requiere un nombre de usuario" });
+      }
+
+      // Verificar si el usuario existe
+      const invitedUser = await storage.getUserByUsername(username);
+      if (!invitedUser) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
       }
       
       // Si encontramos al usuario, usamos su nombre de usuario, si no, usamos el email
