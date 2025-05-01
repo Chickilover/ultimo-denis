@@ -153,9 +153,19 @@ export function setupAuth(app: Express) {
         // Procesar la invitación después del login si es válida
         if (invitationResult && invitationResult.valid) {
           try {
-            // Agregar al usuario a la familia
+            // Agregar al usuario a la familia del invitador
             await storage.createFamilyMember({
-              userId: invitationResult.inviterUserId,
+              userId: invitationResult.inviterUserId, // ID del usuario que invita
+              name: user.name,
+              email: user.email,
+              relationship: "Familiar",
+              isActive: true,
+              canAccess: true
+            });
+
+            // También agregar un registro para el usuario invitado
+            await storage.createFamilyMember({
+              userId: user.id, // ID del nuevo usuario
               name: user.name,
               email: user.email,
               relationship: "Familiar",
