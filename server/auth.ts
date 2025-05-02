@@ -35,15 +35,16 @@ async function comparePasswords(supplied: string, stored: string) {
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "mi-hogar-financiero-secreto",
-    resave: false,
+    resave: true,
     saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      secure: false, // Deshabilitamos secure para desarrollo
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
       sameSite: "lax"
-    }
+    },
+    rolling: true
   };
 
   app.set("trust proxy", 1);
@@ -219,8 +220,9 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res, next) => {
-    req.logout((err) => {
+    req.session.destroy((err) => {
       if (err) return next(err);
+      res.clearCookie('connect.sid');
       res.sendStatus(200);
     });
   });
