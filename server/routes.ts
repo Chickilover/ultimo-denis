@@ -1427,7 +1427,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recipientUsername = email;
       }
       
-      // Generar código de invitación
+      // Asegurarnos de que el usuario tenga un hogar antes de crear la invitación
+      if (!req.user.householdId) {
+        return res.status(400).json({ 
+          message: "Debes tener un hogar antes de poder invitar a otros usuarios. Por favor, crea un hogar primero." 
+        });
+      }
+      
+      // Generar código de invitación con el householdId validado
       const invitationCode = generateInvitationCode(req.user.id, req.user.username, req.user.householdId, username);
       const invitationLink = `${req.protocol}://${req.get('host')}/auth?invitation=${invitationCode}`;
       
@@ -1511,10 +1518,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "El usuario que envió la invitación no existe" });
       }
       
-      // Añadir el usuario al mismo hogar que el invitador
-      if (inviter.householdId) {
-        await storage.updateUser(req.user.id, { householdId: inviter.householdId });
+      // Validar que el invitador tenga un hogar asignado
+      if (!inviter.householdId) {
+        return res.status(400).json({ 
+          message: "El usuario que envió la invitación no tiene un hogar asociado" 
+        });
       }
+      
+      // Añadir el usuario al mismo hogar que el invitador
+      await storage.updateUser(req.user.id, { householdId: inviter.householdId });
+      
+      // Registrar el cambio en el log para diagnóstico
+      console.log(`Usuario ${req.user.username} (ID: ${req.user.id}) añadido al hogar ${inviter.householdId}`);
       
       // Consumir el código de invitación y notificar al usuario invitador
       const acceptedByUser = {
