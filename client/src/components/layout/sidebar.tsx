@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { ExchangeRateDisplay } from "./exchange-rate-display";
+import { WebSocketStatus } from "@/components/websocket/connection-status";
 import { 
   HomeIcon, 
   CreditCardIcon, 

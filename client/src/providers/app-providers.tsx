@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CurrencyProvider } from "@/hooks/use-currency";
+import { AppProvider } from "./app-provider";
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -17,10 +18,12 @@ export function AppProviders({ children }: AppProvidersProps) {
       <ThemeProvider>
         <AuthProvider>
           <CurrencyProvider>
-            <TooltipProvider>
-              <Toaster />
-              {children}
-            </TooltipProvider>
+            <AppProvider>
+              <TooltipProvider>
+                <Toaster />
+                {children}
+              </TooltipProvider>
+            </AppProvider>
           </CurrencyProvider>
         </AuthProvider>
       </ThemeProvider>
