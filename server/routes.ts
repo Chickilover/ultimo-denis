@@ -1,5 +1,6 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
+import { setupWebSocketServer, WebSocketMessageType, notifyUser, notifyHousehold } from "./websocket";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { generateInvitationCode, validateInvitationCode, consumeInvitationCode, getActiveInvitationsForUser } from './invitation';
@@ -1435,5 +1436,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Configurar el servidor WebSocket
+  const wss = setupWebSocketServer(httpServer);
+  
   return httpServer;
 }
