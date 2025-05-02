@@ -470,7 +470,110 @@ export default function FamilyPage() {
         title="Mi Hogar"
         description="Administra los miembros de tu familia o grupo de convivencia"
         actions={
-          <div className="flex">
+          <div className="flex gap-2">
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Añadir Miembro</span>
+                  <span className="sm:hidden">Añadir</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Añadir Miembro Familiar</DialogTitle>
+                  <DialogDescription>
+                    Añade un miembro a tu familia. Los miembros pueden representar personas que no usan directamente la aplicación.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <Form {...addForm}>
+                  <form onSubmit={addForm.handleSubmit(onAddSubmit)} className="space-y-4 pt-4">
+                    <FormField
+                      control={addForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Nombre</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Juan Pérez" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={addForm.control}
+                      name="relationship"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Relación</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Esposo/a, Hijo/a, Padre, etc." 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={addForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Correo electrónico (opcional)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="email"
+                              placeholder="ejemplo@correo.com" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Opcional: Permite enviar notificaciones al miembro.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={addForm.control}
+                      name="canAccess"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              Tiene cuenta en la aplicación
+                            </FormLabel>
+                            <FormDescription>
+                              Marcar si este miembro usará la aplicación directamente.
+                            </FormDescription>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <DialogFooter>
+                      <Button type="submit" disabled={createMutation.isPending}>
+                        {createMutation.isPending ? "Guardando..." : "Guardar"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+            
             <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
