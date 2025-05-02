@@ -5,8 +5,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCurrency } from "@/hooks/use-currency";
 import { useTheme } from "@/hooks/use-theme";
 import { useProfileSettings } from "@/hooks/use-profile-settings";
+import { useApp } from "@/providers/app-provider";
 import { PWAInstall } from "@/lib/pwa-install";
 import { ExchangeRateDisplay } from "./exchange-rate-display";
+import { WebSocketStatus } from "@/components/websocket/connection-status";
 import { 
   MenuIcon, 
   BellIcon, 
@@ -50,6 +52,7 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
   const { theme, setTheme } = useTheme();
   const { defaultCurrency, setDefaultCurrency } = useCurrency();
   const { setActiveTab } = useProfileSettings();
+  const { isWebSocketConnected } = useApp();
   const [sheetOpen, setSheetOpen] = useState(false);
   
   // Función para navegar a la pestaña de perfil
@@ -123,6 +126,15 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
                   <div className="absolute w-40 h-40 bg-accent/30 rounded-full blur-3xl opacity-20 -top-16 -left-10"></div>
                   <SheetTitle className="text-white text-xl font-bold relative z-10">Nido Financiero</SheetTitle>
                 </SheetHeader>
+                <div className="px-4 py-2 mx-3 mt-4 bg-white/10 rounded-lg shadow-inner">
+                  <div className="flex justify-center mb-2">
+                    <ExchangeRateDisplay />
+                  </div>
+                  <div className="flex justify-center text-white/90">
+                    <WebSocketStatus />
+                  </div>
+                </div>
+                
                 <div className="mt-4 px-3">
                   <nav>
                     <ul className="space-y-2">
@@ -343,9 +355,14 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
           </div>
           
           <div className="flex items-center space-x-2">
-            {/* Mostrar el tipo de cambio en la barra superior */}
-            <div className="hidden sm:block mr-2">
-              <ExchangeRateDisplay />
+            {/* Mostrar el tipo de cambio y WebSocket en la barra superior */}
+            <div className="hidden sm:flex items-center mr-2 space-x-3">
+              <div>
+                <ExchangeRateDisplay />
+              </div>
+              <div>
+                <WebSocketStatus />
+              </div>
             </div>
             
             <div className="hidden sm:block">
