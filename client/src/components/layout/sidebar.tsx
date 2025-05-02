@@ -72,7 +72,7 @@ export function Sidebar({ className }: SidebarProps) {
           <ExchangeRateDisplay />
         </div>
         <div className="flex justify-center text-white/90">
-          <WebSocketStatus />
+          <WebSocketStatus compact={false} />
         </div>
       </div>
       

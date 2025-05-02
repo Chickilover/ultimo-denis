@@ -361,7 +361,7 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
                 <ExchangeRateDisplay />
               </div>
               <div>
-                <WebSocketStatus />
+                <WebSocketStatus compact={true} />
               </div>
             </div>
             
