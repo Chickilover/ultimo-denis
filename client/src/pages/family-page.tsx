@@ -1,6 +1,7 @@
 import { ShellWithoutTransaction } from "@/components/layout/shell-without-transaction";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge"; 
 import { 
   Card, 
   CardContent, 
@@ -44,6 +45,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useApp } from "@/providers/app-provider";
 import { 
   Tooltip,
   TooltipContent,
@@ -52,8 +54,6 @@ import {
 } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Edit, PlusCircle, Trash2, User, Users, Mail, Copy, Link as LinkIcon, CheckCircle, Clock, AlertCircle, Wallet } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -114,6 +114,7 @@ export default function FamilyPage() {
   const linkRef = useRef<HTMLInputElement>(null);
   const messageRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+  const { isWebSocketConnected, lastMessages } = useApp();
   
   // Obtener la lista de miembros familiares
   const { data: familyMembers, isLoading } = useQuery<FamilyMember[]>({
