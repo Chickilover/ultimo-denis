@@ -402,11 +402,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (transaction.transactionTypeId === 1) { // 1 = Ingreso
           await storage.updateUserBalance(req.user.id, amount, 0);
           console.log(`Actualizado balance personal con +${amount} por ingreso`);
+          
+          // Notificar al usuario de la actualización
+          notifyUser(req.user.id, {
+            type: WebSocketMessageType.BALANCE_UPDATE,
+            payload: {
+              personalBalance: amount,
+              source: 'income'
+            }
+          });
         }
         // 2. Si es un gasto personal, actualizar el balance personal
         else if (transaction.transactionTypeId === 2 && !transaction.isShared) { // 2 = Gasto personal
           await storage.updateUserBalance(req.user.id, -amount, 0);
           console.log(`Actualizado balance personal con -${amount} por gasto personal`);
+          
+          // Notificar al usuario de la actualización
+          notifyUser(req.user.id, {
+            type: WebSocketMessageType.BALANCE_UPDATE,
+            payload: {
+              personalBalance: -amount,
+              source: 'personal_expense'
+            }
+          });
         }
         // 3. Si es un gasto compartido (de hogar), actualizar el balance familiar
         else if (transaction.transactionTypeId === 2 && transaction.isShared) { // 2 = Gasto de hogar
@@ -414,6 +432,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // pero también debe descontarse del balance personal
           await storage.updateUserBalance(req.user.id, -amount, amount);
           console.log(`Actualizado balance personal con -${amount} y familiar con +${amount} por gasto compartido`);
+          
+          // Notificar al usuario de la actualización de balance personal
+          notifyUser(req.user.id, {
+            type: WebSocketMessageType.BALANCE_UPDATE,
+            payload: {
+              personalBalance: -amount,
+              familyBalance: amount,
+              source: 'household_expense'
+            }
+          });
+          
+          // Notificar a todos los miembros del hogar sobre el nuevo gasto compartido
+          if (req.user.householdId) {
+            notifyHousehold(req.user.householdId, {
+              type: WebSocketMessageType.TRANSACTION_CREATED,
+              payload: {
+                id: transaction.id,
+                description: transaction.description,
+                amount: transaction.amount,
+                isShared: true,
+                date: transaction.date,
+                createdBy: req.user.username
+              }
+            }, req.user.id); // Excluir al remitente
+          }
         }
       }
       
@@ -481,6 +524,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (difference !== 0) {
             await storage.updateUserBalance(req.user.id, difference, 0);
             console.log(`Actualizado balance personal con ${difference > 0 ? '+' : ''}${difference} por cambio en ingreso`);
+            
+            // Notificar al usuario de la actualización
+            notifyUser(req.user.id, {
+              type: WebSocketMessageType.BALANCE_UPDATE,
+              payload: {
+                personalBalance: difference,
+                source: 'income_update'
+              }
+            });
           }
         }
         // 2. Para gastos, hay varios escenarios
@@ -490,12 +542,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Quitar todo el monto anterior del balance personal
             await storage.updateUserBalance(req.user.id, 0, newAmount); // Agregar al balance familiar
             console.log(`Actualizado balance familiar con +${newAmount} al convertir a gasto compartido`);
+            
+            // Notificar al usuario de la actualización
+            notifyUser(req.user.id, {
+              type: WebSocketMessageType.BALANCE_UPDATE,
+              payload: {
+                familyBalance: newAmount,
+                source: 'expense_converted_to_shared'
+              }
+            });
+            
+            // Notificar a todos los miembros del hogar sobre el nuevo gasto compartido
+            if (req.user.householdId) {
+              notifyHousehold(req.user.householdId, {
+                type: WebSocketMessageType.TRANSACTION_UPDATED,
+                payload: {
+                  id: updatedTransaction.id,
+                  description: updatedTransaction.description,
+                  amount: updatedTransaction.amount,
+                  isShared: true,
+                  date: updatedTransaction.date,
+                  updatedBy: req.user.username
+                }
+              }, req.user.id); // Excluir al remitente
+            }
           }
           // 2.2 Cambio de gasto compartido a gasto personal
           else if (transaction.isShared && !updatedTransaction.isShared) {
             // Quitar el monto del balance familiar
             await storage.updateUserBalance(req.user.id, 0, -oldAmount);
             console.log(`Actualizado balance familiar con -${oldAmount} al convertir a gasto personal`);
+            
+            // Notificar al usuario de la actualización
+            notifyUser(req.user.id, {
+              type: WebSocketMessageType.BALANCE_UPDATE,
+              payload: {
+                familyBalance: -oldAmount,
+                source: 'shared_expense_converted_to_personal'
+              }
+            });
+            
+            // Notificar a todos los miembros del hogar sobre la eliminación del gasto compartido
+            if (req.user.householdId) {
+              notifyHousehold(req.user.householdId, {
+                type: WebSocketMessageType.TRANSACTION_DELETED,
+                payload: {
+                  id: updatedTransaction.id,
+                  description: updatedTransaction.description,
+                  deletedBy: req.user.username
+                }
+              }, req.user.id); // Excluir al remitente
+            }
           }
           // 2.3 Sigue siendo gasto compartido pero cambió el monto
           else if (transaction.isShared && updatedTransaction.isShared && oldAmount !== newAmount) {
@@ -503,6 +600,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const difference = newAmount - oldAmount;
             await storage.updateUserBalance(req.user.id, 0, difference);
             console.log(`Actualizado balance familiar con ${difference > 0 ? '+' : ''}${difference} por cambio en gasto compartido`);
+            
+            // Notificar al usuario de la actualización
+            notifyUser(req.user.id, {
+              type: WebSocketMessageType.BALANCE_UPDATE,
+              payload: {
+                familyBalance: difference,
+                source: 'shared_expense_update'
+              }
+            });
+            
+            // Notificar a todos los miembros del hogar sobre la actualización del gasto compartido
+            if (req.user.householdId) {
+              notifyHousehold(req.user.householdId, {
+                type: WebSocketMessageType.TRANSACTION_UPDATED,
+                payload: {
+                  id: updatedTransaction.id,
+                  description: updatedTransaction.description,
+                  amount: updatedTransaction.amount,
+                  oldAmount: oldAmount,
+                  isShared: true,
+                  date: updatedTransaction.date,
+                  updatedBy: req.user.username
+                }
+              }, req.user.id); // Excluir al remitente
+            }
           }
           // 2.4 Sigue siendo gasto personal pero cambió el monto
           else if (!transaction.isShared && !updatedTransaction.isShared && oldAmount !== newAmount) {
@@ -510,6 +632,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const difference = newAmount - oldAmount;
             await storage.updateUserBalance(req.user.id, -difference, 0);
             console.log(`Actualizado balance personal con ${difference > 0 ? '-' : '+'}${Math.abs(difference)} por cambio en gasto personal`);
+            
+            // Notificar al usuario de la actualización
+            notifyUser(req.user.id, {
+              type: WebSocketMessageType.BALANCE_UPDATE,
+              payload: {
+                personalBalance: -difference,
+                source: 'personal_expense_update'
+              }
+            });
           }
         }
       }
@@ -538,16 +669,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (transaction.transactionTypeId === 1) {
           await storage.updateUserBalance(req.user.id, -amount, 0);
           console.log(`Actualizado balance personal con -${amount} al eliminar ingreso`);
+          
+          // Notificar al usuario de la actualización
+          notifyUser(req.user.id, {
+            type: WebSocketMessageType.BALANCE_UPDATE,
+            payload: {
+              personalBalance: -amount,
+              source: 'income_deleted'
+            }
+          });
         }
         // 2. Si era un gasto personal, sumar al balance personal
         else if (transaction.transactionTypeId === 2 && !transaction.isShared) {
           await storage.updateUserBalance(req.user.id, amount, 0);
           console.log(`Actualizado balance personal con +${amount} al eliminar gasto personal`);
+          
+          // Notificar al usuario de la actualización
+          notifyUser(req.user.id, {
+            type: WebSocketMessageType.BALANCE_UPDATE,
+            payload: {
+              personalBalance: amount,
+              source: 'personal_expense_deleted'
+            }
+          });
         }
         // 3. Si era un gasto compartido, restar del balance familiar y sumar al personal
         else if (transaction.transactionTypeId === 2 && transaction.isShared) {
           await storage.updateUserBalance(req.user.id, amount, -amount);
           console.log(`Actualizado balance personal con +${amount} y familiar con -${amount} al eliminar gasto compartido`);
+          
+          // Notificar al usuario de la actualización
+          notifyUser(req.user.id, {
+            type: WebSocketMessageType.BALANCE_UPDATE,
+            payload: {
+              personalBalance: amount,
+              familyBalance: -amount,
+              source: 'shared_expense_deleted'
+            }
+          });
+          
+          // Notificar a todos los miembros del hogar sobre la eliminación del gasto compartido
+          if (req.user.householdId) {
+            notifyHousehold(req.user.householdId, {
+              type: WebSocketMessageType.TRANSACTION_DELETED,
+              payload: {
+                id: transaction.id,
+                description: transaction.description,
+                amount: transaction.amount,
+                deletedBy: req.user.username
+              }
+            }, req.user.id); // Excluir al remitente
+          }
         }
       }
       
