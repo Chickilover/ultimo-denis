@@ -46,6 +46,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApp } from "@/providers/app-provider";
+import { WebSocketMessageType } from "@/hooks/use-websocket";
 import { 
   Tooltip,
   TooltipContent,
@@ -534,6 +535,42 @@ export default function FamilyPage() {
         }
       />
 
+      {/* Notificaciones de WebSocket para invitaciones */}
+      {isWebSocketConnected && lastMessages.some(msg => 
+        msg.type === WebSocketMessageType.INVITATION_CREATED || msg.type === WebSocketMessageType.INVITATION_ACCEPTED
+      ) && (
+        <div className="mb-6">
+          <Alert variant="default" className="bg-primary/10 border-primary/30">
+            <AlertCircle className="h-5 w-5 text-primary" />
+            <AlertTitle>Notificaciones en tiempo real</AlertTitle>
+            <AlertDescription>
+              <div className="mt-2 space-y-2">
+                {lastMessages.filter(msg => msg.type === WebSocketMessageType.INVITATION_CREATED).map((msg, i) => (
+                  <div key={`invite-created-${i}`} className="flex items-center text-sm">
+                    <Badge variant="secondary" className="mr-2 bg-primary/20 text-primary hover:bg-primary/30">Nueva</Badge>
+                    <span>Has recibido una invitación de <strong>{msg.payload?.inviter?.username}</strong></span>
+                  </div>
+                ))}
+                {lastMessages.filter(msg => msg.type === WebSocketMessageType.INVITATION_ACCEPTED).map((msg, i) => (
+                  <div key={`invite-accepted-${i}`} className="flex items-center text-sm">
+                    <Badge variant="secondary" className="mr-2 bg-green-500/20 text-green-700 hover:bg-green-500/30">Aceptada</Badge>
+                    <span><strong>{msg.payload?.username}</strong> ha aceptado tu invitación</span>
+                  </div>
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-3"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/invitations'] })}
+              >
+                Refrescar datos
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+      
       <Tabs defaultValue="members" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="members">

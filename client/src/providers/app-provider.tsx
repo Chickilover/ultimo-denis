@@ -4,8 +4,15 @@ import { useWebSocket, WebSocketMessageType } from "@/hooks/use-websocket";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
+type WebSocketMessage = {
+  type: string;
+  payload: any;
+  timestamp?: number;
+};
+
 type AppContextType = {
   isWebSocketConnected: boolean;
+  lastMessages: WebSocketMessage[];
 };
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -15,6 +22,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { isConnected, registerMessageHandler } = useWebSocket();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [lastMessages, setLastMessages] = useState<WebSocketMessage[]>([]);
 
   // Registrar manejadores para diferentes tipos de mensajes WebSocket
   useEffect(() => {
@@ -91,6 +99,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // Invalidar la consulta de invitaciones para que se recargue
         queryClient.invalidateQueries({ queryKey: ["/api/invitations"] });
         
+        // Añadir el mensaje a la lista de últimos mensajes
+        setLastMessages(prev => [
+          ...prev.filter(m => m.type !== WebSocketMessageType.INVITATION_CREATED || 
+            m.payload?.inviter?.userId !== payload?.inviter?.userId),
+          { 
+            type: WebSocketMessageType.INVITATION_CREATED, 
+            payload,
+            timestamp: Date.now() 
+          }
+        ].slice(-10)); // Mantener solo los últimos 10 mensajes
+        
         toast({
           title: "Nueva invitación",
           description: "Has recibido una invitación para unirte a un hogar",
@@ -107,6 +126,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         queryClient.invalidateQueries({ queryKey: ["/api/invitations"] });
         // También invalidar la lista de miembros familiares
         queryClient.invalidateQueries({ queryKey: ["/api/family-members"] });
+        
+        // Añadir el mensaje a la lista de últimos mensajes
+        setLastMessages(prev => [
+          ...prev.filter(m => m.type !== WebSocketMessageType.INVITATION_ACCEPTED || 
+            m.payload?.userId !== payload?.userId),
+          { 
+            type: WebSocketMessageType.INVITATION_ACCEPTED, 
+            payload,
+            timestamp: Date.now() 
+          }
+        ].slice(-10)); // Mantener solo los últimos 10 mensajes
         
         toast({
           title: "Invitación aceptada",
@@ -129,6 +159,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value: AppContextType = {
     isWebSocketConnected: isConnected,
+    lastMessages: lastMessages
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
