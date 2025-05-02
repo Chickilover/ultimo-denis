@@ -163,8 +163,15 @@ export default function AuthPage() {
           description: "Has sido añadido al hogar correctamente.",
           variant: "default",
         });
-        // Actualizar el usuario e ir a la página principal
-        window.location.href = "/";
+        
+        // Forzar una recarga completa de la sesión de usuario
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        
+        // Esperar un momento para que se complete la invalidación del caché
+        setTimeout(() => {
+          // Redireccionar a la página de familia para ver los miembros
+          window.location.href = "/family";
+        }, 500);
       } else {
         toast({
           title: "Error",

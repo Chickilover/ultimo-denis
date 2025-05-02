@@ -1516,10 +1516,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUser(req.user.id, { householdId: inviter.householdId });
       }
       
-      // Consumir el código de invitación
-      consumeInvitationCode(code);
+      // Consumir el código de invitación y notificar al usuario invitador
+      const acceptedByUser = {
+        id: req.user.id,
+        username: req.user.username
+      };
+      consumeInvitationCode(code, acceptedByUser, true);
       
-      res.json({ success: true });
+      // Actualizar el usuario en la sesión (regenerar sesión)
+      const updatedUser = await storage.getUser(req.user.id);
+      if (updatedUser) {
+        // Regenerar la sesión para reflejar los cambios
+        req.login(updatedUser, (err) => {
+          if (err) {
+            console.error("Error al regenerar la sesión tras aceptar invitación:", err);
+          }
+          res.json({ success: true });
+        });
+      } else {
+        res.json({ success: true });
+      }
     } catch (error) {
       res.status(500).json({ message: "Error al aceptar la invitación" });
     }

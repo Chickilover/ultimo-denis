@@ -22,7 +22,8 @@ import {
   PiggyBankIcon,
   XIcon,
   LogOutIcon,
-  Loader2
+  Loader2,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -247,6 +248,22 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
                           >
                             <BarChart3Icon className="h-5 w-5" />
                             <span className="ml-3">Reportes</span>
+                          </a>
+                        </Link>
+                      </li>
+                      <li>
+                        <Link href="/family">
+                          <a
+                            className={cn(
+                              "flex items-center px-3 py-2.5 text-sm font-medium rounded-md transition-colors",
+                              location === "/family"
+                                ? "bg-white/20 text-white"
+                                : "text-sidebar-foreground/80 hover:bg-white/10 hover:text-white"
+                            )}
+                            onClick={() => setSheetOpen(false)}
+                          >
+                            <Users className="h-5 w-5" />
+                            <span className="ml-3">Mi Hogar</span>
                           </a>
                         </Link>
                       </li>
