@@ -78,9 +78,19 @@ const familyMemberSchema = z.object({
   avatarUrl: z.string().nullable().optional(),
 });
 
+// Esquema para el formulario de hogar
+const householdSchema = z.object({
+  name: z.string().min(1, "El nombre del hogar es obligatorio"),
+});
+
 // Esquema para el formulario de invitación
 const invitationSchema = z.object({
   username: z.string().min(1, "El nombre de usuario es obligatorio"),
+});
+
+// Esquema para unirse a un hogar usando código
+const joinHouseholdSchema = z.object({
+  code: z.string().min(1, "El código de invitación es obligatorio"),
 });
 
 type FamilyMember = {
@@ -107,8 +117,10 @@ export default function FamilyPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [isCreateHouseholdDialogOpen, setIsCreateHouseholdDialogOpen] = useState(false);
+  const [isJoinHouseholdDialogOpen, setIsJoinHouseholdDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMember | null>(null);
-  const [activeTab, setActiveTab] = useState("members");
+  const [activeTab, setActiveTab] = useState("household");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [invitationCode, setInvitationCode] = useState<string | null>(null);
   const [invitationLink, setInvitationLink] = useState<string | null>(null);
@@ -117,6 +129,7 @@ export default function FamilyPage() {
   const messageRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
   const { isWebSocketConnected, lastMessages } = useApp();
+  const { user } = useAuth();
   
   // Obtener la lista de miembros familiares
   const { data: familyMembers, isLoading } = useQuery<FamilyMember[]>({
@@ -256,6 +269,77 @@ export default function FamilyPage() {
     },
   });
   
+  // Form para crear hogar
+  const createHouseholdForm = useForm<z.infer<typeof householdSchema>>({
+    resolver: zodResolver(householdSchema),
+    defaultValues: {
+      name: "",
+    },
+  });
+  
+  // Form para unirse a un hogar con código
+  const joinHouseholdForm = useForm<z.infer<typeof joinHouseholdSchema>>({
+    resolver: zodResolver(joinHouseholdSchema),
+    defaultValues: {
+      code: "",
+    },
+  });
+  
+  // Mutation para crear hogar
+  const createHouseholdMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof householdSchema>) => {
+      const response = await apiRequest('POST', '/api/households', data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Error al crear el hogar');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      toast({
+        title: "Hogar creado",
+        description: "Se ha creado tu hogar correctamente."
+      });
+      setIsCreateHouseholdDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Mutation para unirse a un hogar
+  const joinHouseholdMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof joinHouseholdSchema>) => {
+      const response = await apiRequest('POST', '/api/invitations/accept', data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Error al unirse al hogar');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/family-members'] });
+      toast({
+        title: "Te has unido a un hogar",
+        description: "Ahora formas parte de este hogar."
+      });
+      setIsJoinHouseholdDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+  
   // Mutation para crear invitación
   const createInvitationMutation = useMutation({
     mutationFn: async (data: z.infer<typeof invitationSchema>) => {
@@ -340,6 +424,16 @@ export default function FamilyPage() {
   // Función para enviar el formulario de invitación
   const onInviteSubmit = (data: z.infer<typeof invitationSchema>) => {
     createInvitationMutation.mutate(data);
+  };
+  
+  // Función para crear un hogar
+  const onCreateHouseholdSubmit = (data: z.infer<typeof householdSchema>) => {
+    createHouseholdMutation.mutate(data);
+  };
+  
+  // Función para unirse a un hogar con código
+  const onJoinHouseholdSubmit = (data: z.infer<typeof joinHouseholdSchema>) => {
+    joinHouseholdMutation.mutate(data);
   };
   
   // Función para generar mensaje de texto para invitación
@@ -572,8 +666,13 @@ export default function FamilyPage() {
         </div>
       )}
       
-      <Tabs defaultValue="members" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="household" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="household">
+            <Users className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Mi Hogar</span>
+            <span className="sm:hidden">Hogar</span>
+          </TabsTrigger>
           <TabsTrigger value="members">
             <User className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Miembros</span>
@@ -590,6 +689,213 @@ export default function FamilyPage() {
             <span className="sm:hidden">Balance</span>
           </TabsTrigger>
         </TabsList>
+        
+        <TabsContent value="household" className="space-y-4">
+          {user?.householdId ? (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Mi Hogar</CardTitle>
+                  <CardDescription>Información sobre tu hogar y opciones para gestionarlo</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold">Hogar #{user.householdId}</h3>
+                        <p className="text-sm text-muted-foreground">Miembro activo</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-3">
+                      <Button
+                        onClick={() => setIsInviteDialogOpen(true)}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <Mail className="h-4 w-4" />
+                        Invitar miembros
+                      </Button>
+                      
+                      <Button
+                        onClick={() => setActiveTab("members")}
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <User className="h-4 w-4" />
+                        Ver miembros
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Invitaciones</CardTitle>
+                    <CardDescription>Gestiona las invitaciones a tu hogar</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    {isLoadingInvitations ? (
+                      <div className="animate-pulse h-16 bg-muted rounded-md" />
+                    ) : invitations && invitations.length > 0 ? (
+                      <div className="text-sm">
+                        Tienes {invitations.length} invitación(es) activa(s)
+                        <Button 
+                          variant="link" 
+                          className="p-0 h-auto text-sm" 
+                          onClick={() => setActiveTab("invitations")}
+                        >
+                          Ver detalles
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-sm">No tienes invitaciones activas</div>
+                    )}
+                  </CardContent>
+                  <CardFooter>
+                    <Button variant="outline" className="w-full" onClick={() => setIsInviteDialogOpen(true)}>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Enviar invitación
+                    </Button>
+                  </CardFooter>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Balances</CardTitle>
+                    <CardDescription>Revisa los balances de tu familia</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button 
+                      variant="outline" 
+                      className="w-full" 
+                      onClick={() => setActiveTab("balance")}
+                    >
+                      <Wallet className="mr-2 h-4 w-4" />
+                      Ver balances
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 px-4 border rounded-lg space-y-4">
+              <div className="rounded-full bg-muted p-4 mb-2">
+                <Users className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-medium text-center">Aún no tienes un hogar</h3>
+              <p className="text-center text-muted-foreground max-w-md">
+                Crea un hogar para gestionar los miembros de tu familia y compartir gastos.
+              </p>
+              <div className="flex flex-wrap gap-3 justify-center mt-2">
+                <Dialog open={isCreateHouseholdDialogOpen} onOpenChange={setIsCreateHouseholdDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Users className="mr-2 h-4 w-4" />
+                      Crear un hogar
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Crear un Hogar</DialogTitle>
+                      <DialogDescription>
+                        Crea tu propio hogar para invitar a miembros de tu familia
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <Form {...createHouseholdForm}>
+                      <form onSubmit={createHouseholdForm.handleSubmit(onCreateHouseholdSubmit)} className="space-y-4 pt-4">
+                        <FormField
+                          control={createHouseholdForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Nombre del hogar</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Mi hogar" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Elige un nombre para identificar tu hogar
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <DialogFooter>
+                          <Button
+                            type="submit"
+                            disabled={createHouseholdMutation.isPending}
+                          >
+                            {createHouseholdMutation.isPending ? "Creando..." : "Crear hogar"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+                
+                <Dialog open={isJoinHouseholdDialogOpen} onOpenChange={setIsJoinHouseholdDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <LinkIcon className="mr-2 h-4 w-4" />
+                      Unirse con código
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Unirse a un Hogar</DialogTitle>
+                      <DialogDescription>
+                        Ingresa el código de invitación que recibiste
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <Form {...joinHouseholdForm}>
+                      <form onSubmit={joinHouseholdForm.handleSubmit(onJoinHouseholdSubmit)} className="space-y-4 pt-4">
+                        <FormField
+                          control={joinHouseholdForm.control}
+                          name="code"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Código de invitación</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Ingresa el código" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                El código debe ser provisto por un miembro del hogar
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <DialogFooter>
+                          <Button
+                            type="submit"
+                            disabled={joinHouseholdMutation.isPending}
+                          >
+                            {joinHouseholdMutation.isPending ? "Uniéndose..." : "Unirse al hogar"}
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+          )}
+        </TabsContent>
         
         <TabsContent value="members" className="space-y-4">
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
