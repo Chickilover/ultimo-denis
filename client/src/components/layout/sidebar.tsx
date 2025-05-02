@@ -66,9 +66,14 @@ export function Sidebar({ className }: SidebarProps) {
         <img src="/images/logo.png" alt="Nido Financiero" className="h-16 w-auto relative z-10 drop-shadow-md" />
       </div>
       
-      {/* Tipo de cambio */}
-      <div className="px-4 py-2 mx-3 mb-4 bg-white/10 rounded-lg shadow-inner flex justify-center">
-        <ExchangeRateDisplay />
+      {/* Tipo de cambio y estado de conexión */}
+      <div className="px-4 py-2 mx-3 mb-4 bg-white/10 rounded-lg shadow-inner">
+        <div className="flex justify-center mb-2">
+          <ExchangeRateDisplay />
+        </div>
+        <div className="flex justify-center text-white/90">
+          <WebSocketStatus />
+        </div>
       </div>
       
       {/* Navegación Principal con estilos mejorados */}
