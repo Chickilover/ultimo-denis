@@ -1,5 +1,10 @@
 import { randomBytes } from 'crypto';
 import { storage } from './storage';
+import { notifyUser } from './websocket';
+
+// Constante para el tipo de mensaje WebSocket
+const INVITATION_CREATED = 'INVITATION_CREATED';
+const INVITATION_ACCEPTED = 'INVITATION_ACCEPTED';
 
 // Almacén en memoria para invitaciones activas
 // clave: código de invitación, valor: { userId, expires, householdId, username, invitedUsername }
