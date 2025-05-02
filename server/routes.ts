@@ -18,8 +18,10 @@ import {
   insertRecurringTransactionSchema,
   insertFamilyMemberSchema,
   insertBalanceTransferSchema,
-  users
+  users,
+  households
 } from "@shared/schema";
+import { db } from "./db";
 import { seedDatabase } from "./seed";
 import multer from "multer";
 import path from "path";
@@ -1399,6 +1401,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.sendStatus(204);
     } catch (error) {
       res.status(500).json({ message: "Error al eliminar el miembro familiar" });
+    }
+  });
+  
+  // Crear un hogar
+  app.post("/api/households", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { name } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Se requiere un nombre para el hogar" });
+      }
+      
+      // Verificar si el usuario ya tiene un hogar
+      if (req.user.householdId) {
+        return res.status(400).json({ 
+          message: "Ya perteneces a un hogar. Debes salir de tu hogar actual antes de crear uno nuevo." 
+        });
+      }
+      
+      // Crear un nuevo hogar
+      const household = await db.insert(households)
+        .values({
+          name: name,
+          createdByUserId: req.user.id,
+        })
+        .returning();
+      
+      // Asignar el usuario al nuevo hogar
+      await storage.updateUser(req.user.id, { householdId: household[0].id });
+      
+      // Actualizar la sesión del usuario
+      const updatedUser = await storage.getUser(req.user.id);
+      if (updatedUser) {
+        req.login(updatedUser, (err) => {
+          if (err) {
+            console.error("Error al actualizar la sesión tras crear hogar:", err);
+          }
+        });
+      }
+      
+      res.status(201).json(household[0]);
+    } catch (error) {
+      console.error("Error al crear hogar:", error);
+      res.status(500).json({ message: "Error al crear el hogar" });
     }
   });
   

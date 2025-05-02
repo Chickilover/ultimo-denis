@@ -47,6 +47,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApp } from "@/providers/app-provider";
 import { WebSocketMessageType } from "@/hooks/use-websocket";
+import { useAuth } from "@/hooks/use-auth";
 import { 
   Tooltip,
   TooltipContent,
