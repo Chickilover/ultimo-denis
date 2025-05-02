@@ -12,7 +12,8 @@ export enum WebSocketMessageType {
   TRANSACTION_UPDATED = 'TRANSACTION_UPDATED',
   TRANSACTION_DELETED = 'TRANSACTION_DELETED',
   INVITATION_CREATED = 'INVITATION_CREATED',
-  INVITATION_ACCEPTED = 'INVITATION_ACCEPTED'
+  INVITATION_ACCEPTED = 'INVITATION_ACCEPTED',
+  CONNECTION_ESTABLISHED = 'CONNECTION_ESTABLISHED'
 }
 
 // Interfaz para los mensajes de WebSocket
@@ -49,7 +50,7 @@ export function setupWebSocketServer(server: Server) {
       
       // Enviar mensaje de bienvenida
       ws.send(JSON.stringify({
-        type: 'CONNECTION_ESTABLISHED',
+        type: WebSocketMessageType.CONNECTION_ESTABLISHED,
         payload: { message: 'Conectado exitosamente al servidor de Nido Financiero' }
       }));
       
