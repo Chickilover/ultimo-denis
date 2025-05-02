@@ -464,6 +464,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactionData = req.body;
       const updatedTransaction = await storage.updateTransaction(parseInt(req.params.id), transactionData);
       
+      if (!updatedTransaction) {
+        return res.status(404).json({ message: "Error al actualizar la transacción" });
+      }
+      
       // Convertir ambos montos a números para los cálculos
       const oldAmount = Number(transaction.amount);
       const newAmount = Number(updatedTransaction.amount);
@@ -999,9 +1003,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedSettings = await storage.updateSettings(req.user.id, settingsData);
       console.log("Configuración actualizada:", updatedSettings);
       res.json(updatedSettings);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al actualizar configuración:", error);
-      res.status(400).json({ message: "Datos de configuración inválidos", error: error.message });
+      res.status(400).json({ message: "Datos de configuración inválidos", error: error.message || 'Error desconocido' });
     }
   });
 
@@ -1090,9 +1094,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Avatar actualizado correctamente", 
         avatar: relativePath 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al subir avatar:', error);
-      res.status(500).json({ message: "Error al subir el avatar", error: error.message });
+      res.status(500).json({ message: "Error al subir el avatar", error: error.message || 'Error desconocido' });
     }
   });
 
