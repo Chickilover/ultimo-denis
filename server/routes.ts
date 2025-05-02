@@ -1229,25 +1229,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/invitations", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const { username } = req.body;
+      const { username, email } = req.body;
       
-      if (!username) {
-        return res.status(400).json({ message: "Se requiere un nombre de usuario" });
+      if (!username && !email) {
+        return res.status(400).json({ message: "Se requiere un nombre de usuario o email" });
       }
 
-      // Verificar si el usuario existe
-      const invitedUser = await storage.getUserByUsername(username);
-      if (!invitedUser) {
-        return res.status(404).json({ message: "Usuario no encontrado" });
-      }
+      // Verificar si el usuario existe si se proporcionó un nombre de usuario
+      let invitedUser = null;
+      let recipientUsername = null;
       
-      // Verificar si el usuario existe
-      if (!username) {
-        return res.status(400).json({ message: "Se requiere un nombre de usuario" });
+      if (username) {
+        invitedUser = await storage.getUserByUsername(username);
+        if (!invitedUser) {
+          return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+        recipientUsername = invitedUser.username;
+      } else {
+        // Si no hay username pero hay email, usamos el email como recipiente
+        recipientUsername = email;
       }
-      
-      // Si encontramos al usuario, usamos su nombre de usuario, si no, usamos el email
-      const recipientUsername = invitedUser ? invitedUser.username : email;
       
       // Generar código de invitación
       const invitationCode = generateInvitationCode(req.user.id, req.user.username, req.user.householdId, username);
