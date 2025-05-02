@@ -103,6 +103,16 @@ export function MobileNav({ onOpenTransactionForm }: MobileNavProps) {
       borderColor: "border-emerald-400",
       shadow: "shadow-emerald-500/30"
     },
+    { 
+      path: "/family", 
+      label: "Hogar", 
+      icon: <Users className="h-5 w-5" />,
+      activeColor: "bg-gradient-to-br from-pink-400 to-pink-600/40",
+      iconActiveColor: "bg-gradient-to-br from-pink-500 to-pink-700",
+      iconColor: "text-white",
+      borderColor: "border-pink-400",
+      shadow: "shadow-pink-500/30"
+    },
   ];
 
   const handleLogout = () => {
