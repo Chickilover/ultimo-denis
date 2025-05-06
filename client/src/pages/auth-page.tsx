@@ -26,7 +26,7 @@ import {
   CheckCircle 
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Alert, 
   AlertTitle, 
@@ -73,7 +73,7 @@ type InvitationFormValues = z.infer<typeof invitationSchema>;
 
 export default function AuthPage() {
   const [, navigate] = useLocation();
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user, loginMutation, registerMutation, isReplitEnvironment, loginWithReplit } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("login");
   const [showForgotPassword, setShowForgotPassword] = useState<boolean>(false);
   const [showResetPassword, setShowResetPassword] = useState<boolean>(false);
@@ -724,6 +724,38 @@ export default function AuthPage() {
                       </Button>
                     </form>
                   </Form>
+                  
+                  {/* Botón de inicio de sesión con Replit (sólo visible en entorno Replit) */}
+                  {isReplitEnvironment && (
+                    <div className="mt-6">
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-gray-300 dark:border-gray-600" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-white dark:bg-gray-800 px-2 text-gray-500 dark:text-gray-400">
+                            O continúa con
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        className="w-full mt-4 flex items-center justify-center"
+                        onClick={loginWithReplit}
+                      >
+                        <svg 
+                          className="mr-2 h-4 w-4" 
+                          fill="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12s12-5.373 12-12S18.627 0 12 0zm0 4.5a7.5 7.5 0 1 1 0 15a7.5 7.5 0 0 1 0-15z"/>
+                        </svg>
+                        Iniciar sesión con Replit
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter className="flex flex-col space-y-4">
                   <div className="text-sm text-center text-gray-500 dark:text-gray-400">
