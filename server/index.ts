@@ -1,10 +1,57 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import cors from "cors";
 
 const app = express();
+
+// Configuración de CORS para Replit
+const corsOptions = {
+  // Permitir el origen de la aplicación (desarrollo y producción)
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    const validOrigins = [];
+    
+    // En desarrollo, permitir localhost y la URL de Replit
+    if (process.env.NODE_ENV !== 'production') {
+      validOrigins.push('http://localhost:5000', 'http://localhost:3000');
+    }
+    
+    // En Replit, permitir la URL del dominio
+    if (process.env.REPLIT_DOMAINS) {
+      const domains = process.env.REPLIT_DOMAINS.split(',');
+      domains.forEach(domain => {
+        validOrigins.push(`https://${domain}`);
+      });
+    }
+    
+    // Si no hay origen (petición desde el mismo origen) o es un origen válido
+    if (!origin || validOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Bloqueado por CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  maxAge: 86400 // 24 horas
+};
+
+// Aplicar configuración CORS
+app.use(cors(corsOptions));
+
+// Middleware para analizar JSON y URL-encoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Agregar cabeceras de seguridad
+app.use((req, res, next) => {
+  // Prevenir MIME sniffing
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  // Prevenir ataques XSS
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

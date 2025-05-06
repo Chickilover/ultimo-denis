@@ -79,83 +79,86 @@ export function useWebSocket() {
     
     // Crear conexión WebSocket con manejo de errores
     let socket: WebSocket;
-    try {
-      socket = new WebSocket(wsUrl);
-      socketRef.current = socket;
-    } catch (error) {
-      console.error('Error al crear conexión WebSocket:', error);
-      toast({
-        title: 'Error de conexión',
-        description: 'No se pudo establecer la conexión en tiempo real',
-        variant: 'destructive'
-      });
-      return; // Exit early if we couldn't create the socket
-    }
-
-    socket.onopen = () => {
-      console.log('Conexión WebSocket establecida');
-      setIsConnected(true);
-      setReconnectAttempt(0);
-    };
-
-    socket.onmessage = (event) => {
+    
+    const connectWebSocket = () => {
       try {
-        const message: WebSocketMessage = JSON.parse(event.data);
-        console.log('Mensaje WebSocket recibido:', message);
-
-        // Si es un mensaje de conexión establecida, mostrar toast
-        if (message.type === WebSocketMessageType.CONNECTION_ESTABLISHED) {
-          toast({
-            title: 'Conexión establecida',
-            description: 'Estás conectado para actualizaciones en tiempo real',
-            duration: 3000
-          });
-        }
-
-        // Ejecutar los manejadores registrados para este tipo de mensaje
-        const handlers = messageHandlersRef.current.get(message.type);
-        if (handlers && handlers.length > 0) {
-          handlers.forEach((handler) => handler(message.payload));
-        }
+        socket = new WebSocket(wsUrl);
+        socketRef.current = socket;
+        
+        socket.onopen = () => {
+          console.log('Conexión WebSocket establecida');
+          setIsConnected(true);
+          setReconnectAttempt(0);
+        };
+        
+        socket.onmessage = (event: MessageEvent) => {
+          try {
+            const message: WebSocketMessage = JSON.parse(event.data);
+            console.log('Mensaje WebSocket recibido:', message);
+    
+            // Si es un mensaje de conexión establecida, mostrar toast
+            if (message.type === WebSocketMessageType.CONNECTION_ESTABLISHED) {
+              toast({
+                title: 'Conexión establecida',
+                description: 'Estás conectado para actualizaciones en tiempo real',
+                duration: 3000
+              });
+            }
+    
+            // Ejecutar los manejadores registrados para este tipo de mensaje
+            const handlers = messageHandlersRef.current.get(message.type);
+            if (handlers && handlers.length > 0) {
+              handlers.forEach((handler) => handler(message.payload));
+            }
+          } catch (error) {
+            console.error('Error al procesar mensaje WebSocket:', error);
+          }
+        };
+    
+        socket.onclose = (event) => {
+          console.log('Conexión WebSocket cerrada', event.code, event.reason);
+          setIsConnected(false);
+    
+          // Reconectar automáticamente después de un tiempo
+          const maxReconnectAttempts = 5;
+          const reconnectDelay = Math.min(1000 * Math.pow(2, reconnectAttempt), 30000); // Exponential backoff
+    
+          if (reconnectAttempt < maxReconnectAttempts) {
+            console.log(`Intentando reconectar (intento ${reconnectAttempt + 1} de ${maxReconnectAttempts})...`);
+            setTimeout(() => {
+              setReconnectAttempt((prev) => prev + 1);
+              connectWebSocket(); // Intentar reconectar
+            }, reconnectDelay);
+          } else {
+            toast({
+              title: 'Error de conexión',
+              description: 'No se pudo establecer conexión para actualizaciones en tiempo real',
+              variant: 'destructive'
+            });
+          }
+        };
+    
+        socket.onerror = (error) => {
+          console.error('Error en WebSocket:', error);
+        };
       } catch (error) {
-        console.error('Error al procesar mensaje WebSocket:', error);
-      }
-    };
-
-    socket.onclose = () => {
-      console.log('Conexión WebSocket cerrada');
-      setIsConnected(false);
-
-      // Reconectar automáticamente después de un tiempo
-      const maxReconnectAttempts = 5;
-      const reconnectDelay = Math.min(1000 * Math.pow(2, reconnectAttempt), 30000); // Exponential backoff
-
-      if (reconnectAttempt < maxReconnectAttempts) {
-        setTimeout(() => {
-          setReconnectAttempt((prev) => prev + 1);
-        }, reconnectDelay);
-      } else {
+        console.error('Error al crear conexión WebSocket:', error);
         toast({
           title: 'Error de conexión',
-          description: 'No se pudo establecer conexión para actualizaciones en tiempo real',
+          description: 'No se pudo establecer la conexión en tiempo real',
           variant: 'destructive'
         });
       }
     };
-
-    socket.onerror = (error) => {
-      console.error('Error en WebSocket:', error);
-      toast({
-        title: 'Error de conexión',
-        description: 'Ocurrió un error en la conexión en tiempo real',
-        variant: 'destructive'
-      });
-    };
+    
+    // Iniciar la conexión
+    connectWebSocket();
 
     // Limpiar al desmontar
     return () => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.close();
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        socketRef.current.close();
+        socketRef.current = null;
       }
     };
   }, [user, reconnectAttempt, toast]);

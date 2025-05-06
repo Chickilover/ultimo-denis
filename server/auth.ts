@@ -33,21 +33,40 @@ async function comparePasswords(supplied: string, stored: string) {
 
 
 export function setupAuth(app: Express) {
+  // Configuración específica para Replit
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isSecure = process.env.REPLIT_DOMAINS ? true : isProduction;
+  const domain = process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',')[0] : undefined;
+  
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "mi-hogar-financiero-secreto",
-    resave: true,
+    resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      secure: isSecure,
       httpOnly: true,
-      sameSite: "lax"
+      sameSite: isSecure ? "none" : "lax",
+      domain: domain ? domain.includes('.') ? domain : undefined : undefined
     },
-    rolling: true
+    rolling: true,
+    proxy: true
   };
 
+  // Configuración para trabajar con el proxy de Replit
   app.set("trust proxy", 1);
+  
+  // Debug para el error "connect.sid" cookie
+  app.use((req, res, next) => {
+    // Log completo para ayudar en debug
+    if (req.path === '/api/login' || req.path === '/api/register' || req.path === '/api/user') {
+      console.log(`Cookies en la solicitud ${req.path}:`, req.headers.cookie || 'No hay cookies');
+    }
+    next();
+  });
+  
+  // Aplicar middleware de sesión
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
@@ -220,10 +239,35 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res, next) => {
-    req.session.destroy((err) => {
+    // Verificar si el usuario está autenticado
+    if (req.isAuthenticated()) {
+      console.log("Cerrando sesión de usuario:", req.user?.id);
+    }
+    
+    // Lógica para Replit: Necesitamos asegurarnos de que las cookies se limpien correctamente
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isSecure = process.env.REPLIT_DOMAINS ? true : isProduction;
+    const domain = process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',')[0] : undefined;
+    
+    req.logout((err) => {
       if (err) return next(err);
-      res.clearCookie('connect.sid');
-      res.sendStatus(200);
+      
+      req.session.destroy((sessionErr) => {
+        if (sessionErr) {
+          console.error("Error al destruir la sesión:", sessionErr);
+        }
+        
+        // Limpiar la cookie con las mismas opciones con las que se creó
+        res.clearCookie('connect.sid', {
+          path: '/',
+          httpOnly: true,
+          secure: isSecure,
+          sameSite: isSecure ? "none" : "lax",
+          domain: domain ? domain.includes('.') ? domain : undefined : undefined
+        });
+        
+        res.status(200).json({ success: true, message: "Sesión cerrada con éxito" });
+      });
     });
   });
 
