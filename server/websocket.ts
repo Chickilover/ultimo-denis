@@ -214,6 +214,8 @@ export function notifyHousehold(householdId: number | null, message: WebSocketMe
   
   // Por ahora, simplemente enviaremos a todas las conexiones excepto el que origina el mensaje
   let notified = false;
+  let totalSent = 0;
+  let totalUsers = 0;
   
   connections.forEach((userConnections, userId) => {
     // Excluir al remitente si se especifica
@@ -222,14 +224,31 @@ export function notifyHousehold(householdId: number | null, message: WebSocketMe
     // Aquí deberías verificar si el usuario pertenece al householdId
     // Por ahora, enviamos a todos (excepto al remitente) como ejemplo
     const messageStr = JSON.stringify(message);
+    let userSent = 0;
     
     userConnections.forEach(connection => {
       if (connection.readyState === WebSocket.OPEN) {
-        connection.send(messageStr);
-        notified = true;
+        try {
+          connection.send(messageStr);
+          userSent++;
+          totalSent++;
+          notified = true;
+        } catch (error) {
+          console.error(`Error al enviar notificación de hogar a usuario ${userId}:`, error);
+        }
       }
     });
+    
+    if (userSent > 0) {
+      totalUsers++;
+    }
   });
+  
+  if (notified) {
+    console.log(`Notificación de hogar ${householdId} enviada a ${totalUsers} usuarios (${totalSent} conexiones): ${message.type}`);
+  } else {
+    console.log(`No se pudo notificar a ningún miembro del hogar ${householdId}`);
+  }
   
   return notified;
 }

@@ -35,23 +35,32 @@ async function comparePasswords(supplied: string, stored: string) {
 export function setupAuth(app: Express) {
   // Configuración específica para Replit
   const isProduction = process.env.NODE_ENV === 'production';
-  const isSecure = process.env.REPLIT_DOMAINS ? true : isProduction;
-  const domain = process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',')[0] : undefined;
+  // En Replit, las cookies seguras funcionan incluso en desarrollo
+  const isSecure = !!process.env.REPLIT_DOMAINS || isProduction;
+  // No necesitamos especificar un dominio para las cookies en el entorno Replit
+  // ya que este se maneja automáticamente
+  
+  console.log('Configuración de sesión:');
+  console.log('- Entorno:', process.env.NODE_ENV);
+  console.log('- Dominio Replit:', process.env.REPLIT_DOMAINS || 'No configurado');
+  console.log('- Cookie secure:', isSecure);
   
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "mi-hogar-financiero-secreto",
-    resave: false,
-    saveUninitialized: false,
+    name: 'nido.sid', // Nombre personalizado de la cookie para evitar el estándar de 'connect.sid'
+    resave: true, // Importante para mantener la sesión activa
+    saveUninitialized: false, // No guardar sesiones vacías
     store: storage.sessionStore,
     cookie: {
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
       secure: isSecure,
       httpOnly: true,
-      sameSite: isSecure ? "none" : "lax",
-      domain: domain ? domain.includes('.') ? domain : undefined : undefined
+      sameSite: isSecure ? "none" : "lax"
+      // No configurar domain, dejar que el navegador lo maneje automáticamente
     },
-    rolling: true,
-    proxy: true
+    rolling: true, // Renovar la cookie en cada petición
+    proxy: true // Indicar que estamos detrás de un proxy (Replit)
   };
 
   // Configuración para trabajar con el proxy de Replit
@@ -258,12 +267,12 @@ export function setupAuth(app: Express) {
         }
         
         // Limpiar la cookie con las mismas opciones con las que se creó
-        res.clearCookie('connect.sid', {
+        res.clearCookie('nido.sid', {
           path: '/',
           httpOnly: true,
           secure: isSecure,
-          sameSite: isSecure ? "none" : "lax",
-          domain: domain ? domain.includes('.') ? domain : undefined : undefined
+          sameSite: isSecure ? "none" : "lax"
+          // No especificar domain para que funcione correctamente
         });
         
         res.status(200).json({ success: true, message: "Sesión cerrada con éxito" });
