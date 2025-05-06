@@ -71,18 +71,26 @@ export function useWebSocket() {
     }
 
     // Configuración del protocolo WebSocket
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // En Replit, siempre usamos 'wss:' independientemente del protocolo actual
+    let protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     
-    // Manejar el entorno de Replit específicamente
-    // En Replit, necesitamos usar la URL completa para el WebSocket
-    let wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}`;
+    // Detección de entorno Replit (incluye todos los dominios posibles)
+    const isReplitEnv = 
+      window.location.hostname.includes('replit.dev') || 
+      window.location.hostname.includes('repl.co') || 
+      window.location.hostname.includes('replit.app');
     
-    // Si estamos en Replit, asegurarnos de que usamos el dominio HTTPS completo
-    if (window.location.hostname.includes('replit.dev') || window.location.hostname.includes('repl.co')) {
-      // Asegurarse de que estamos usando wss: en Replit
-      wsUrl = `wss://${window.location.host}/ws?userId=${user.id}`;
-      console.log('Entorno Replit detectado, usando URL WSS completa');
+    // En Replit, siempre forzamos WSS
+    if (isReplitEnv) {
+      protocol = 'wss:';
+      console.log('Entorno Replit detectado, usando wss: forzado');
     }
+    
+    // Construir la URL del WebSocket con la misma ruta que usa el servidor
+    const wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}`;
+    
+    console.log(`Configurando WebSocket en entorno ${isReplitEnv ? 'Replit' : 'estándar'}`);
+    console.log(`Host: ${window.location.host}, Protocolo WS: ${protocol}`);
     
     console.log('Intentando conectar WebSocket a:', wsUrl);
     

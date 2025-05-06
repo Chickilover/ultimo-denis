@@ -1,6 +1,6 @@
 import { pgTable, text, serial, integer, boolean, timestamp, numeric, date, varchar, jsonb, index } from "drizzle-orm/pg-core";
 
-// Session storage table for authentication
+// Session storage table for authentication - IMPORTANT: NEVER DROP THIS TABLE
 export const sessions = pgTable(
   "sessions",
   {
@@ -8,9 +8,7 @@ export const sessions = pgTable(
     sess: jsonb("sess").notNull(),
     expire: timestamp("expire").notNull(),
   },
-  (table) => ({
-    expireIdx: index("IDX_session_expire").on(table.expire),
-  })
+  (table) => [index("IDX_session_expire").on(table.expire)],
 );
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
