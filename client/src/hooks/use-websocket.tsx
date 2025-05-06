@@ -72,8 +72,17 @@ export function useWebSocket() {
 
     // Configuración del protocolo WebSocket
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Use absolute path to ensure proper routing in Replit environment
-    const wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}`;
+    
+    // Manejar el entorno de Replit específicamente
+    // En Replit, necesitamos usar la URL completa para el WebSocket
+    let wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}`;
+    
+    // Si estamos en Replit, asegurarnos de que usamos el dominio HTTPS completo
+    if (window.location.hostname.includes('replit.dev') || window.location.hostname.includes('repl.co')) {
+      // Asegurarse de que estamos usando wss: en Replit
+      wsUrl = `wss://${window.location.host}/ws?userId=${user.id}`;
+      console.log('Entorno Replit detectado, usando URL WSS completa');
+    }
     
     console.log('Intentando conectar WebSocket a:', wsUrl);
     
@@ -119,12 +128,27 @@ export function useWebSocket() {
           console.log('Conexión WebSocket cerrada', event.code, event.reason);
           setIsConnected(false);
     
+          // Verificar si el cierre fue normal (código 1000) o si debemos intentar reconectar
+          const normalClosure = event.code === 1000;
+          
+          if (normalClosure) {
+            console.log('Conexión WebSocket cerrada normalmente, no se intentará reconectar');
+            return;
+          }
+          
           // Reconectar automáticamente después de un tiempo
-          const maxReconnectAttempts = 5;
-          const reconnectDelay = Math.min(1000 * Math.pow(2, reconnectAttempt), 30000); // Exponential backoff
+          const maxReconnectAttempts = 10; // Aumentamos el número de intentos para Replit
+          
+          // Usar backoff exponencial pero con un poco de aleatoriedad para evitar tormentas de reconexión
+          const baseDelay = 1000 * Math.pow(1.5, reconnectAttempt); 
+          const jitter = Math.random() * 1000;
+          const reconnectDelay = Math.min(baseDelay + jitter, 30000); // Cap at 30 seconds
     
           if (reconnectAttempt < maxReconnectAttempts) {
-            console.log(`Intentando reconectar (intento ${reconnectAttempt + 1} de ${maxReconnectAttempts})...`);
+            console.log(`Intentando reconectar (intento ${reconnectAttempt + 1} de ${maxReconnectAttempts}) en ${Math.round(reconnectDelay/1000)}s...`);
+            
+            // En Replit, es posible que necesitemos reconstruir la URL del WebSocket
+            // si ha cambiado el dominio o el protocolo
             setTimeout(() => {
               setReconnectAttempt((prev) => prev + 1);
               connectWebSocket(); // Intentar reconectar
@@ -132,8 +156,9 @@ export function useWebSocket() {
           } else {
             toast({
               title: 'Error de conexión',
-              description: 'No se pudo establecer conexión para actualizaciones en tiempo real',
-              variant: 'destructive'
+              description: 'No se pudo establecer conexión para actualizaciones en tiempo real. Intenta recargar la página.',
+              variant: 'destructive',
+              duration: 8000 // Mostrar por más tiempo
             });
           }
         };
