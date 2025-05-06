@@ -72,11 +72,25 @@ export function useWebSocket() {
 
     // Configuración del protocolo WebSocket
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // Use absolute path to ensure proper routing in Replit environment
     const wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}`;
-
-    // Crear conexión WebSocket
-    const socket = new WebSocket(wsUrl);
-    socketRef.current = socket;
+    
+    console.log('Intentando conectar WebSocket a:', wsUrl);
+    
+    // Crear conexión WebSocket con manejo de errores
+    let socket: WebSocket;
+    try {
+      socket = new WebSocket(wsUrl);
+      socketRef.current = socket;
+    } catch (error) {
+      console.error('Error al crear conexión WebSocket:', error);
+      toast({
+        title: 'Error de conexión',
+        description: 'No se pudo establecer la conexión en tiempo real',
+        variant: 'destructive'
+      });
+      return; // Exit early if we couldn't create the socket
+    }
 
     socket.onopen = () => {
       console.log('Conexión WebSocket establecida');
