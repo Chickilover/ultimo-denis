@@ -54,9 +54,9 @@ export function setupAuth(app: Express) {
     cookie: {
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
-      secure: isSecure,
+      secure: true, // Siempre usar cookies seguras en Replit
       httpOnly: true,
-      sameSite: isSecure ? "none" : "lax"
+      sameSite: 'none' // Usar 'none' para permitir solicitudes cross-site en Replit
       // No configurar domain, dejar que el navegador lo maneje automáticamente
     },
     rolling: true, // Renovar la cookie en cada petición
@@ -270,8 +270,8 @@ export function setupAuth(app: Express) {
         res.clearCookie('nido.sid', {
           path: '/',
           httpOnly: true,
-          secure: isSecure,
-          sameSite: isSecure ? "none" : "lax"
+          secure: true,
+          sameSite: 'none'
           // No especificar domain para que funcione correctamente
         });
         

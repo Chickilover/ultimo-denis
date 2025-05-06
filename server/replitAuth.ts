@@ -41,9 +41,9 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: !!process.env.REPLIT_DOMAINS || process.env.NODE_ENV === 'production',
+      secure: true, // Always use secure cookies in Replit
       maxAge: sessionTtl,
-      sameSite: 'lax'
+      sameSite: 'none' // Use 'none' for cross-site requests in Replit
     },
     rolling: true,
     proxy: true
