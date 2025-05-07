@@ -47,6 +47,7 @@ type HouseholdMember = {
 export function HouseholdManagement() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
+  const [invitationCode, setInvitationCode] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -119,10 +120,15 @@ export function HouseholdManagement() {
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/household'] });
+      // Almacenar el código generado en una variable de estado
+      if (data && data.code) {
+        setInvitationCode(data.code);
+      }
+      
+      // Actualizar la UI inmediatamente para mostrar el código generado
       toast({
         title: "Código generado",
-        description: "Se ha generado un nuevo código de invitación."
+        description: `Se ha generado un nuevo código de invitación: ${data.code}`
       });
     },
     onError: (error: Error) => {
@@ -222,13 +228,22 @@ export function HouseholdManagement() {
             <h3 className="text-sm font-medium mb-2">Código de invitación</h3>
             <div className="flex items-center gap-2">
               <div className="p-2 bg-muted rounded flex-grow font-mono text-sm truncate">
-                {household.code || "No hay código activo"}
+                {invitationCode || household.code || "No hay código activo"}
               </div>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={copyCodeToClipboard}
-                disabled={!household.code}
+                onClick={() => {
+                  const code = invitationCode || household?.code;
+                  if (code) {
+                    navigator.clipboard.writeText(code);
+                    toast({
+                      title: "Código copiado",
+                      description: "El código de invitación ha sido copiado al portapapeles."
+                    });
+                  }
+                }}
+                disabled={!invitationCode && !household?.code}
               >
                 <Copy className="h-4 w-4" />
                 <span className="sr-only">Copiar código</span>

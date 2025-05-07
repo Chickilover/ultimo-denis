@@ -1491,7 +1491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: users.id,
         name: users.name,
         username: users.username,
-        isOwner: sql`CASE WHEN ${users.id} = (SELECT "createdByUserId" FROM "households" WHERE "id" = ${req.user.householdId}) THEN true ELSE false END`,
+        isOwner: sql`CASE WHEN ${users.id} = (SELECT "created_by_user_id" FROM "households" WHERE "id" = ${req.user.householdId}) THEN true ELSE false END`,
         createdAt: users.createdAt
       })
       .from(users)
@@ -1516,7 +1516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verificar si el usuario es el propietario del hogar
       const [household] = await db.select().from(households).where(eq(households.id, req.user.householdId));
       
-      if (household && household.createdByUserId === req.user.id) {
+      if (household && household.created_by_user_id === req.user.id) {
         // El propietario no puede abandonar el hogar directamente
         return res.status(400).json({ 
           message: "Eres el propietario del hogar. Debes eliminar el hogar o transferir la propiedad antes de abandonarlo." 
