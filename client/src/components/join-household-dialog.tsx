@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
 
 import {
   Dialog,
@@ -14,6 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -25,58 +25,58 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Home } from "lucide-react";
+import { Loader2, UserPlus } from "lucide-react";
 
-// Esquema para el formulario de hogar
-const householdSchema = z.object({
-  name: z.string().min(1, "El nombre del hogar es obligatorio"),
+// Esquema para el formulario de unirse a un hogar
+const joinHouseholdSchema = z.object({
+  code: z.string().min(1, "El código de invitación es obligatorio"),
 });
 
-type HouseholdFormValues = z.infer<typeof householdSchema>;
+type JoinHouseholdFormValues = z.infer<typeof joinHouseholdSchema>;
 
-interface HouseholdCreationDialogProps {
+interface JoinHouseholdDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
   children?: React.ReactNode;
 }
 
-export function HouseholdCreationDialog({
+export function JoinHouseholdDialog({
   open,
   onOpenChange,
   onSuccess,
   children,
-}: HouseholdCreationDialogProps) {
+}: JoinHouseholdDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
 
-  // Formulario para crear hogar
-  const form = useForm<HouseholdFormValues>({
-    resolver: zodResolver(householdSchema),
+  // Formulario para unirse a un hogar
+  const form = useForm<JoinHouseholdFormValues>({
+    resolver: zodResolver(joinHouseholdSchema),
     defaultValues: {
-      name: "",
+      code: "",
     },
   });
 
-  // Mutation para crear hogar
-  const createHouseholdMutation = useMutation({
-    mutationFn: async (data: HouseholdFormValues) => {
-      const response = await apiRequest("POST", "/api/households", data);
+  // Mutation para unirse a un hogar
+  const joinHouseholdMutation = useMutation({
+    mutationFn: async (data: JoinHouseholdFormValues) => {
+      const response = await apiRequest("POST", "/api/join-household", data);
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Error al crear el hogar");
+        throw new Error(errorData.message || "Error al unirse al hogar");
       }
       return response.json();
     },
     onSuccess: () => {
       // Invalidar consultas para actualizar los datos
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/family-members"] });
       
       // Mostrar mensaje de éxito
       toast({
-        title: "Hogar creado",
-        description: "El hogar ha sido creado correctamente. Ahora puedes invitar a miembros.",
+        title: "Te has unido al hogar",
+        description: "Ahora puedes compartir gastos e ingresos con los miembros de este hogar.",
       });
       
       // Cerrar el diálogo
@@ -98,9 +98,9 @@ export function HouseholdCreationDialog({
   });
 
   // Manejar envío del formulario
-  const onSubmit = (data: HouseholdFormValues) => {
+  const onSubmit = (data: JoinHouseholdFormValues) => {
     setError(null);
-    createHouseholdMutation.mutate(data);
+    joinHouseholdMutation.mutate(data);
   };
 
   return (
@@ -110,9 +110,9 @@ export function HouseholdCreationDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Crear un Nuevo Hogar</DialogTitle>
+          <DialogTitle>Unirse a un Hogar</DialogTitle>
           <DialogDescription>
-            Crea un hogar para administrar tus finanzas familiares y compartir gastos e ingresos con tu familia.
+            Introduce el código de invitación para unirte a un hogar existente y compartir gastos e ingresos.
           </DialogDescription>
         </DialogHeader>
 
@@ -120,13 +120,13 @@ export function HouseholdCreationDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
             <FormField
               control={form.control}
-              name="name"
+              name="code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre del hogar</FormLabel>
+                  <FormLabel>Código de invitación</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="Ej: Casa Fernández" 
+                      placeholder="Ingresa el código de invitación" 
                       {...field} 
                       autoComplete="off"
                     />
@@ -143,18 +143,18 @@ export function HouseholdCreationDialog({
             <DialogFooter>
               <Button 
                 type="submit" 
-                disabled={createHouseholdMutation.isPending}
+                disabled={joinHouseholdMutation.isPending}
                 className="w-full"
               >
-                {createHouseholdMutation.isPending ? (
+                {joinHouseholdMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creando...
+                    Uniéndose...
                   </>
                 ) : (
                   <>
-                    <Home className="mr-2 h-4 w-4" />
-                    Crear Hogar
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Unirse al Hogar
                   </>
                 )}
               </Button>
