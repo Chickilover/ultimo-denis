@@ -62,7 +62,8 @@ import { Edit, PlusCircle, Trash2, User, Users, Mail, Copy, Link as LinkIcon, Ch
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useState, useRef, useEffect } from "react";
-
+import { HouseholdCreationDialog } from "@/components/household-creation-dialog";
+import { InvitationManagement } from "@/components/invitation-management";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -1140,94 +1141,47 @@ export default function FamilyPage() {
         
         <TabsContent value="invitations" className="space-y-4">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Invitaciones Enviadas</h3>
-            <Button variant="outline" onClick={() => setIsInviteDialogOpen(true)}>
-              <Mail className="mr-2 h-4 w-4" />
-              Nueva Invitación
-            </Button>
+            <h3 className="text-lg font-semibold">Invitaciones</h3>
+            {user?.householdId && (
+              <Button variant="outline" onClick={() => setIsInviteDialogOpen(true)}>
+                <Mail className="mr-2 h-4 w-4" />
+                Nueva Invitación
+              </Button>
+            )}
           </div>
           
-          {isLoadingInvitations ? (
-            <div className="space-y-3">
-              {Array.from({ length: 2 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-4 p-4 rounded-lg border animate-pulse">
-                  <div className="h-9 w-9 rounded-full bg-muted"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 w-32 bg-muted rounded"></div>
-                    <div className="h-3 w-40 bg-muted rounded"></div>
-                  </div>
-                  <div className="h-8 w-16 bg-muted rounded"></div>
-                </div>
-              ))}
-            </div>
-          ) : invitations && invitations.length > 0 ? (
-            <div className="space-y-3">
-              {invitations.map((invitation) => (
-                <Card key={invitation.code}>
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={undefined} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        <User className="h-5 w-5" />
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className="flex-1">
-                      <div className="font-medium">{invitation.username}</div>
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <Clock className="h-3.5 w-3.5 mr-1" /> 
-                        Expira: {formatExpireDate(invitation.expires)}
-                      </div>
-                    </div>
-                    
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1"
-                            onClick={() => {
-                              navigator.clipboard.writeText(invitation.code);
-                              setCopiedCode(invitation.code);
-                              setTimeout(() => setCopiedCode(null), 2000);
-                            }}
-                          >
-                            {copiedCode === invitation.code ? (
-                              <>
-                                <CheckCircle className="h-3.5 w-3.5" />
-                                <span>Copiado</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="h-3.5 w-3.5" />
-                                <span>Copiar Código</span>
-                              </>
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Copiar código de invitación</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="py-12 flex flex-col items-center justify-center border rounded-lg">
-              <div className="rounded-full bg-muted p-3 mb-3">
-                <Mail className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-1">Sin invitaciones enviadas</h3>
-              <p className="text-muted-foreground text-center mb-4 max-w-md">
-                No has enviado ninguna invitación aún. Invita a miembros de tu familia a unirse a tu hogar.
-              </p>
-              <Button onClick={() => setIsInviteDialogOpen(true)}>
-                <Mail className="mr-2 h-4 w-4" />
-                Enviar Invitación
-              </Button>
+          {/* Nuestro nuevo componente de gestión de invitaciones */}
+          <InvitationManagement 
+            sentInvitations={invitations}
+            receivedInvitations={receivedInvitations}
+            onRefresh={() => {
+              queryClient.invalidateQueries({ queryKey: ['/api/invitations'] });
+              queryClient.invalidateQueries({ queryKey: ['/api/received-invitations'] });
+            }}
+            isLoading={isLoadingInvitations || isLoadingReceivedInvitations}
+          />
+          
+          {(!invitations || invitations.length === 0) && 
+           (!receivedInvitations || receivedInvitations.length === 0) && 
+           !isLoadingInvitations && !isLoadingReceivedInvitations && (
+            <div className="mt-6 flex justify-center">
+              {user?.householdId ? (
+                <Button 
+                  onClick={() => setIsInviteDialogOpen(true)}
+                  variant="outline"
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Invitar a alguien
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => setIsJoinHouseholdDialogOpen(true)}
+                  variant="outline"
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Ingresar código de invitación
+                </Button>
+              )}
             </div>
           )}
           
