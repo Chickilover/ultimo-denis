@@ -64,6 +64,8 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useState, useRef, useEffect } from "react";
 import { HouseholdCreationDialog } from "@/components/household-creation-dialog";
 import { InvitationManagement } from "@/components/invitation-management";
+// Importamos los tipos desde el componente de invitaciones
+import type { Invitation as SentInvitation, ReceivedInvitation } from "@/components/invitation-management";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -114,6 +116,7 @@ type Invitation = {
   username: string;
   expires: string;
   householdId: number | null;
+  invitedUsername: string;
 };
 
 export default function FamilyPage() {
@@ -145,7 +148,7 @@ export default function FamilyPage() {
   });
   
   // Obtener invitaciones enviadas
-  const { data: invitations, isLoading: isLoadingInvitations } = useQuery<Invitation[]>({
+  const { data: invitations, isLoading: isLoadingInvitations } = useQuery<SentInvitation[]>({
     queryKey: ['/api/invitations'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/invitations');

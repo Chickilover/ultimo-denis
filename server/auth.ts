@@ -55,7 +55,7 @@ export function setupAuth(app: Express) {
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
       // En Replit, se requiere secure: true solo en producción y cuando se usa HTTPS
-      secure: process.env.NODE_ENV === 'production', 
+      secure: isSecure, 
       httpOnly: true,
       sameSite: 'lax' // Cambiar a 'lax' que funciona mejor en Replit para la mayoría de los casos
       // No configurar domain, dejar que el navegador lo maneje automáticamente

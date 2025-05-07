@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 
 // Tipo para las invitaciones
-interface Invitation {
+export interface Invitation {
   code: string;
   username: string;
   expires: string;
