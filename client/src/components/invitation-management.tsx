@@ -36,7 +36,7 @@ export interface Invitation {
   invitedUsername: string;
 }
 
-interface ReceivedInvitation {
+export interface ReceivedInvitation {
   code: string;
   valid: boolean;
   inviter: {

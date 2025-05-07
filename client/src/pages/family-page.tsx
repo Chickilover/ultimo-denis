@@ -158,7 +158,7 @@ export default function FamilyPage() {
   });
   
   // Obtener invitaciones recibidas
-  const { data: receivedInvitations, isLoading: isLoadingReceivedInvitations } = useQuery({
+  const { data: receivedInvitations, isLoading: isLoadingReceivedInvitations } = useQuery<ReceivedInvitation[]>({
     queryKey: ['/api/received-invitations'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/received-invitations');

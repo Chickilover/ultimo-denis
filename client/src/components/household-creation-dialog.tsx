@@ -38,12 +38,14 @@ interface HouseholdCreationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  children?: React.ReactNode;
 }
 
 export function HouseholdCreationDialog({
   open,
   onOpenChange,
   onSuccess,
+  children,
 }: HouseholdCreationDialogProps) {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
