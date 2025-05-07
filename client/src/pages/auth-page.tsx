@@ -23,7 +23,8 @@ import {
   Lock, 
   Users,
   LinkIcon,
-  CheckCircle 
+  CheckCircle,
+  HomeIcon 
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -32,6 +33,7 @@ import {
   AlertTitle, 
   AlertDescription 
 } from "@/components/ui/alert";
+import { InvitationHandler } from "@/components/invitation-handler";
 
 // Validation schemas
 const loginSchema = z.object({
@@ -108,6 +110,7 @@ export default function AuthPage() {
     if (code) {
       setInvitationCode(code);
       invitationForm.setValue("code", code);
+      registerForm.setValue("invitationCode", code);
       validateInvitationCode(code);
       setShowInvitation(true);
     }
