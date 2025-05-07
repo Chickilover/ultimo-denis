@@ -10,6 +10,8 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
+import { HouseholdCreationDialog } from "@/components/household-creation-dialog";
+import { InvitationManagement } from "@/components/invitation-management";
 import { 
   AlertDialog,
   AlertDialogAction,

@@ -603,6 +603,15 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      {/* Mostrar el componente de invitación si hay un código en la URL */}
+      {invitationCode && (
+        <div className="absolute top-0 left-0 right-0 z-50 px-4 py-3 bg-primary/10 dark:bg-primary/20">
+          <div className="container mx-auto max-w-4xl">
+            <InvitationHandler invitationCode={invitationCode} />
+          </div>
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 max-w-4xl w-full shadow-lg rounded-lg overflow-hidden">
         {/* Hero Section */}
         <div className="bg-primary text-white p-8 hidden lg:flex flex-col justify-between relative overflow-hidden">

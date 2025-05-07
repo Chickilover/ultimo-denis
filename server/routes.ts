@@ -1612,6 +1612,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Error al aceptar la invitación" });
     }
   });
+  
+  // Rechazar una invitación
+  app.post("/api/invitations/reject", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { code } = req.body;
+      
+      if (!code) {
+        return res.status(400).json({ message: "Se requiere un código de invitación" });
+      }
+      
+      // Verificar si el código es válido
+      const validation = validateInvitationCode(code);
+      
+      if (!validation.valid) {
+        return res.status(400).json({ message: "Código de invitación inválido o expirado" });
+      }
+      
+      // Consumir el código de invitación (eliminarlo)
+      // No notificar al usuario que invitó en caso de rechazo
+      consumeInvitationCode(code);
+      
+      res.json({ 
+        success: true, 
+        message: "Invitación rechazada correctamente" 
+      });
+    } catch (error) {
+      console.error("Error al rechazar invitación:", error);
+      res.status(500).json({ message: "Error al procesar el rechazo de la invitación" });
+    }
+  });
 
   // Balance transfers
   app.get("/api/user/balance", async (req, res) => {
