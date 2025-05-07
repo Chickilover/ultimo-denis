@@ -23,6 +23,7 @@ import {
   households
 } from "@shared/schema";
 import { db } from "./db";
+import { eq, sql } from "drizzle-orm";
 import { seedDatabase } from "./seed";
 import multer from "multer";
 import path from "path";
@@ -1442,16 +1443,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Asignar el usuario al nuevo hogar
       await storage.updateUser(req.user.id, { householdId: household[0].id });
       
-      // Actualizar la sesión del usuario
-      const updatedUser = await storage.getUser(req.user.id);
-      if (updatedUser) {
-        req.login(updatedUser, (err) => {
-          if (err) {
-            console.error("Error al actualizar la sesión tras crear hogar:", err);
-          }
-        });
-      }
+      // Actualizamos los datos en la sesión actual sin cerrarla
+      req.user.householdId = household[0].id;
       
+      // Enviamos respuesta con el hogar creado
       res.status(201).json(household[0]);
     } catch (error) {
       console.error("Error al crear hogar:", error);
@@ -1459,6 +1454,167 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Endpoint para obtener información del hogar
+  app.get("/api/household", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      // Si el usuario no tiene hogar asignado
+      if (!req.user.householdId) {
+        return res.sendStatus(404);
+      }
+      
+      // Obtener información del hogar
+      const [household] = await db.select().from(households).where(eq(households.id, req.user.householdId));
+      
+      if (!household) {
+        return res.status(404).json({ message: "Hogar no encontrado" });
+      }
+      
+      res.json(household);
+    } catch (error) {
+      console.error("Error al obtener el hogar:", error);
+      res.status(500).json({ message: "Error al obtener información del hogar" });
+    }
+  });
+  
+  // Endpoint para obtener miembros del hogar
+  app.get("/api/household/members", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      // Si el usuario no tiene hogar asignado
+      if (!req.user.householdId) {
+        return res.sendStatus(404);
+      }
+      
+      // Obtener todos los usuarios del mismo hogar
+      const householdMembers = await db.select({
+        id: users.id,
+        name: users.name,
+        username: users.username,
+        isOwner: sql`CASE WHEN ${users.id} = (SELECT "createdByUserId" FROM "households" WHERE "id" = ${req.user.householdId}) THEN true ELSE false END`,
+        createdAt: users.createdAt
+      })
+      .from(users)
+      .where(eq(users.householdId, req.user.householdId));
+      
+      res.json(householdMembers);
+    } catch (error) {
+      console.error("Error al obtener miembros del hogar:", error);
+      res.status(500).json({ message: "Error al obtener los miembros del hogar" });
+    }
+  });
+  
+  // Endpoint para abandonar un hogar
+  app.post("/api/household/leave", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      // Si el usuario no tiene hogar asignado
+      if (!req.user.householdId) {
+        return res.status(400).json({ message: "No perteneces a ningún hogar" });
+      }
+      
+      // Verificar si el usuario es el propietario del hogar
+      const [household] = await db.select().from(households).where(eq(households.id, req.user.householdId));
+      
+      if (household && household.createdByUserId === req.user.id) {
+        // El propietario no puede abandonar el hogar directamente
+        return res.status(400).json({ 
+          message: "Eres el propietario del hogar. Debes eliminar el hogar o transferir la propiedad antes de abandonarlo." 
+        });
+      }
+      
+      // Actualizar el usuario para quitar la referencia al hogar
+      await storage.updateUser(req.user.id, { householdId: null });
+      
+      // Actualizar los datos en la sesión actual
+      req.user.householdId = null;
+      
+      res.json({ 
+        success: true, 
+        message: "Has abandonado el hogar correctamente" 
+      });
+    } catch (error) {
+      console.error("Error al abandonar el hogar:", error);
+      res.status(500).json({ message: "Error al procesar la solicitud de abandonar el hogar" });
+    }
+  });
+  
+  // Endpoint para generar un código de invitación para el hogar
+  app.post("/api/household/code", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      // Si el usuario no tiene hogar asignado
+      if (!req.user.householdId) {
+        return res.status(400).json({ message: "No perteneces a ningún hogar" });
+      }
+      
+      // Generar código de invitación genérico (sin destinatario específico)
+      const code = generateInvitationCode(req.user.id, req.user.username, req.user.householdId, "");
+      
+      res.json({ 
+        code: code,
+        success: true
+      });
+    } catch (error) {
+      console.error("Error al generar código de hogar:", error);
+      res.status(500).json({ message: "Error al generar código de invitación para el hogar" });
+    }
+  });
+  
+  // Endpoint para unirse a un hogar usando un código
+  app.post("/api/join-household", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const { code } = req.body;
+      
+      if (!code) {
+        return res.status(400).json({ message: "Se requiere un código de invitación" });
+      }
+      
+      // Validar el código
+      const validation = validateInvitationCode(code);
+      
+      if (!validation.valid) {
+        return res.status(400).json({ message: "Código de invitación inválido o expirado" });
+      }
+      
+      // Verificar si el usuario ya tiene un hogar
+      if (req.user.householdId) {
+        return res.status(400).json({ 
+          message: "Ya perteneces a un hogar. Debes salir de tu hogar actual antes de unirte a otro." 
+        });
+      }
+      
+      // Verificar que el código esté asociado a un hogar
+      if (!validation.householdId) {
+        return res.status(400).json({ 
+          message: "Esta invitación no está asociada a ningún hogar" 
+        });
+      }
+      
+      // Añadir el usuario al hogar
+      await storage.updateUser(req.user.id, { householdId: validation.householdId });
+      
+      // Actualizar los datos en la sesión actual
+      req.user.householdId = validation.householdId;
+      
+      // Consumir el código
+      const acceptedByUser = {
+        id: req.user.id,
+        username: req.user.username
+      };
+      consumeInvitationCode(code, acceptedByUser, true);
+      
+      res.json({ 
+        success: true, 
+        message: "Te has unido al hogar correctamente" 
+      });
+    } catch (error) {
+      console.error("Error al unirse al hogar:", error);
+      res.status(500).json({ message: "Error al procesar la solicitud para unirse al hogar" });
+    }
+  });
+
   // Invitaciones para miembros familiares
   app.post("/api/invitations", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -1595,19 +1751,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       consumeInvitationCode(code, acceptedByUser, true);
       
-      // Actualizar el usuario en la sesión (regenerar sesión)
-      const updatedUser = await storage.getUser(req.user.id);
-      if (updatedUser) {
-        // Regenerar la sesión para reflejar los cambios
-        req.login(updatedUser, (err) => {
-          if (err) {
-            console.error("Error al regenerar la sesión tras aceptar invitación:", err);
-          }
-          res.json({ success: true });
-        });
-      } else {
-        res.json({ success: true });
-      }
+      // Actualizar la información en la sesión actual
+      req.user.householdId = inviter.householdId;
+      
+      // Enviar respuesta
+      res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Error al aceptar la invitación" });
     }
