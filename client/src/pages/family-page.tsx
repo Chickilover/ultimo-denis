@@ -10,8 +10,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { HouseholdCreationDialog } from "@/components/household-creation-dialog";
-import { InvitationManagement } from "@/components/invitation-management";
+
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -62,7 +61,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Edit, PlusCircle, Trash2, User, Users, Mail, Copy, Link as LinkIcon, CheckCircle, Clock, AlertCircle, Wallet } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -143,12 +143,22 @@ export default function FamilyPage() {
     }
   });
   
-  // Obtener invitaciones activas
+  // Obtener invitaciones enviadas
   const { data: invitations, isLoading: isLoadingInvitations } = useQuery<Invitation[]>({
     queryKey: ['/api/invitations'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/invitations');
       if (!response.ok) throw new Error('Error al obtener las invitaciones');
+      return response.json();
+    }
+  });
+  
+  // Obtener invitaciones recibidas
+  const { data: receivedInvitations, isLoading: isLoadingReceivedInvitations } = useQuery({
+    queryKey: ['/api/received-invitations'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/received-invitations');
+      if (!response.ok) throw new Error('Error al obtener las invitaciones recibidas');
       return response.json();
     }
   });

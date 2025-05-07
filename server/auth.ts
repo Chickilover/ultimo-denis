@@ -49,14 +49,15 @@ export function setupAuth(app: Express) {
     secret: process.env.SESSION_SECRET || "mi-hogar-financiero-secreto",
     name: 'nido.sid', // Nombre personalizado de la cookie para evitar el estándar de 'connect.sid'
     resave: true, // Importante para mantener la sesión activa
-    saveUninitialized: false, // No guardar sesiones vacías
+    saveUninitialized: true, // Guardar sesiones vacías para facilitar autenticación en Replit
     store: storage.sessionStore,
     cookie: {
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
-      secure: true, // Siempre usar cookies seguras en Replit
+      // En Replit, se requiere secure: true solo en producción y cuando se usa HTTPS
+      secure: process.env.NODE_ENV === 'production', 
       httpOnly: true,
-      sameSite: 'none' // Usar 'none' para permitir solicitudes cross-site en Replit
+      sameSite: 'lax' // Cambiar a 'lax' que funciona mejor en Replit para la mayoría de los casos
       // No configurar domain, dejar que el navegador lo maneje automáticamente
     },
     rolling: true, // Renovar la cookie en cada petición

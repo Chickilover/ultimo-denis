@@ -37,13 +37,13 @@ export function getSession() {
     secret: process.env.SESSION_SECRET || "mi-hogar-financiero-secreto",
     name: 'nido.sid',
     store: sessionStore,
-    resave: true,
-    saveUninitialized: false,
+    resave: true, 
+    saveUninitialized: true, // Guardar sesiones vacías para facilitar autenticación en Replit
     cookie: {
       httpOnly: true,
-      secure: true, // Always use secure cookies in Replit
+      secure: process.env.NODE_ENV === 'production', // Secure solo en producción
       maxAge: sessionTtl,
-      sameSite: 'none' // Use 'none' for cross-site requests in Replit
+      sameSite: 'lax' // Cambiar a 'lax' para mejor compatibilidad en Replit
     },
     rolling: true,
     proxy: true
