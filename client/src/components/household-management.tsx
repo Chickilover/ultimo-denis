@@ -13,12 +13,8 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  Separator,
-  Alert,
-  AlertTitle,
-  AlertDescription,
-} from "@/components/ui";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { HouseholdCreationDialog } from "@/components/household-creation-dialog";
 import { JoinHouseholdDialog } from "@/components/join-household-dialog";
 import { 
