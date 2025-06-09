@@ -17,7 +17,7 @@ export default defineConfig({
 
   build: {
     // La salida se genera en una carpeta 'dist' en la raíz del proyecto.
-    outDir: '../dist',
+    outDir: 'dist',
     emptyOutDir: true,
   },
 })
