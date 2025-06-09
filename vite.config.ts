@@ -4,20 +4,20 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
-
-  // Corregimos a 'client' para que coincida con el nombre real de la carpeta.
-  root: 'client',
+  
+  // Vite buscará el código fuente del frontend en la carpeta 'client'
+  root: 'client', 
+  
+  build: {
+    // Cuando Vite construya, sacará el resultado a una carpeta 'dist' 
+    // en la raíz del proyecto (fuera de 'client').
+    outDir: '../dist', 
+    emptyOutDir: true,
+  },
 
   resolve: {
     alias: {
-      // Corregimos también aquí a 'client/src'
       "@": path.resolve(__dirname, "client/src"),
     },
-  },
-
-  build: {
-    // La salida se genera en una carpeta 'dist' en la raíz del proyecto.
-    outDir: 'dist',
-    emptyOutDir: true,
   },
 })
