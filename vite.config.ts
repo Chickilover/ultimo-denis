@@ -5,19 +5,19 @@ import path from "path";
 export default defineConfig({
   plugins: [react()],
   
-  // Vite buscará el código fuente del frontend en la carpeta 'client'
   root: 'client', 
   
   build: {
-    // Cuando Vite construya, sacará el resultado a una carpeta 'dist' 
-    // en la raíz del proyecto (fuera de 'client').
     outDir: '../dist', 
     emptyOutDir: true,
   },
 
   resolve: {
     alias: {
+      // Este alias es para las importaciones dentro del frontend
       "@": path.resolve(__dirname, "client/src"),
+      // Este alias le enseña a Vite a encontrar tu código compartido
+      "@shared": path.resolve(__dirname, "drizzle"),
     },
   },
 })
