@@ -15,13 +15,35 @@ import {
   CreditCard, 
   ArrowUpCircle, 
   ArrowDownCircle, 
-  ArrowLeftRight,
   Plus
 } from "lucide-react";
+import { cn } from "@/lib/utils"; // Import cn utility
+import type { z } from "zod";
+import type { formTransactionSchema } from "@/schemas/transaction-schema";
+
+// Infer type from schema for defaultValues
+type TransactionFormValues = z.infer<typeof formTransactionSchema>;
+type ActiveTransactionType = "all" | "income" | "expense" | "transfer";
+
 
 export default function TransactionsPage() {
   const [isNewTransactionOpen, setIsNewTransactionOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState<ActiveTransactionType>("all");
+
+  // This state will determine the type of transaction for the new form
+  const [formTransactionType, setFormTransactionType] = useState<'income' | 'expense' | 'transfer'>('expense');
+
+  const handleOpenNewTransactionDialog = (tabSelection: ActiveTransactionType) => {
+    setActiveTab(tabSelection); // This sets the filter for the list view
+    // For the form, default to 'expense' if 'all' or 'transfer' is selected for the view.
+    // Or, if a specific type (income/expense) is selected for view, use that for the form.
+    if (tabSelection === "income" || tabSelection === "expense" || tabSelection === "transfer") {
+      setFormTransactionType(tabSelection);
+    } else {
+      setFormTransactionType("expense"); // Default for new transaction when view is "all"
+    }
+    setIsNewTransactionOpen(true);
+  };
   
   return (
     <Shell>
@@ -35,62 +57,67 @@ export default function TransactionsPage() {
           <div className="grid w-full grid-cols-3 gap-1 bg-muted rounded-md p-1 mb-3">
             <Button 
               variant={activeTab === "all" ? "default" : "ghost"}
-              className="flex items-center justify-center py-6"
+              className="flex items-center justify-center py-3 sm:py-6 text-xs sm:text-sm"
               onClick={() => setActiveTab("all")}
             >
-              <CreditCard className="mr-2 h-4 w-4" />
+              <CreditCard className="mr-1 sm:mr-2 h-4 w-4" />
               <span>Todas</span>
             </Button>
             <Button 
               variant={activeTab === "income" ? "default" : "ghost"}
-              className="flex items-center justify-center py-6 bg-green-100 text-green-800 hover:bg-green-200 data-[state=default]:bg-green-600 data-[state=default]:text-white"
+              className={cn(
+                "flex items-center justify-center py-3 sm:py-6 text-xs sm:text-sm",
+                "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-800/30 dark:text-green-300 dark:hover:bg-green-700/40",
+                activeTab === "income" && "bg-green-600 text-white dark:bg-green-600 dark:text-white"
+              )}
               onClick={() => setActiveTab("income")}
             >
-              <ArrowUpCircle className="mr-2 h-4 w-4" />
+              <ArrowUpCircle className="mr-1 sm:mr-2 h-4 w-4" />
               <span>Ingresos</span>
             </Button>
             <Button 
               variant={activeTab === "expense" ? "default" : "ghost"}
-              className="flex items-center justify-center py-6 bg-red-100 text-red-800 hover:bg-red-200 data-[state=default]:bg-red-600 data-[state=default]:text-white"
+              className={cn(
+                "flex items-center justify-center py-3 sm:py-6 text-xs sm:text-sm",
+                "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-800/30 dark:text-red-300 dark:hover:bg-red-700/40",
+                activeTab === "expense" && "bg-red-600 text-white dark:bg-red-600 dark:text-white"
+              )}
               onClick={() => setActiveTab("expense")}
             >
-              <ArrowDownCircle className="mr-2 h-4 w-4" />
+              <ArrowDownCircle className="mr-1 sm:mr-2 h-4 w-4" />
               <span>Gastos</span>
             </Button>
           </div>
           
           <Button 
-            onClick={() => {
-              setIsNewTransactionOpen(true);
-            }}
+            onClick={() => handleOpenNewTransactionDialog(activeTab)}
             size="lg"
-            className={activeTab === "income" 
-              ? "bg-green-600 hover:bg-green-700 self-center w-2/3" 
-              : activeTab === "expense" 
-              ? "bg-red-600 hover:bg-red-700 self-center w-2/3" 
-              : "self-center w-2/3"
-            }
+            className={cn(
+                "self-center w-full sm:w-2/3 md:w-1/2 lg:w-1/3",
+                formTransactionType === "income" && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800",
+                formTransactionType === "expense" && "bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
+                // Default color will apply if neither income nor expense (e.g. if formTransactionType could be 'transfer')
+            )}
           >
             <Plus className="h-5 w-5 mr-2" />
             <span>
-              {activeTab === "income" ? "Nuevo Ingreso" : 
-               activeTab === "expense" ? "Nuevo Gasto" : 
+              {formTransactionType === "income" ? "Nuevo Ingreso" :
+               formTransactionType === "expense" ? "Nuevo Gasto" :
                "Nueva Transacción"}
             </span>
           </Button>
         </div>
         
-        {activeTab === "all" && <TransactionList transactionType="all" />}
-        {activeTab === "income" && <TransactionList transactionType="income" />}
-        {activeTab === "expense" && <TransactionList transactionType="expense" />}
+        <TransactionList transactionType={activeTab} />
+
       </div>
       
       <Dialog open={isNewTransactionOpen} onOpenChange={setIsNewTransactionOpen}>
         <DialogContent className="md:max-w-2xl max-h-screen overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Nueva {activeTab === "income" ? "Ingreso" : 
-                     activeTab === "expense" ? "Gasto" : 
+              Nueva {formTransactionType === "income" ? "Ingreso" :
+                     formTransactionType === "expense" ? "Gasto" :
                      "Transacción"}
             </DialogTitle>
             <DialogDescription>
@@ -98,10 +125,12 @@ export default function TransactionsPage() {
             </DialogDescription>
           </DialogHeader>
           <TransactionForm 
-            onSuccess={() => setIsNewTransactionOpen(false)}
-            defaultValues={{
-              transactionTypeId: activeTab === "income" ? 1 : activeTab === "expense" ? 2 : undefined
-            }}
+            onSuccess={() => setIsNewTransactionOpen(false)} // Corrected prop name
+            initialTransactionType={formTransactionType} // Pass determined form type
+            defaultValues={{ // Ensure defaultValues matches Partial<TransactionFormValues>
+              transactionTypeId: formTransactionType === "income" ? 1 : formTransactionType === "expense" ? 2 : 3, // 3 for transfer
+              // date: new Date(), // form handles its own date default
+            } as Partial<TransactionFormValues>}
           />
         </DialogContent>
       </Dialog>

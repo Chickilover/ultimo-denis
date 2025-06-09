@@ -196,10 +196,10 @@ export const transactions = pgTable("transactions", {
 
 // Create a more flexible transaction schema with proper transformation
 const baseInsertTransactionSchema = createInsertSchema(transactions, {
-  amount: z.union([z.string(), z.number()]).transform((val) => 
+  amount: z.union([z.string(), z.number()]).transform((val: string | number): string =>
     typeof val === "string" ? val : val.toString()
   ),
-  date: z.union([z.string(), z.date()]).transform((val) => 
+  date: z.union([z.string(), z.date()]).transform((val: string | Date): Date =>
     val instanceof Date ? val : new Date(val)
   )
 }).pick({
@@ -472,3 +472,5 @@ export const insertBalanceTransferSchema = createInsertSchema(balanceTransfers).
 
 export type InsertBalanceTransfer = z.infer<typeof insertBalanceTransferSchema>;
 export type BalanceTransfer = typeof balanceTransfers.$inferSelect;
+
+[filepath_message_boundary_]
