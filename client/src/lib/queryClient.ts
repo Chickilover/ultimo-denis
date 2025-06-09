@@ -1,15 +1,13 @@
-import { QueryClient, QueryFunction, type QueryKey } from "@tanstack/react-query"; // Added QueryKey type
+import { QueryClient, QueryFunction, type QueryFunctionContext, type QueryKey } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     let errorText = res.statusText;
     try {
-      // Attempt to parse error response as JSON for more detailed messages
       const errorData = await res.json();
       if (errorData && errorData.message) {
         errorText = errorData.message;
       } else if (errorData && errorData.error) {
-        // Handle cases where error might be a string or an object with an error field
         if (typeof errorData.error === 'string') {
           errorText = errorData.error;
         } else if (errorData.error.message && typeof errorData.error.message === 'string') {
@@ -17,23 +15,21 @@ async function throwIfResNotOk(res: Response) {
         }
       }
     } catch (e) {
-      // If JSON parsing fails, fallback to text or statusText
       try {
         errorText = (await res.text()) || res.statusText;
       } catch (textError) {
-        // If reading text also fails, just use statusText
-        // This can happen if the response is already consumed or is a network error object
+        // Fallback
       }
     }
     throw new Error(`${res.status}: ${errorText}`);
   }
 }
 
-export async function apiRequest<T = void>( // Made generic with default T = void
+export async function apiRequest<T = void>(
   method: string,
   url: string,
   data?: unknown | undefined,
-): Promise<T> { // Return type is now Promise<T>
+): Promise<T> {
   const res = await fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
@@ -43,40 +39,31 @@ export async function apiRequest<T = void>( // Made generic with default T = voi
 
   await throwIfResNotOk(res);
 
-  // Handle different response types based on T and actual response
   if (res.status === 204 || res.headers.get("Content-Length") === "0") {
-    // If T is void (or can be undefined), and response is empty, return undefined.
-    // This cast is necessary because T could be something other than void.
-    // It's up to the caller to ensure T matches the expected API response.
     return undefined as T;
   }
 
   try {
-    // Attempt to parse JSON, assuming T is the type of the JSON body.
     return (await res.json()) as T;
   } catch (e) {
-    // If res.json() fails (e.g., if content was not valid JSON but not truly empty)
-    // this indicates a mismatch between expected and actual response.
     console.error("Failed to parse JSON response from API:", url, e);
-    // Rethrow a more specific error or handle based on T if T could be non-JSON.
-    // For now, we assume if not 204/empty, JSON is expected.
     throw new Error(`Failed to parse JSON response from API: ${url}`);
   }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
 
-// getQueryFn needs to be compatible with QueryFunction<T, QueryKey>
-// QueryFunction<T = unknown, TQueryKey extends QueryKey = QueryKey, TPageParam = never> = (context: QueryFunctionContext<TQueryKey, TPageParam>) => T | Promise<T>;
-// So, getQueryFn should return a function that matches this.
-export const getQueryFn: <TData = unknown, TQueryKey extends QueryKey = QueryKey>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<TData | null, TQueryKey> = // Return TData | null
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => { // queryKey is part of QueryFunctionContext
-    // Construct the URL from queryKey. Assuming queryKey[0] is the base URL
-    // and queryKey[1] (if it exists and is an object) contains query parameters.
+// TQueryFnData is the type of data that the queryFn is expected to return.
+// TQueryKeyExt is the type of the query key, extending QueryKey.
+export const getQueryFn = <TQueryFnData = unknown, TQueryKeyExt extends QueryKey = QueryKey>(
+  options: { on401: UnauthorizedBehavior }
+): QueryFunction<TQueryFnData | null, TQueryKeyExt> => {
+  // The returned function is the actual QueryFunction
+  return async (context: QueryFunctionContext<TQueryKeyExt>): Promise<TQueryFnData | null> => {
+    const { queryKey } = context;
     let url = queryKey[0] as string;
+
+    // Handle query parameters if they exist in the queryKey (common pattern)
     if (queryKey.length > 1 && typeof queryKey[1] === 'object' && queryKey[1] !== null) {
       const params = new URLSearchParams(queryKey[1] as Record<string, string>).toString();
       if (params) {
@@ -86,40 +73,37 @@ export const getQueryFn: <TData = unknown, TQueryKey extends QueryKey = QueryKey
 
     const res = await fetch(url, {
       credentials: "include",
+      signal: context.signal, // Pass down AbortSignal
     });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null; // Return null as TData | null
+    if (options.on401 === "returnNull" && res.status === 401) {
+      return null;
     }
 
     await throwIfResNotOk(res);
 
     if (res.status === 204 || res.headers.get("Content-Length") === "0") {
-      // If TData can be null or undefined, this is fine.
-      // If TData is expected to be something, this might lead to issues if not handled by caller.
-      // Given on401 can return null, allowing null here for empty successful responses seems consistent.
-      return null; // Or undefined as TData, but null is more explicit for "no data"
+      return null;
     }
 
     try {
-      return await res.json() as TData;
+      return await res.json() as TQueryFnData;
     } catch (e) {
       console.error("Failed to parse JSON in getQueryFn:", url, e);
       throw new Error(`Failed to parse JSON response in getQueryFn from API: ${url}`);
     }
   };
+};
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // The default queryFn must be compatible.
-      // We cast getQueryFn to any here to satisfy the defaultOptions structure,
-      // as the generic T isn't known at this point of default assignment.
-      // Individual useQuery calls should specify their expected T.
-      queryFn: getQueryFn({ on401: "throw" }) as any,
+      // Provide a correctly typed default queryFn, or leave it undefined if specific functions are always provided.
+      // Casting to QueryFunction is okay if you ensure individual useQuery calls are correctly typed.
+      queryFn: getQueryFn({ on401: "throw" }) as QueryFunction,
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity, // Consider changing this for more dynamic data
+      staleTime: Infinity,
       retry: false,
     },
     mutations: {
@@ -127,3 +111,378 @@ export const queryClient = new QueryClient({
     },
   },
 });
+shared/schema.ts
+import { pgTable, text, serial, integer, boolean, timestamp, numeric, date, varchar, jsonb, index, type AnyPgColumn } from "drizzle-orm/pg-core";
+
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  name: text("name").notNull(),
+  avatar: text("avatar"),
+  avatarColor: text("avatar_color").default("#6366f1"),
+  incomeColor: text("income_color").default("#10b981"),
+  expenseColor: text("expense_color").default("#ef4444"),
+  isAdmin: boolean("is_admin").notNull().default(false),
+  householdId: integer("household_id"),
+  personalBalance: numeric("personal_balance").notNull().default("0"),
+  familyBalance: numeric("family_balance").notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const households = pgTable("households", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  createdByUserId: integer("created_by_user_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertHouseholdSchema = createInsertSchema(households).pick({
+  name: true,
+  createdByUserId: true,
+});
+
+export type InsertHousehold = z.infer<typeof insertHouseholdSchema>;
+export type Household = typeof households.$inferSelect;
+
+export const householdInvitations = pgTable("household_invitations", {
+  id: serial("id").primaryKey(),
+  householdId: integer("household_id").references(() => households.id).notNull(),
+  invitedByUserId: integer("invited_by_user_id").references(() => users.id).notNull(),
+  invitedUsername: text("invited_username").notNull(),
+  invitedUserId: integer("invited_user_id").references(() => users.id),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export const insertHouseholdInvitationSchema = createInsertSchema(householdInvitations).pick({
+  householdId: true,
+  invitedByUserId: true,
+  invitedUsername: true,
+  expiresAt: true,
+});
+
+export type InsertHouseholdInvitation = z.infer<typeof insertHouseholdInvitationSchema>;
+export type HouseholdInvitation = typeof householdInvitations.$inferSelect;
+
+const baseUserSchema = createInsertSchema(users).pick({
+  username: true, email: true, password: true, name: true, isAdmin: true, householdId: true,
+});
+
+export const insertUserSchema = baseUserSchema.extend({
+  invitationCode: z.string().optional(),
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+export const accountTypes = pgTable("account_types", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+});
+
+export const accounts = pgTable("accounts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  name: text("name").notNull(),
+  accountTypeId: integer("account_type_id").references(() => accountTypes.id).notNull(),
+  initialBalance: numeric("initial_balance").notNull().default("0"),
+  currentBalance: numeric("current_balance").notNull().default("0"),
+  currency: text("currency").notNull().default("UYU"),
+  isShared: boolean("is_shared").notNull().default(false),
+  institution: text("institution"),
+  accountNumber: text("account_number"),
+  closingDay: integer("closing_day"),
+  dueDay: integer("due_day"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAccountSchema = createInsertSchema(accounts).pick({
+  userId: true, name: true, accountTypeId: true, initialBalance: true, currentBalance: true,
+  currency: true, isShared: true, institution: true, accountNumber: true, closingDay: true, dueDay: true,
+});
+
+export type InsertAccount = z.infer<typeof insertAccountSchema>;
+export type Account = typeof accounts.$inferSelect;
+
+export const categories = pgTable("categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  icon: text("icon").notNull(),
+  color: text("color").notNull(),
+  isIncome: boolean("is_income").notNull().default(false),
+  isSystem: boolean("is_system").notNull().default(false),
+  parentId: integer("parent_id").references((): AnyPgColumn => categories.id),
+});
+
+export const insertCategorySchema = createInsertSchema(categories, {
+  // Example: if 'name' needed specific Zod validation not covered by DB schema for insert
+  // name: z.string().min(3, { message: "Category name must be at least 3 characters" }),
+}).pick({ // Pick only fields that should be user-insertable
+  name: true, icon: true, color: true, isIncome: true, parentId: true,
+  // isSystem is typically not set by user, defaults to false
+});
+
+export type InsertCategory = z.infer<typeof insertCategorySchema>;
+export type Category = typeof categories.$inferSelect;
+
+export const tags = pgTable("tags", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  userId: integer("user_id").references(() => users.id), // Can be null for system tags
+  isSystem: boolean("is_system").notNull().default(false),
+});
+
+export const insertTagSchema = createInsertSchema(tags).pick({ name: true, userId: true }); // isSystem defaults to false
+export type InsertTag = z.infer<typeof insertTagSchema>;
+export type Tag = typeof tags.$inferSelect;
+
+export const transactionTypes = pgTable("transaction_types", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+});
+
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  accountId: integer("account_id").references(() => accounts.id),
+  categoryId: integer("category_id").references(() => categories.id).notNull(),
+  transactionTypeId: integer("transaction_type_id").references(() => transactionTypes.id).notNull(),
+  amount: numeric("amount").notNull(),
+  currency: text("currency").notNull().default("UYU"),
+  description: text("description").notNull(),
+  date: date("date").notNull(),
+  time: text("time"),
+  isShared: boolean("is_shared").notNull().default(false),
+  isReconciled: boolean("is_reconciled").notNull().default(false),
+  isReimbursable: boolean("is_reimbursable").notNull().default(false),
+  isReimbursed: boolean("is_reimbursed").notNull().default(false),
+  notes: text("notes"),
+  receiptUrl: text("receipt_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+const baseInsertTransactionSchema = createInsertSchema(transactions, {
+  amount: z.union([z.string(), z.number()]).transform((val: string | number): string =>
+    typeof val === "string" ? val : val.toString()
+  ),
+  date: z.union([z.string(), z.date()]).transform((val: string | Date): Date =>
+    val instanceof Date ? val : new Date(val)
+  )
+}).pick({
+  userId: true, accountId: true, categoryId: true, transactionTypeId: true, amount: true, currency: true,
+  description: true, date: true, time: true, isShared: true, isReconciled: true, isReimbursable: true,
+  isReimbursed: true, notes: true, receiptUrl: true,
+});
+
+export const insertTransactionSchema = baseInsertTransactionSchema.extend({
+  accountId: z.number().int().positive().nullish(),
+  notes: z.string().optional().nullable(),
+  receiptUrl: z.string().url().optional().nullable(),
+  time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Formato de hora inválido (HH:MM)").optional().nullable(),
+});
+
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type Transaction = typeof transactions.$inferSelect;
+
+export const transactionTags = pgTable("transaction_tags", {
+  id: serial("id").primaryKey(),
+  transactionId: integer("transaction_id").references(() => transactions.id, { onDelete: 'cascade' }).notNull(),
+  tagId: integer("tag_id").references(() => tags.id, { onDelete: 'cascade' }).notNull(),
+});
+
+export const insertTransactionTagSchema = createInsertSchema(transactionTags).pick({
+  transactionId: true, tagId: true,
+});
+export type InsertTransactionTag = z.infer<typeof insertTransactionTagSchema>;
+export type TransactionTag = typeof transactionTags.$inferSelect;
+
+export const transactionSplits = pgTable("transaction_splits", {
+  id: serial("id").primaryKey(),
+  transactionId: integer("transaction_id").references(() => transactions.id, { onDelete: 'cascade' }).notNull(),
+  categoryId: integer("category_id").references(() => categories.id).notNull(),
+  amount: numeric("amount").notNull(),
+  description: text("description"),
+});
+
+export const insertTransactionSplitSchema = createInsertSchema(transactionSplits).pick({
+  transactionId: true, categoryId: true, amount: true, description: true,
+});
+export type InsertTransactionSplit = z.infer<typeof insertTransactionSplitSchema>;
+export type TransactionSplit = typeof transactionSplits.$inferSelect;
+
+export const recurringTransactions = pgTable("recurring_transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  accountId: integer("account_id").references(() => accounts.id).notNull(),
+  categoryId: integer("category_id").references(() => categories.id).notNull(),
+  transactionTypeId: integer("transaction_type_id").references(() => transactionTypes.id).notNull(),
+  amount: numeric("amount").notNull(),
+  currency: text("currency").notNull().default("UYU"),
+  description: text("description").notNull(),
+  frequency: text("frequency").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date"),
+  nextDueDate: date("next_due_date").notNull(),
+  isShared: boolean("is_shared").notNull().default(false),
+  isActive: boolean("is_active").notNull().default(true),
+  reminderDays: integer("reminder_days").default(1),
+});
+
+export const insertRecurringTransactionSchema = createInsertSchema(recurringTransactions).pick({
+  userId: true, accountId: true, categoryId: true, transactionTypeId: true, amount: true, currency: true,
+  description: true, frequency: true, startDate: true, endDate: true, nextDueDate: true, isShared: true, reminderDays: true,
+});
+export type InsertRecurringTransaction = z.infer<typeof insertRecurringTransactionSchema>;
+export type RecurringTransaction = typeof recurringTransactions.$inferSelect;
+
+export const budgets = pgTable("budgets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  categoryId: integer("category_id").references(() => categories.id).notNull(),
+  name: text("name").notNull(),
+  amount: numeric("amount").notNull(),
+  currency: text("currency").notNull().default("UYU"),
+  period: text("period").notNull().default("monthly"),
+  isRollover: boolean("is_rollover").notNull().default(false),
+  isShared: boolean("is_shared").notNull().default(false),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date"),
+  paymentType: text("payment_type").default("one-time"),
+  paymentDay: integer("payment_day"),
+  installments: integer("installments"),
+  status: text("status").notNull().default("pending"),
+  approvalCount: integer("approval_count").default(0),
+  rejectionCount: integer("rejection_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBudgetSchema = createInsertSchema(budgets).pick({
+  userId: true, categoryId: true, name: true, amount: true, currency: true, period: true, isRollover: true,
+  isShared: true, startDate: true, endDate: true, paymentType: true, paymentDay: true, installments: true,
+  status: true, approvalCount: true, rejectionCount: true,
+});
+export type InsertBudget = z.infer<typeof insertBudgetSchema>;
+export type Budget = typeof budgets.$inferSelect;
+
+export const savingsGoals = pgTable("savings_goals", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  name: text("name").notNull(),
+  targetAmount: numeric("target_amount").notNull(),
+  currentAmount: numeric("current_amount").notNull().default("0"),
+  currency: text("currency").notNull().default("UYU"),
+  deadline: date("deadline"),
+  isShared: boolean("is_shared").notNull().default(false),
+  accountId: integer("account_id").references(() => accounts.id),
+  icon: text("icon"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSavingsGoalSchema = createInsertSchema(savingsGoals, {
+    deadline: z.preprocess((arg) => {
+      if (typeof arg === "string" || arg instanceof Date) return new Date(arg);
+      return null; // or undefined, or throw error if required
+    }, z.date().nullable().optional()),
+}).pick({
+  userId: true, name: true, targetAmount: true, currentAmount: true, currency: true, deadline: true,
+  isShared: true, accountId: true, icon: true,
+});
+export type InsertSavingsGoal = z.infer<typeof insertSavingsGoalSchema>;
+export type SavingsGoal = typeof savingsGoals.$inferSelect;
+
+export const savingsContributions = pgTable("savings_contributions", {
+  id: serial("id").primaryKey(),
+  savingsGoalId: integer("savings_goal_id").references(() => savingsGoals.id, { onDelete: 'cascade' }).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  amount: numeric("amount").notNull(),
+  date: date("date").notNull(),
+  transactionId: integer("transaction_id").references(() => transactions.id, { onDelete: 'set null' }),
+  notes: text("notes"),
+});
+
+export const insertSavingsContributionSchema = createInsertSchema(savingsContributions, {
+    date: z.preprocess((arg) => {
+      if (typeof arg === "string" || arg instanceof Date) return new Date(arg);
+      // Consider how to handle invalid date inputs if necessary
+    }, z.date())
+}).pick({
+  savingsGoalId: true, userId: true, amount: true, date: true, transactionId: true, notes: true,
+});
+export type InsertSavingsContribution = z.infer<typeof insertSavingsContributionSchema>;
+export type SavingsContribution = typeof savingsContributions.$inferSelect;
+
+export const familyMembers = pgTable("family_members", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  name: text("name").notNull(),
+  email: text("email"),
+  relationship: text("relationship").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  canAccess: boolean("can_access").notNull().default(false),
+  avatarUrl: text("avatar_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertFamilyMemberSchema = createInsertSchema(familyMembers).pick({
+  userId: true, name: true, email: true, relationship: true, isActive: true, canAccess: true, avatarUrl: true,
+});
+export type InsertFamilyMember = z.infer<typeof insertFamilyMemberSchema>;
+export type FamilyMember = typeof familyMembers.$inferSelect;
+
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull().unique(),
+  defaultCurrency: text("default_currency").notNull().default("UYU"),
+  theme: text("theme").notNull().default("light"),
+  language: text("language").notNull().default("es"),
+  exchangeRate: numeric("exchange_rate").default("40.0"),
+  lastExchangeRateUpdate: timestamp("last_exchange_rate_update"),
+});
+
+export const insertSettingsSchema = createInsertSchema(settings, {
+    lastExchangeRateUpdate: z.preprocess((arg) => {
+        if (typeof arg === "string" || arg instanceof Date) return new Date(arg);
+        return null;
+    }, z.date().nullable().optional())
+}).pick({
+  userId: true, defaultCurrency: true, theme: true, language: true, exchangeRate: true, lastExchangeRateUpdate: true,
+});
+export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+export type Settings = typeof settings.$inferSelect;
+
+export const balanceTransfers = pgTable("balance_transfers", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  fromPersonal: boolean("from_personal").notNull(),
+  amount: numeric("amount").notNull(),
+  currency: text("currency").notNull().default("UYU"),
+  description: text("description"),
+  date: date("date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBalanceTransferSchema = createInsertSchema(balanceTransfers, {
+    date: z.preprocess((arg) => {
+      if (typeof arg === "string" || arg instanceof Date) return new Date(arg);
+    }, z.date())
+}).pick({
+  userId: true, fromPersonal: true, amount: true, currency: true, description: true, date: true,
+});
+export type InsertBalanceTransfer = z.infer<typeof insertBalanceTransferSchema>;
+export type BalanceTransfer = typeof balanceTransfers.$inferSelect;

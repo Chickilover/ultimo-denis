@@ -17,30 +17,32 @@ import {
   ArrowDownCircle, 
   Plus
 } from "lucide-react";
-import { cn } from "@/lib/utils"; // Import cn utility
+import { cn } from "@/lib/utils";
 import type { z } from "zod";
-import type { formTransactionSchema } from "@/schemas/transaction-schema";
+// Assuming formTransactionSchema is the one used to define TransactionFormValues in transaction-form.tsx
+import type { formTransactionSchema as baseFormTransactionSchema } from "@/schemas/transaction-schema";
 
-// Infer type from schema for defaultValues
-type TransactionFormValues = z.infer<typeof formTransactionSchema>;
+type TransactionFormValues = z.infer<typeof baseFormTransactionSchema>;
 type ActiveTransactionType = "all" | "income" | "expense" | "transfer";
 
 
 export default function TransactionsPage() {
   const [isNewTransactionOpen, setIsNewTransactionOpen] = useState(false);
+  // activeTab is for filtering the list displayed on this page
   const [activeTab, setActiveTab] = useState<ActiveTransactionType>("all");
 
-  // This state will determine the type of transaction for the new form
+  // formTransactionType determines the initial state of the TransactionForm when opened
   const [formTransactionType, setFormTransactionType] = useState<'income' | 'expense' | 'transfer'>('expense');
 
-  const handleOpenNewTransactionDialog = (tabSelection: ActiveTransactionType) => {
-    setActiveTab(tabSelection); // This sets the filter for the list view
-    // For the form, default to 'expense' if 'all' or 'transfer' is selected for the view.
-    // Or, if a specific type (income/expense) is selected for view, use that for the form.
-    if (tabSelection === "income" || tabSelection === "expense" || tabSelection === "transfer") {
-      setFormTransactionType(tabSelection);
+  const handleOpenNewTransactionDialog = (currentViewTab: ActiveTransactionType) => {
+    // Set the activeTab for the list view (if it's different, though usually triggered by tab buttons)
+    setActiveTab(currentViewTab);
+
+    // Determine the type for the new transaction form
+    if (currentViewTab === "income" || currentViewTab === "expense" || currentViewTab === "transfer") {
+      setFormTransactionType(currentViewTab);
     } else {
-      setFormTransactionType("expense"); // Default for new transaction when view is "all"
+      setFormTransactionType("expense"); // Default to 'expense' if current view is 'all'
     }
     setIsNewTransactionOpen(true);
   };
@@ -68,7 +70,7 @@ export default function TransactionsPage() {
               className={cn(
                 "flex items-center justify-center py-3 sm:py-6 text-xs sm:text-sm",
                 "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-800/30 dark:text-green-300 dark:hover:bg-green-700/40",
-                activeTab === "income" && "bg-green-600 text-white dark:bg-green-600 dark:text-white"
+                activeTab === "income" && "bg-green-600 text-white dark:bg-green-600 dark:text-white" // This is data-state=active equivalent
               )}
               onClick={() => setActiveTab("income")}
             >
@@ -80,7 +82,7 @@ export default function TransactionsPage() {
               className={cn(
                 "flex items-center justify-center py-3 sm:py-6 text-xs sm:text-sm",
                 "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-800/30 dark:text-red-300 dark:hover:bg-red-700/40",
-                activeTab === "expense" && "bg-red-600 text-white dark:bg-red-600 dark:text-white"
+                activeTab === "expense" && "bg-red-600 text-white dark:bg-red-600 dark:text-white" // This is data-state=active equivalent
               )}
               onClick={() => setActiveTab("expense")}
             >
@@ -94,15 +96,17 @@ export default function TransactionsPage() {
             size="lg"
             className={cn(
                 "self-center w-full sm:w-2/3 md:w-1/2 lg:w-1/3",
-                formTransactionType === "income" && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800",
-                formTransactionType === "expense" && "bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
-                // Default color will apply if neither income nor expense (e.g. if formTransactionType could be 'transfer')
+                // Button color based on the type of form that will open
+                formTransactionType === "income" && activeTab === "income" && "bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800",
+                formTransactionType === "expense" && activeTab === "expense" && "bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800",
+                // Default color if tab is 'all' or 'transfer'
+                (activeTab === "all" || activeTab === "transfer") && "bg-primary hover:bg-primary/90"
             )}
           >
             <Plus className="h-5 w-5 mr-2" />
             <span>
-              {formTransactionType === "income" ? "Nuevo Ingreso" :
-               formTransactionType === "expense" ? "Nuevo Gasto" :
+              {activeTab === "income" ? "Nuevo Ingreso" :
+               activeTab === "expense" ? "Nuevo Gasto" :
                "Nueva Transacción"}
             </span>
           </Button>
@@ -118,19 +122,20 @@ export default function TransactionsPage() {
             <DialogTitle>
               Nueva {formTransactionType === "income" ? "Ingreso" :
                      formTransactionType === "expense" ? "Gasto" :
-                     "Transacción"}
+                     "Transferencia"} {/* Assuming transfer might be an option */}
             </DialogTitle>
             <DialogDescription>
               Agrega una nueva transacción a tu registro financiero
             </DialogDescription>
           </DialogHeader>
           <TransactionForm 
-            onSuccess={() => setIsNewTransactionOpen(false)} // Corrected prop name
-            initialTransactionType={formTransactionType} // Pass determined form type
-            defaultValues={{ // Ensure defaultValues matches Partial<TransactionFormValues>
+            onSuccess={() => setIsNewTransactionOpen(false)}
+            initialTransactionType={formTransactionType}
+            defaultValues={{ // This provides initial values to the form
               transactionTypeId: formTransactionType === "income" ? 1 : formTransactionType === "expense" ? 2 : 3, // 3 for transfer
-              // date: new Date(), // form handles its own date default
-            } as Partial<TransactionFormValues>}
+              // date: new Date(), // The form itself defaults date to new Date()
+              // currency: "UYU", // The form itself defaults currency
+            } as Partial<TransactionFormValues>} // Cast to ensure compatibility
           />
         </DialogContent>
       </Dialog>

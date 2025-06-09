@@ -35,26 +35,16 @@ interface MonthlyChartData {
 }
 
 export default function HomePage() {
-  const { user } = useAuth(); // user is of type User | null | undefined from useAuth
+  const { user } = useAuth();
   const { formatCurrency } = useCurrency();
   const [chartPeriod, setChartPeriod] = useState("6months");
   
-  // Obtener transacciones reales
   const { data: transactionsData = [], isLoading: transactionsLoading, error: transactionsError } = useQuery<Transaction[], Error, Transaction[], QueryKey>({
-    queryKey: ["/api/transactions"], // QueryKey type will infer this as string[]
+    queryKey: ["/api/transactions"],
     queryFn: getQueryFn({ on401: "throw" }),
-    initialData: [], // Ensure transactionsData is always an array
+    initialData: [],
   });
-
-  // Note: Categories are not directly fetched in home-page.tsx but likely in ExpenseChart or other children.
-  // If they were fetched here, it would look like:
-  // const { data: categoriesData = [] } = useQuery<Category[], Error>({
-  //   queryKey: ["/api/categories"],
-  //   queryFn: getQueryFn({ on401: "throw" }),
-  //   initialData: [],
-  // });
   
-  // Preparar datos para el gráfico basados en transacciones reales
   const generateMonthlyData = (months: number): MonthlyChartData[] => {
     const data: MonthlyChartData[] = [];
     const today = new Date();
@@ -72,7 +62,7 @@ export default function HomePage() {
       }
       
       data.push({
-        month: `${monthNames[month]} ${year !== currentYear ? year.toString().slice(-2) : ""}`.trim(), // e.g., "Ene", "Dic 23"
+        month: `${monthNames[month]} ${year !== currentYear ? year.toString().slice(-2) : ""}`.trim(),
         monthIndex: month,
         year: year,
         ingresos: 0,
@@ -81,7 +71,7 @@ export default function HomePage() {
     }
     
     transactionsData.forEach((transaction: Transaction) => {
-      const transactionDate = new Date(transaction.date); // transaction.date is string | Date
+      const transactionDate = new Date(transaction.date);
       const transactionMonth = transactionDate.getMonth();
       const transactionYear = transactionDate.getFullYear();
       
@@ -90,10 +80,10 @@ export default function HomePage() {
       );
       
       if (monthItem) {
-        const amount = parseFloat(transaction.amount); // transaction.amount is string
-        if (transaction.transactionTypeId === 1) { // Ingreso
+        const amount = parseFloat(transaction.amount);
+        if (transaction.transactionTypeId === 1) {
           monthItem.ingresos += amount;
-        } else if (transaction.transactionTypeId === 2) { // Gasto
+        } else if (transaction.transactionTypeId === 2) {
           monthItem.gastos += amount;
         }
       }
@@ -106,13 +96,12 @@ export default function HomePage() {
   
   useEffect(() => {
     const months = chartPeriod === "6months" ? 6 : chartPeriod === "12months" ? 12 : 3;
-    if (transactionsData.length > 0 || !transactionsLoading) { // Generate data if transactions loaded or finished loading (even if empty)
+    if (transactionsData.length > 0 || !transactionsLoading) {
         setChartData(generateMonthlyData(months));
     }
-  }, [chartPeriod, transactionsData, transactionsLoading]); // Add transactionsLoading to dependencies
+  }, [chartPeriod, transactionsData, transactionsLoading]);
   
   if (transactionsLoading) {
-    // TODO: Add a proper loading skeleton or spinner for the whole page or relevant sections
     return <Shell>Cargando datos del dashboard...</Shell>;
   }
 
@@ -145,7 +134,6 @@ export default function HomePage() {
         </div>
         
         <div className="mt-6">
-          {/* FinancialSummary might use transactions internally or via context */}
           <FinancialSummary />
         </div>
         
@@ -154,7 +142,6 @@ export default function HomePage() {
             <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-border/30">
               <CardTitle className="text-lg font-bold flex items-center">
                 <span className="bg-secondary/10 p-1.5 rounded-lg mr-2 flex-shrink-0">
-                  {/* Using Plus as a placeholder icon, consider changing if another fits better */}
                   <LineChart className="h-5 w-5 text-secondary" />
                 </span>
                 Evolución Mensual
@@ -183,7 +170,7 @@ export default function HomePage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="month" stroke="hsl(var(--foreground))" />
                     <YAxis 
-                      tickFormatter={(value) => formatCurrency(value).split(",")[0]} // Assuming formatCurrency handles number
+                      tickFormatter={(value) => formatCurrency(value).split(",")[0]}
                       stroke="hsl(var(--foreground))"
                     />
                     <RechartsTooltip 
@@ -207,14 +194,11 @@ export default function HomePage() {
         </div>
         
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* ExpenseChart likely fetches its own data or receives it via context/props */}
-          {/* If it needs transactionsData or categoriesData, pass them here */}
-          <ExpenseChart transactions={transactionsData} />
+          <ExpenseChart />
           <BudgetProgress />
         </div>
         
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Pass typed transactionsData to RecentTransactions */}
           <RecentTransactions transactions={transactionsData} />
           <SavingsGoals />
         </div>

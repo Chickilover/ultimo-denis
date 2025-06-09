@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, type QueryKey } from "@tanstack/react-query"; // Import QueryKey
+import { useQuery } from "@tanstack/react-query"; // QueryKey typically not needed for direct import unless used as a type elsewhere explicitly
 import { getQueryFn } from "@/lib/queryClient";
 import { useCurrency } from "@/hooks/use-currency";
 import { CategoryIcon } from "@/components/ui/category-icon";
@@ -11,9 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as RechartsTooltip } from "recharts"; // Renamed Tooltip to avoid conflict if any
-import type { Transaction, Category } from "@shared/schema"; // Import types
-import { Loader2 } from "lucide-react"; // For loading state
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as RechartsTooltip } from "recharts";
+import type { Transaction, Category } from "@shared/schema";
+import { Loader2 } from "lucide-react";
 
 // Helper function to get date range for the selected period
 function getDateRange(period: string): { startDate: string; endDate: string } {
@@ -23,7 +23,6 @@ function getDateRange(period: string): { startDate: string; endDate: string } {
   if (period === "month") {
     startDate = new Date(today.getFullYear(), today.getMonth(), 1);
   } else if (period === "quarter") {
-    // Correctly calculate start of quarter (e.g., current month is June (5), quarter started in April (3))
     const currentQuarter = Math.floor(today.getMonth() / 3);
     startDate = new Date(today.getFullYear(), currentQuarter * 3, 1);
   } else if (period === "year") {
@@ -36,58 +35,53 @@ function getDateRange(period: string): { startDate: string; endDate: string } {
   };
 }
 
-// Define the structure for processed chart data items
 interface ChartDataItem {
   name: string;
-  value: number; // Total expense amount for this category
+  value: number;
   color: string;
-  icon: string | null; // Icon name from category data
+  icon: string | null;
   percentage: number;
 }
 
+const categoriesQueryKey = ["/api/categories"] as const;
+
 export function ExpenseChart() {
   const [period, setPeriod] = useState("month");
-  const { formatCurrency } = useCurrency(); // defaultCurrency not used directly here
+  const { formatCurrency } = useCurrency();
   const dateRange = getDateRange(period);
   
-  const { data: categoriesData = [], isLoading: categoriesLoading, isError: categoriesError } = useQuery<Category[], Error, Category[], QueryKey>({
-    queryKey: ["/api/categories"],
+  const { data: categoriesData = [], isLoading: categoriesLoading, isError: categoriesError } = useQuery<Category[], Error, Category[], typeof categoriesQueryKey>({
+    queryKey: categoriesQueryKey,
     queryFn: getQueryFn({ on401: "throw" }),
     initialData: [],
   });
   
-  // The queryKey for transactions should be an array that includes all dependencies for the query.
-  // The number 2 is assumed to be the transactionTypeId for expenses.
-  const transactionsQueryKey: QueryKey = ["/api/transactions", {
+  const transactionsQueryKey = ["/api/transactions", {
     startDate: dateRange.startDate,
     endDate: dateRange.endDate,
-    transactionTypeId: '2' // Ensure this is passed as a string if API expects it
-  }];
+    transactionTypeId: '2'
+  }] as const; // Use "as const" for precise queryKey typing
 
-  const { data: transactionsData = [], isLoading: transactionsLoading, isError: transactionsErrorFetch } = useQuery<Transaction[], Error, Transaction[], QueryKey>({
+  const { data: transactionsData = [], isLoading: transactionsLoading, isError: transactionsErrorFetch } = useQuery<Transaction[], Error, Transaction[], typeof transactionsQueryKey>({
     queryKey: transactionsQueryKey,
-    // queryFn needs to correctly use the queryKey if getQueryFn is generic
-    queryFn: ({ queryKey }) => getQueryFn({ on401: "throw" })({ queryKey }),
+    queryFn: getQueryFn({ on401: "throw" }), // Corrected: remove wrapper
     initialData: [],
-    enabled: !!categoriesData && categoriesData.length > 0, // Only fetch if categories are loaded
+    enabled: !!categoriesData && categoriesData.length > 0,
   });
   
   const [chartData, setChartData] = useState<ChartDataItem[]>([]);
   
   useEffect(() => {
     if (transactionsData.length === 0 || categoriesData.length === 0) {
-      setChartData([]); // Clear chart data if no transactions or categories
+      setChartData([]);
       return;
     }
     
-    // Expenses are already filtered by transactionTypeId '2' in the query if that's how API works.
-    // If not, filter here:
-    // const expenses = transactionsData.filter((tx: Transaction) => tx.transactionTypeId === 2);
-    const expenses = transactionsData; // Assuming transactionsData are already expenses
+    const expenses = transactionsData; // Assuming transactionsData are already expenses based on queryKey
 
     const expensesByCategory = expenses.reduce((acc: Record<number, number>, expense: Transaction) => {
       const categoryId = expense.categoryId;
-      const amount = parseFloat(expense.amount); // Amount is string in Transaction schema
+      const amount = parseFloat(expense.amount);
       
       if (!acc[categoryId]) {
         acc[categoryId] = 0;
@@ -102,9 +96,9 @@ export function ExpenseChart() {
       return {
         name: category ? category.name : "Sin categoría",
         value: totalAmount,
-        color: category ? category.color : "#999999", // Default color
-        icon: category ? category.icon : null, // Icon name string
-        percentage: 0, // Will be calculated next
+        color: category ? category.color : "#999999",
+        icon: category ? category.icon : null,
+        percentage: 0,
       };
     });
     
@@ -166,8 +160,8 @@ export function ExpenseChart() {
         </Select>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center"> {/* Added items-center */}
-          <div className="h-52"> {/* Ensure fixed height for chart container */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+          <div className="h-52">
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -177,7 +171,7 @@ export function ExpenseChart() {
                     cy="50%"
                     labelLine={false}
                     outerRadius={70}
-                    innerRadius={30} // Doughnut chart
+                    innerRadius={30}
                     fill="#8884d8"
                     dataKey="value"
                     paddingAngle={2}
@@ -188,7 +182,6 @@ export function ExpenseChart() {
                   </Pie>
                   <RechartsTooltip
                     formatter={(value: number, name: string, props: {payload: ChartDataItem}) => [`${formatCurrency(value)} (${props.payload.percentage}%)`, name]}
-                    labelFormatter={(name: string) => `Categoría: ${name}`} // This might not be shown for Pie charts by default
                     contentStyle={{
                         borderRadius: '8px',
                         boxShadow: '0 4px 12px hsla(var(--shadow-color), 0.1)',
@@ -204,16 +197,16 @@ export function ExpenseChart() {
               </div>
             )}
           </div>
-          <div className="space-y-2 max-h-52 overflow-y-auto pr-2"> {/* Added scroll for legend items */}
+          <div className="space-y-2 max-h-52 overflow-y-auto pr-2">
             {chartData.slice(0, 6).map((item: ChartDataItem, index: number) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center">
                   <CategoryIcon
-                    name={item.name} // Pass name for default icon generation if item.icon is null
+                    name={item.name}
                     icon={item.icon}
                     color={item.color}
                     size="sm"
-                    showEmoji={true} // Assuming CategoryIcon can handle this
+                    showEmoji={true}
                     className="mr-2 flex-shrink-0"
                   />
                   <span className="text-sm text-gray-600 dark:text-gray-300 truncate" title={item.name}>{item.name}</span>
@@ -225,9 +218,9 @@ export function ExpenseChart() {
               <div className="flex items-center justify-between">
                  <div className="flex items-center">
                     <CategoryIcon
-                        name="Otros" // For default icon generation
-                        icon={null} // No specific icon for "Otros"
-                        color="#777777" // Default color for "Otros"
+                        name="Otros"
+                        icon={null}
+                        color="#777777"
                         size="sm"
                         showEmoji={true}
                         className="mr-2 flex-shrink-0"
