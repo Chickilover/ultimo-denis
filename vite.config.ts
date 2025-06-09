@@ -14,10 +14,8 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      // Este alias es para las importaciones dentro del frontend
       "@": path.resolve(__dirname, "client/src"),
-      // Este alias le enseña a Vite a encontrar tu código compartido
-      "@shared": path.resolve(__dirname, "drizzle"),
+      "@shared": path.resolve(__dirname, ".drizzle"), // <-- La corrección clave
     },
   },
 })
