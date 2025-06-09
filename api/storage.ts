@@ -1,11 +1,13 @@
-import { users, accounts, categories, tags, transactions, transactionTags, transactionSplits, recurringTransactions, budgets, savingsGoals, savingsContributions, settings, transactionTypes, accountTypes, familyMembers, balanceTransfers } from "@shared/schema";
-import type { User, InsertUser, Account, InsertAccount, Category, InsertCategory, Tag, InsertTag, Transaction, InsertTransaction, TransactionTag, InsertTransactionTag, TransactionSplit, InsertTransactionSplit, RecurringTransaction, InsertRecurringTransaction, Budget, InsertBudget, SavingsGoal, InsertSavingsGoal, SavingsContribution, InsertSavingsContribution, Settings, InsertSettings, FamilyMember, InsertFamilyMember, BalanceTransfer, InsertBalanceTransfer } from "@shared/schema";
+import { users, accounts, categories, tags, transactions, transactionTags, transactionSplits, recurringTransactions, budgets, savingsGoals, savingsContributions, settings, transactionTypes, accountTypes, familyMembers, balanceTransfers } from "shared/schema";
+import type { User, InsertUser, Account, InsertAccount, Category, InsertCategory, Tag, InsertTag, Transaction, InsertTransaction, TransactionTag, InsertTransactionTag, TransactionSplit, InsertTransactionSplit, RecurringTransaction, InsertRecurringTransaction, Budget, InsertBudget, SavingsGoal, InsertSavingsGoal, SavingsContribution, InsertSavingsContribution, Settings, InsertSettings, FamilyMember, InsertFamilyMember, BalanceTransfer, InsertBalanceTransfer } from "shared/schema";
 import { eq, and, gte, lte, like, isNull, desc, asc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db, pool } from "./db";
+import MemoryStoreFactory from 'memorystore';
 
 const PostgresSessionStore = connectPg(session);
+const MemoryStore = MemoryStoreFactory(session);
 
 // Storage interface
 export interface IStorage {
@@ -105,7 +107,7 @@ export interface IStorage {
   updateUserBalance(userId: number, personalAmount: number, familyAmount: number): Promise<User | undefined>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
@@ -115,17 +117,18 @@ export class MemStorage implements IStorage {
   private categories: Map<number, Category>;
   private tags: Map<number, Tag>;
   private transactions: Map<number, Transaction>;
-  private transactionTags: Map<number, TransactionTag>;
+  private transactionTags: Map<string, TransactionTag>; // Changed key to string for composite keys
   private transactionSplits: Map<number, TransactionSplit>;
   private recurringTransactions: Map<number, RecurringTransaction>;
   private budgets: Map<number, Budget>;
   private savingsGoals: Map<number, SavingsGoal>;
   private savingsContributions: Map<number, SavingsContribution>;
-  private userSettings: Map<number, Settings>;
+  private userSettings: Map<number, Settings>; // Keyed by userId for uniqueness
+  private balanceTransfers: Map<number, BalanceTransfer>;
   private txTypes: Map<number, typeof transactionTypes.$inferSelect>;
   private acctTypes: Map<number, typeof accountTypes.$inferSelect>;
   
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
   currentId: {
     users: number;
     familyMembers: number;
@@ -133,13 +136,14 @@ export class MemStorage implements IStorage {
     categories: number;
     tags: number;
     transactions: number;
-    transactionTags: number;
+    transactionTags: number; // Will use custom logic for ID generation if needed for composite
     transactionSplits: number;
     recurringTransactions: number;
     budgets: number;
     savingsGoals: number;
     savingsContributions: number;
-    settings: number;
+    settings: number; // This will be userId, not an auto-incrementing ID
+    balanceTransfers: number;
     txTypes: number;
     acctTypes: number;
   };
@@ -158,6 +162,7 @@ export class MemStorage implements IStorage {
     this.savingsGoals = new Map();
     this.savingsContributions = new Map();
     this.userSettings = new Map();
+    this.balanceTransfers = new Map();
     this.txTypes = new Map();
     this.acctTypes = new Map();
     
@@ -174,7 +179,8 @@ export class MemStorage implements IStorage {
       budgets: 1,
       savingsGoals: 1,
       savingsContributions: 1,
-      settings: 1,
+      settings: 1, // This is not used as settings are keyed by userId
+      balanceTransfers: 1,
       txTypes: 1,
       acctTypes: 1
     };
@@ -232,7 +238,22 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId.users++;
     const now = new Date();
-    const user: User = { ...insertUser, id, createdAt: now };
+    const user: User = {
+      id,
+      username: insertUser.username,
+      email: insertUser.email,
+      password: insertUser.password,
+      name: insertUser.name,
+      avatar: null, // Default value
+      avatarColor: "#6366f1", // Default value
+      incomeColor: "#10b981", // Default value
+      expenseColor: "#ef4444", // Default value
+      isAdmin: insertUser.isAdmin || false,
+      householdId: insertUser.householdId || null,
+      personalBalance: "0", // Default value
+      familyBalance: "0", // Default value
+      createdAt: now,
+    };
     this.users.set(id, user);
     return user;
   }
@@ -260,7 +281,17 @@ export class MemStorage implements IStorage {
   async createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember> {
     const id = this.currentId.familyMembers++;
     const now = new Date();
-    const newMember: FamilyMember = { ...member, id, isActive: true, createdAt: now };
+    const newMember: FamilyMember = {
+      id,
+      userId: member.userId,
+      name: member.name,
+      email: member.email || null,
+      relationship: member.relationship,
+      isActive: member.isActive !== undefined ? member.isActive : true,
+      canAccess: member.canAccess !== undefined ? member.canAccess : false,
+      avatarUrl: member.avatarUrl || null,
+      createdAt: now,
+    };
     this.familyMembers.set(id, newMember);
     return newMember;
   }
@@ -298,7 +329,22 @@ export class MemStorage implements IStorage {
   async createAccount(account: InsertAccount): Promise<Account> {
     const id = this.currentId.accounts++;
     const now = new Date();
-    const newAccount: Account = { ...account, id, isActive: true, createdAt: now };
+    const newAccount: Account = {
+      id,
+      userId: account.userId,
+      name: account.name,
+      accountTypeId: account.accountTypeId,
+      initialBalance: account.initialBalance || "0",
+      currentBalance: account.currentBalance || account.initialBalance || "0",
+      currency: account.currency || "UYU",
+      isShared: account.isShared || false,
+      institution: account.institution || null,
+      accountNumber: account.accountNumber || null,
+      closingDay: account.closingDay || null,
+      dueDay: account.dueDay || null,
+      isActive: true,
+      createdAt: now,
+    };
     this.accounts.set(id, newAccount);
     return newAccount;
   }
@@ -327,7 +373,15 @@ export class MemStorage implements IStorage {
   
   async createCategory(category: InsertCategory): Promise<Category> {
     const id = this.currentId.categories++;
-    const newCategory: Category = { ...category, id, isSystem: false };
+    const newCategory: Category = {
+      id,
+      name: category.name,
+      icon: category.icon,
+      color: category.color,
+      isIncome: category.isIncome || false,
+      isSystem: false, // User-created categories are not system categories
+      parentId: category.parentId || null,
+    };
     this.categories.set(id, newCategory);
     return newCategory;
   }
@@ -335,13 +389,22 @@ export class MemStorage implements IStorage {
   async updateCategory(id: number, categoryData: Partial<Category>): Promise<Category | undefined> {
     const category = this.categories.get(id);
     if (!category) return undefined;
-    
+    // Prevent updating system categories' isSystem flag or deleting them through this method
+    if (category.isSystem && (categoryData.isSystem === false || categoryData.id === undefined)) {
+        // Or handle error appropriately
+        // For now, just don't change isSystem for system categories
+        delete categoryData.isSystem;
+    }
     const updatedCategory = { ...category, ...categoryData };
     this.categories.set(id, updatedCategory);
     return updatedCategory;
   }
   
   async deleteCategory(id: number): Promise<boolean> {
+    const category = this.categories.get(id);
+    if (category && category.isSystem) {
+      return false; // Prevent deleting system categories
+    }
     return this.categories.delete(id);
   }
   
@@ -359,57 +422,65 @@ export class MemStorage implements IStorage {
   
   async createTag(tag: InsertTag): Promise<Tag> {
     const id = this.currentId.tags++;
-    const newTag: Tag = { ...tag, id, isSystem: false };
+    const newTag: Tag = {
+      id,
+      name: tag.name,
+      userId: tag.userId || null,
+      isSystem: false, // User-created tags are not system tags
+    };
     this.tags.set(id, newTag);
     return newTag;
   }
   
   async deleteTag(id: number): Promise<boolean> {
+    const tag = this.tags.get(id);
+    if (tag && tag.isSystem) {
+        return false; // Prevent deleting system tags
+    }
+    // Also remove associated transaction tags
+    const ttEntries = Array.from(this.transactionTags.entries());
+    for (const [key, value] of ttEntries) {
+      if (value.tagId === id) {
+        this.transactionTags.delete(key);
+      }
+    }
     return this.tags.delete(id);
   }
   
   // Transaction methods
   async getTransactions(userId: number, filters?: any): Promise<Transaction[]> {
-    let transactions = Array.from(this.transactions.values()).filter(
+    let userTransactions = Array.from(this.transactions.values()).filter(
       (transaction) => transaction.userId === userId || transaction.isShared
     );
     
     if (filters) {
-      // Apply filters
       if (filters.startDate) {
-        transactions = transactions.filter(t => new Date(t.date) >= new Date(filters.startDate));
+        userTransactions = userTransactions.filter(t => new Date(t.date) >= new Date(filters.startDate));
       }
-      
       if (filters.endDate) {
-        transactions = transactions.filter(t => new Date(t.date) <= new Date(filters.endDate));
+        userTransactions = userTransactions.filter(t => new Date(t.date) <= new Date(filters.endDate));
       }
-      
       if (filters.categoryId) {
-        transactions = transactions.filter(t => t.categoryId === filters.categoryId);
+        userTransactions = userTransactions.filter(t => t.categoryId === filters.categoryId);
       }
-      
       if (filters.accountId) {
-        transactions = transactions.filter(t => t.accountId === filters.accountId);
+        userTransactions = userTransactions.filter(t => t.accountId === filters.accountId);
       }
-      
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
-        transactions = transactions.filter(t => 
-          t.description.toLowerCase().includes(searchLower)
+        userTransactions = userTransactions.filter(t =>
+          t.description.toLowerCase().includes(searchLower) ||
+          (t.notes && t.notes.toLowerCase().includes(searchLower))
         );
       }
-      
       if (filters.isShared !== undefined) {
-        transactions = transactions.filter(t => t.isShared === filters.isShared);
+        userTransactions = userTransactions.filter(t => t.isShared === filters.isShared);
       }
-      
       if (filters.transactionTypeId) {
-        transactions = transactions.filter(t => t.transactionTypeId === filters.transactionTypeId);
+        userTransactions = userTransactions.filter(t => t.transactionTypeId === filters.transactionTypeId);
       }
     }
-    
-    // Sort by date desc by default
-    return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return userTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
   
   async getTransaction(id: number): Promise<Transaction | undefined> {
@@ -419,7 +490,25 @@ export class MemStorage implements IStorage {
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     const id = this.currentId.transactions++;
     const now = new Date();
-    const newTransaction: Transaction = { ...transaction, id, createdAt: now };
+    const newTransaction: Transaction = {
+      id,
+      userId: transaction.userId,
+      accountId: transaction.accountId === undefined ? null : transaction.accountId,
+      categoryId: transaction.categoryId,
+      transactionTypeId: transaction.transactionTypeId,
+      amount: typeof transaction.amount === 'number' ? transaction.amount.toString() : transaction.amount,
+      currency: transaction.currency || "UYU",
+      description: transaction.description,
+      date: typeof transaction.date === 'string' ? new Date(transaction.date) : transaction.date,
+      time: transaction.time || null,
+      isShared: transaction.isShared || false,
+      isReconciled: transaction.isReconciled || false,
+      isReimbursable: transaction.isReimbursable || false,
+      isReimbursed: transaction.isReimbursed || false,
+      notes: transaction.notes || null,
+      receiptUrl: transaction.receiptUrl || null,
+      createdAt: now,
+    };
     this.transactions.set(id, newTransaction);
     return newTransaction;
   }
@@ -429,19 +518,39 @@ export class MemStorage implements IStorage {
     if (!transaction) return undefined;
     
     const updatedTransaction = { ...transaction, ...transactionData };
+    if (transactionData.date && typeof transactionData.date === 'string') {
+        updatedTransaction.date = new Date(transactionData.date);
+    }
+    if (transactionData.amount && typeof transactionData.amount === 'number') {
+        updatedTransaction.amount = transactionData.amount.toString();
+    }
     this.transactions.set(id, updatedTransaction);
     return updatedTransaction;
   }
   
   async deleteTransaction(id: number): Promise<boolean> {
+    // Also remove associated transaction tags and splits
+    const ttEntries = Array.from(this.transactionTags.entries());
+    for (const [key, value] of ttEntries) {
+      if (value.transactionId === id) {
+        this.transactionTags.delete(key);
+      }
+    }
+    const splitEntries = Array.from(this.transactionSplits.values());
+    for (const split of splitEntries) {
+      if (split.transactionId === id) {
+        this.transactionSplits.delete(split.id);
+      }
+    }
     return this.transactions.delete(id);
   }
   
   // TransactionTag methods
   async addTagToTransaction(transactionTag: InsertTransactionTag): Promise<TransactionTag> {
+    // Use a composite key for simplicity in MemStorage if IDs are not auto-generated by DB
     const id = this.currentId.transactionTags++;
     const newTransactionTag: TransactionTag = { ...transactionTag, id };
-    this.transactionTags.set(id, newTransactionTag);
+    this.transactionTags.set(id.toString(), newTransactionTag); // Store with a string key
     return newTransactionTag;
   }
   
@@ -464,7 +573,13 @@ export class MemStorage implements IStorage {
   
   async createTransactionSplit(split: InsertTransactionSplit): Promise<TransactionSplit> {
     const id = this.currentId.transactionSplits++;
-    const newSplit: TransactionSplit = { ...split, id };
+    const newSplit: TransactionSplit = {
+        id,
+        transactionId: split.transactionId,
+        categoryId: split.categoryId,
+        amount: typeof split.amount === 'number' ? split.amount.toString() : split.amount,
+        description: split.description || null,
+    };
     this.transactionSplits.set(id, newSplit);
     return newSplit;
   }
@@ -484,12 +599,24 @@ export class MemStorage implements IStorage {
     return this.recurringTransactions.get(id);
   }
   
-  async createRecurringTransaction(recurringTransaction: InsertRecurringTransaction): Promise<RecurringTransaction> {
+  async createRecurringTransaction(rt: InsertRecurringTransaction): Promise<RecurringTransaction> {
     const id = this.currentId.recurringTransactions++;
-    const newRecurringTransaction: RecurringTransaction = { 
-      ...recurringTransaction, 
+    const newRecurringTransaction: RecurringTransaction = {
       id,
-      isActive: true
+      userId: rt.userId,
+      accountId: rt.accountId,
+      categoryId: rt.categoryId,
+      transactionTypeId: rt.transactionTypeId,
+      amount: typeof rt.amount === 'number' ? rt.amount.toString() : rt.amount,
+      currency: rt.currency || "UYU",
+      description: rt.description,
+      frequency: rt.frequency,
+      startDate: typeof rt.startDate === 'string' ? new Date(rt.startDate) : rt.startDate,
+      endDate: rt.endDate ? (typeof rt.endDate === 'string' ? new Date(rt.endDate) : rt.endDate) : null,
+      nextDueDate: typeof rt.nextDueDate === 'string' ? new Date(rt.nextDueDate) : rt.nextDueDate,
+      isShared: rt.isShared || false,
+      isActive: true, // Default to active
+      reminderDays: rt.reminderDays === undefined ? 1 : rt.reminderDays,
     };
     this.recurringTransactions.set(id, newRecurringTransaction);
     return newRecurringTransaction;
@@ -500,6 +627,18 @@ export class MemStorage implements IStorage {
     if (!recurringTransaction) return undefined;
     
     const updated = { ...recurringTransaction, ...data };
+    if (data.startDate && typeof data.startDate === 'string') {
+        updated.startDate = new Date(data.startDate);
+    }
+    if (data.endDate && typeof data.endDate === 'string') {
+        updated.endDate = new Date(data.endDate);
+    }
+    if (data.nextDueDate && typeof data.nextDueDate === 'string') {
+        updated.nextDueDate = new Date(data.nextDueDate);
+    }
+    if (data.amount && typeof data.amount === 'number') {
+        updated.amount = data.amount.toString();
+    }
     this.recurringTransactions.set(id, updated);
     return updated;
   }
@@ -522,7 +661,26 @@ export class MemStorage implements IStorage {
   async createBudget(budget: InsertBudget): Promise<Budget> {
     const id = this.currentId.budgets++;
     const now = new Date();
-    const newBudget: Budget = { ...budget, id, createdAt: now };
+    const newBudget: Budget = {
+      id,
+      userId: budget.userId,
+      categoryId: budget.categoryId,
+      name: budget.name,
+      amount: typeof budget.amount === 'number' ? budget.amount.toString() : budget.amount,
+      currency: budget.currency || "UYU",
+      period: budget.period || "monthly",
+      isRollover: budget.isRollover || false,
+      isShared: budget.isShared || false,
+      startDate: typeof budget.startDate === 'string' ? new Date(budget.startDate) : budget.startDate,
+      endDate: budget.endDate ? (typeof budget.endDate === 'string' ? new Date(budget.endDate) : budget.endDate) : null,
+      paymentType: budget.paymentType || "one-time",
+      paymentDay: budget.paymentDay || null,
+      installments: budget.installments || null,
+      status: budget.status || "pending",
+      approvalCount: budget.approvalCount || 0,
+      rejectionCount: budget.rejectionCount || 0,
+      createdAt: now,
+    };
     this.budgets.set(id, newBudget);
     return newBudget;
   }
@@ -532,6 +690,15 @@ export class MemStorage implements IStorage {
     if (!budget) return undefined;
     
     const updatedBudget = { ...budget, ...budgetData };
+    if (budgetData.startDate && typeof budgetData.startDate === 'string') {
+        updatedBudget.startDate = new Date(budgetData.startDate);
+    }
+     if (budgetData.endDate && typeof budgetData.endDate === 'string') {
+        updatedBudget.endDate = new Date(budgetData.endDate);
+    }
+    if (budgetData.amount && typeof budgetData.amount === 'number') {
+        updatedBudget.amount = budgetData.amount.toString();
+    }
     this.budgets.set(id, updatedBudget);
     return updatedBudget;
   }
@@ -551,10 +718,22 @@ export class MemStorage implements IStorage {
     return this.savingsGoals.get(id);
   }
   
-  async createSavingsGoal(savingsGoal: InsertSavingsGoal): Promise<SavingsGoal> {
+  async createSavingsGoal(sg: InsertSavingsGoal): Promise<SavingsGoal> {
     const id = this.currentId.savingsGoals++;
     const now = new Date();
-    const newSavingsGoal: SavingsGoal = { ...savingsGoal, id, createdAt: now };
+    const newSavingsGoal: SavingsGoal = {
+      id,
+      userId: sg.userId,
+      name: sg.name,
+      targetAmount: typeof sg.targetAmount === 'number' ? sg.targetAmount.toString() : sg.targetAmount,
+      currentAmount: (sg.currentAmount && typeof sg.currentAmount === 'number' ? sg.currentAmount.toString() : sg.currentAmount) || "0",
+      currency: sg.currency || "UYU",
+      deadline: sg.deadline ? (typeof sg.deadline === 'string' ? new Date(sg.deadline) : sg.deadline) : null,
+      isShared: sg.isShared || false,
+      accountId: sg.accountId === undefined ? null : sg.accountId,
+      icon: sg.icon || null,
+      createdAt: now,
+    };
     this.savingsGoals.set(id, newSavingsGoal);
     return newSavingsGoal;
   }
@@ -564,11 +743,27 @@ export class MemStorage implements IStorage {
     if (!savingsGoal) return undefined;
     
     const updatedGoal = { ...savingsGoal, ...data };
+    if (data.deadline && typeof data.deadline === 'string') {
+        updatedGoal.deadline = new Date(data.deadline);
+    }
+    if (data.targetAmount && typeof data.targetAmount === 'number') {
+        updatedGoal.targetAmount = data.targetAmount.toString();
+    }
+    if (data.currentAmount && typeof data.currentAmount === 'number') {
+        updatedGoal.currentAmount = data.currentAmount.toString();
+    }
     this.savingsGoals.set(id, updatedGoal);
     return updatedGoal;
   }
   
   async deleteSavingsGoal(id: number): Promise<boolean> {
+    // Also delete associated contributions
+    const contribEntries = Array.from(this.savingsContributions.values());
+    for (const contrib of contribEntries) {
+      if (contrib.savingsGoalId === id) {
+        this.savingsContributions.delete(contrib.id);
+      }
+    }
     return this.savingsGoals.delete(id);
   }
   
@@ -579,21 +774,27 @@ export class MemStorage implements IStorage {
     );
   }
   
-  async createSavingsContribution(contribution: InsertSavingsContribution): Promise<SavingsContribution> {
+  async createSavingsContribution(sc: InsertSavingsContribution): Promise<SavingsContribution> {
     const id = this.currentId.savingsContributions++;
-    const newContribution: SavingsContribution = { ...contribution, id };
+    const newContribution: SavingsContribution = {
+      id,
+      savingsGoalId: sc.savingsGoalId,
+      userId: sc.userId,
+      amount: typeof sc.amount === 'number' ? sc.amount.toString() : sc.amount,
+      date: typeof sc.date === 'string' ? new Date(sc.date) : sc.date,
+      transactionId: sc.transactionId === undefined ? null : sc.transactionId,
+      notes: sc.notes || null,
+    };
     this.savingsContributions.set(id, newContribution);
     
-    // Update SavingsGoal currentAmount
-    const savingsGoal = this.savingsGoals.get(contribution.savingsGoalId);
+    const savingsGoal = this.savingsGoals.get(sc.savingsGoalId);
     if (savingsGoal) {
-      const currentAmount = parseFloat(savingsGoal.currentAmount.toString()) + parseFloat(contribution.amount.toString());
-      this.savingsGoals.set(contribution.savingsGoalId, {
+      const currentAmount = parseFloat(savingsGoal.currentAmount.toString()) + parseFloat(newContribution.amount.toString());
+      this.savingsGoals.set(sc.savingsGoalId, {
         ...savingsGoal,
         currentAmount: currentAmount.toString()
       });
     }
-    
     return newContribution;
   }
   
@@ -601,16 +802,14 @@ export class MemStorage implements IStorage {
     const contribution = this.savingsContributions.get(id);
     if (!contribution) return false;
     
-    // Update SavingsGoal currentAmount
     const savingsGoal = this.savingsGoals.get(contribution.savingsGoalId);
     if (savingsGoal) {
       const currentAmount = parseFloat(savingsGoal.currentAmount.toString()) - parseFloat(contribution.amount.toString());
       this.savingsGoals.set(contribution.savingsGoalId, {
         ...savingsGoal,
-        currentAmount: Math.max(0, currentAmount).toString() // Don't go below 0
+        currentAmount: Math.max(0, currentAmount).toString()
       });
     }
-    
     return this.savingsContributions.delete(id);
   }
   
@@ -619,10 +818,21 @@ export class MemStorage implements IStorage {
     return this.userSettings.get(userId);
   }
   
-  async createSettings(settings: InsertSettings): Promise<Settings> {
+  async createSettings(settingsData: InsertSettings): Promise<Settings> {
+    // Settings are unique per user, use userId as key, not an auto-incrementing ID
+    // However, the schema has an 'id' field, so we'll use currentId.settings for that,
+    // but still use userId for map key for easy retrieval.
     const id = this.currentId.settings++;
-    const newSettings: Settings = { ...settings, id, lastExchangeRateUpdate: null };
-    this.userSettings.set(settings.userId, newSettings);
+    const newSettings: Settings = {
+      id,
+      userId: settingsData.userId,
+      defaultCurrency: settingsData.defaultCurrency || "UYU",
+      theme: settingsData.theme || "light",
+      language: settingsData.language || "es",
+      exchangeRate: (settingsData.exchangeRate && typeof settingsData.exchangeRate === 'number' ? settingsData.exchangeRate.toString() : settingsData.exchangeRate) || "40.0",
+      lastExchangeRateUpdate: settingsData.lastExchangeRateUpdate ? (typeof settingsData.lastExchangeRateUpdate === 'string' ? new Date(settingsData.lastExchangeRateUpdate) : settingsData.lastExchangeRateUpdate) : null,
+    };
+    this.userSettings.set(settingsData.userId, newSettings);
     return newSettings;
   }
   
@@ -630,7 +840,16 @@ export class MemStorage implements IStorage {
     const settings = this.userSettings.get(userId);
     if (!settings) return undefined;
     
-    const updatedSettings = { ...settings, ...data };
+    // Ensure the 'id' and 'userId' fields are not overwritten if they are part of 'data'
+    const { id, userId: _, ...updateData } = data;
+
+    const updatedSettings = { ...settings, ...updateData };
+     if (data.lastExchangeRateUpdate && typeof data.lastExchangeRateUpdate === 'string') {
+        updatedSettings.lastExchangeRateUpdate = new Date(data.lastExchangeRateUpdate);
+    }
+    if (data.exchangeRate && typeof data.exchangeRate === 'number') {
+        updatedSettings.exchangeRate = data.exchangeRate.toString();
+    }
     this.userSettings.set(userId, updatedSettings);
     return updatedSettings;
   }
@@ -644,8 +863,66 @@ export class MemStorage implements IStorage {
   async getAccountTypes(): Promise<typeof accountTypes.$inferSelect[]> {
     return Array.from(this.acctTypes.values());
   }
+
+  // Balance Transfers
+  async getBalanceTransfers(userId: number): Promise<BalanceTransfer[]> {
+    return Array.from(this.balanceTransfers.values()).filter(bt => bt.userId === userId);
+  }
+
+  async createBalanceTransfer(transfer: InsertBalanceTransfer): Promise<BalanceTransfer> {
+    const id = this.currentId.balanceTransfers++;
+    const now = new Date();
+    const newTransfer: BalanceTransfer = {
+      id,
+      userId: transfer.userId,
+      fromPersonal: transfer.fromPersonal,
+      amount: typeof transfer.amount === 'number' ? transfer.amount.toString() : transfer.amount,
+      currency: transfer.currency || "UYU",
+      description: transfer.description || null,
+      date: typeof transfer.date === 'string' ? new Date(transfer.date) : transfer.date,
+      createdAt: now,
+    };
+    this.balanceTransfers.set(id, newTransfer);
+
+    // Update user balances
+    const user = this.users.get(transfer.userId);
+    if (user) {
+      let personal = parseFloat(user.personalBalance);
+      let family = parseFloat(user.familyBalance);
+      const transferAmount = parseFloat(newTransfer.amount);
+
+      if (newTransfer.fromPersonal) {
+        personal -= transferAmount;
+        family += transferAmount;
+      } else {
+        personal += transferAmount;
+        family -= transferAmount;
+      }
+      user.personalBalance = personal.toString();
+      user.familyBalance = family.toString();
+      this.users.set(user.id, user);
+    }
+    return newTransfer;
+  }
+
+  async updateUserBalance(userId: number, personalAmount: number, familyAmount: number): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+
+    user.personalBalance = personalAmount.toString();
+    user.familyBalance = familyAmount.toString();
+    this.users.set(userId, user);
+    return user;
+  }
 }
 
 import { DatabaseStorage } from "./database-storage";
 
-export const storage = new DatabaseStorage();
+// Determine storage type based on environment variable or configuration
+// For now, defaulting to MemStorage for simplicity in this example
+// In a real app, you might use:
+// const useCloudStorage = process.env.USE_CLOUD_STORAGE === 'true';
+// export const storage: IStorage = useCloudStorage ? new CloudStorage() : new DatabaseStorage();
+// Forcing MemStorage for this exercise
+export const storage: IStorage = new MemStorage();
+// export const storage = new DatabaseStorage(); // Original line

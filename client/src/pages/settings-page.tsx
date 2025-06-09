@@ -8,33 +8,27 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // DialogTrigger removed as it's not explicitly used here, can be added if needed by specific invocation patterns
+import { useQuery, useMutation, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useTheme } from "@/hooks/use-theme";
+// useTheme hook is not used in this file, can be removed if not planned for future use.
+// import { useTheme } from "@/hooks/use-theme";
 import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { useCurrency } from "@/hooks/use-currency";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  PlusIcon, 
-  Pencil, 
-  Trash2, 
-  User, 
-  Camera, 
-  Lock, 
-  Palette, 
-  ArrowRightLeft,
-  Check,
+  PlusIcon, Pencil, Trash2, User as UserIcon, Camera, Lock, Palette, ArrowRightLeft, Check,
   ShoppingCart, Home, Car, Utensils, HeartPulse, Shirt, GraduationCap, PartyPopper, Wallet,
   PiggyBank, Building, PlugZap, Cable, Gift, Banknote, Wrench, PencilRuler, Baby, Plane, Coffee, Gamepad2, 
   Activity, CreditCard, Folder
-} from "lucide-react";
+} from "lucide-react"; // Renamed User from lucide to UserIcon to avoid conflict
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import type { User, Settings, Category, InsertCategory } from "@shared/schema"; // Import types
 
 // Esquema para actualizar perfil
 const profileFormSchema = z.object({
@@ -42,7 +36,8 @@ const profileFormSchema = z.object({
   avatarColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Debe ser un color hexadecimal válido"),
   incomeColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Debe ser un color hexadecimal válido"),
   expenseColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Debe ser un color hexadecimal válido"),
-})
+});
+type ProfileFormData = z.infer<typeof profileFormSchema>;
 
 // Esquema para cambiar contraseña
 const passwordFormSchema = z.object({
@@ -52,52 +47,59 @@ const passwordFormSchema = z.object({
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"],
-})
+});
+type PasswordFormData = z.infer<typeof passwordFormSchema>;
+
+// Esquema para categoría (usado en el modal, similar a InsertCategory pero para el form)
+const categoryFormSchema = z.object({
+  name: z.string().min(1, "El nombre es obligatorio"),
+  icon: z.string().min(1, "El ícono es obligatorio"),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, "Debe ser un color hexadecimal válido"),
+  isIncome: z.boolean(),
+});
+type CategoryFormData = z.infer<typeof categoryFormSchema>;
+
 
 export default function SettingsPage() {
-  const [defaultCurrency, setDefaultCurrency] = useState("UYU");
-  const [exchangeRate, setExchangeRate] = useState("38.50");
-  const [localExchangeRate, setLocalExchangeRate] = useState("38.50");
-  const [theme, setTheme] = useState("light");
-  const [language, setLanguage] = useState("es");
+  const [defaultCurrencyState, setDefaultCurrencyState] = useState("UYU");
+  const [localExchangeRate, setLocalExchangeRate] = useState("38.50"); // For input editing
+  const [themeState, setThemeState] = useState("light");
+  const [languageState, setLanguageState] = useState("es");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { updateExchangeRate: updateGlobalExchangeRate } = useCurrency();
+  const { updateExchangeRate: updateGlobalExchangeRate, exchangeRate: globalExchangeRate } = useCurrency();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Estado para la sección de perfil - usando hook compartido
   const { activeTab: activeSettingsTab, setActiveTab: setActiveSettingsTab } = useProfileSettings();
   const [avatar, setAvatar] = useState<string | null>(null);
 
-  // Estado para el formulario de categoría
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
-  const [categoryName, setCategoryName] = useState("");
-  const [categoryIcon, setCategoryIcon] = useState("Folder");
-  const [categoryColor, setCategoryColor] = useState("#6366f1");
-  const [categoryIsIncome, setCategoryIsIncome] = useState(false);
-  const [activeTab, setActiveTab] = useState("gastos");
+  const [categoryFormValues, setCategoryFormValues] = useState<CategoryFormData>({
+    name: "",
+    icon: "Folder",
+    color: "#6366f1",
+    isIncome: false,
+  });
+  const [activeCategoriesTab, setActiveCategoriesTab] = useState("gastos");
 
-  // Obtener el usuario actual
-  const { data: user, isLoading: userLoading } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery<User, Error, User, QueryKey>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "throw" })
   });
 
-  // Obtener la configuración actual
-  const { data: settings, isLoading: settingsLoading } = useQuery({
+  const { data: settingsData, isLoading: settingsLoading } = useQuery<Settings, Error, Settings, QueryKey>({
     queryKey: ["/api/settings"],
     queryFn: getQueryFn({ on401: "throw" })
   });
 
-  // Obtener categorías
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+  const { data: categoriesData = [] as Category[], isLoading: categoriesLoading } = useQuery<Category[], Error, Category[], QueryKey>({
     queryKey: ["/api/categories"],
-    queryFn: getQueryFn({ on401: "throw" })
+    queryFn: getQueryFn({ on401: "throw" }),
+    initialData: [], // Provide initial empty array to prevent undefined map errors
   });
   
-  // Formulario de perfil
-  const profileForm = useForm({
+  const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       name: "",
@@ -107,8 +109,7 @@ export default function SettingsPage() {
     },
   });
   
-  // Formulario de cambio de contraseña
-  const passwordForm = useForm({
+  const passwordForm = useForm<PasswordFormData>({
     resolver: zodResolver(passwordFormSchema),
     defaultValues: {
       currentPassword: "",
@@ -117,404 +118,207 @@ export default function SettingsPage() {
     },
   });
 
-  // Actualizar los estados cuando llegan los datos
   useEffect(() => {
-    if (settings) {
-      setDefaultCurrency(settings.defaultCurrency || "UYU");
-      setTheme(settings.theme || "light");
-      setLanguage(settings.language || "es");
-      
-      // Redondear el tipo de cambio a un entero
-      const exchangeRateValue = settings.exchangeRate || "38";
-      const roundedValue = Math.round(parseFloat(exchangeRateValue)).toString();
-      
-      setExchangeRate(roundedValue);
+    if (settingsData) {
+      setDefaultCurrencyState(settingsData.defaultCurrency ?? "UYU");
+      setThemeState(settingsData.theme ?? "light");
+      setLanguageState(settingsData.language ?? "es");
+      const exchangeRateValue = settingsData.exchangeRate ?? "38";
+      const roundedValue = parseFloat(exchangeRateValue).toFixed(2); // Keep 2 decimals for display
       setLocalExchangeRate(roundedValue);
     }
-  }, [settings]);
+  }, [settingsData]);
   
-  // Actualizar formulario de perfil cuando los datos de usuario llegan
   useEffect(() => {
     if (user) {
       profileForm.reset({
-        name: user.name || "",
-        avatarColor: user.avatarColor || "#6366f1",
-        incomeColor: user.incomeColor || "#10b981",
-        expenseColor: user.expenseColor || "#ef4444",
+        name: user.name ?? "",
+        avatarColor: user.avatarColor ?? "#6366f1",
+        incomeColor: user.incomeColor ?? "#10b981",
+        expenseColor: user.expenseColor ?? "#ef4444",
       });
-      
-      if (user.avatar) {
-        setAvatar(user.avatar);
-      }
+      if (user.avatar) setAvatar(user.avatar);
     }
   }, [user, profileForm]);
 
-  // Mutations para la gestión de categorías
-  const createCategoryMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/categories", data);
-      return res.json();
-    },
+  const createCategoryMutation = useMutation<Category, Error, InsertCategory>({
+    mutationFn: async (data) => apiRequest("POST", "/api/categories", data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-      toast({
-        title: "Categoría creada",
-        description: "La categoría se ha creado correctamente"
-      });
+      toast({ title: "Categoría creada", description: "La categoría se ha creado correctamente" });
       setCategoryDialogOpen(false);
       resetCategoryForm();
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: `Error al crear la categoría: ${error.message}`,
-        variant: "destructive"
-      });
-    }
+    onError: (error) => toast({ title: "Error", description: `Error al crear la categoría: ${error.message}`, variant: "destructive" })
   });
 
-  const updateCategoryMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("PUT", `/api/categories/${editingCategoryId}`, data);
-      return res.json();
-    },
+  const updateCategoryMutation = useMutation<Category, Error, {id: number; data: Partial<InsertCategory>}>({
+    mutationFn: async ({id, data}) => apiRequest("PUT", `/api/categories/${id}`, data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-      toast({
-        title: "Categoría actualizada",
-        description: "La categoría se ha actualizado correctamente"
-      });
+      toast({ title: "Categoría actualizada", description: "La categoría se ha actualizado correctamente" });
       setCategoryDialogOpen(false);
       resetCategoryForm();
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: `Error al actualizar la categoría: ${error.message}`,
-        variant: "destructive"
-      });
-    }
+    onError: (error) => toast({ title: "Error", description: `Error al actualizar la categoría: ${error.message}`, variant: "destructive" })
   });
 
-  const deleteCategoryMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/categories/${id}`);
-    },
+  const deleteCategoryMutation = useMutation<void, Error, number>({
+    mutationFn: async (id) => apiRequest("DELETE", `/api/categories/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-      toast({
-        title: "Categoría eliminada",
-        description: "La categoría se ha eliminado correctamente"
-      });
+      toast({ title: "Categoría eliminada", description: "La categoría se ha eliminado correctamente" });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: `Error al eliminar la categoría: ${error.message}`,
-        variant: "destructive"
-      });
-    }
+    onError: (error) => toast({ title: "Error", description: `Error al eliminar la categoría: ${error.message}`, variant: "destructive" })
   });
 
-  // Mutación para actualizar configuración
-  const updateSettingsMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("PUT", "/api/settings", data);
-      return res.json();
-    },
+  const updateSettingsMutation = useMutation<Settings, Error, Partial<Settings>>({
+    mutationFn: async (data) => apiRequest("PUT", "/api/settings", data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      toast({
-        title: "Configuración actualizada",
-        description: "La configuración se ha actualizado correctamente"
-      });
+      toast({ title: "Configuración actualizada", description: "La configuración se ha actualizado correctamente" });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: `Error al actualizar la configuración: ${error.message}`,
-        variant: "destructive"
-      });
-    }
+    onError: (error) => toast({ title: "Error", description: `Error al actualizar la configuración: ${error.message}`, variant: "destructive" })
   });
   
-  // Mutación para actualizar perfil de usuario
-  const updateProfileMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("PUT", "/api/user", data);
-      return res.json();
-    },
+  const updateProfileMutation = useMutation<User, Error, ProfileFormData>({
+    mutationFn: async (data) => apiRequest("PUT", "/api/user", data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "Perfil actualizado",
-        description: "Tu perfil se ha actualizado correctamente"
-      });
+      toast({ title: "Perfil actualizado", description: "Tu perfil se ha actualizado correctamente" });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: `Error al actualizar el perfil: ${error.message}`,
-        variant: "destructive"
-      });
-    }
+    onError: (error) => toast({ title: "Error", description: `Error al actualizar el perfil: ${error.message}`, variant: "destructive" })
   });
   
-  // Mutación para cambiar contraseña
-  const changePasswordMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("PUT", "/api/user/password", data);
-      return res.json();
-    },
+  const changePasswordMutation = useMutation<any, Error, PasswordFormData>({
+    mutationFn: async (data) => apiRequest("PUT", "/api/user/password", data).then(res => res.json()),
     onSuccess: () => {
-      toast({
-        title: "Contraseña actualizada",
-        description: "Tu contraseña se ha actualizado correctamente"
-      });
+      toast({ title: "Contraseña actualizada", description: "Tu contraseña se ha actualizado correctamente" });
       passwordForm.reset();
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: `Error al actualizar la contraseña: ${error.message}`,
-        variant: "destructive"
-      });
-    }
+    onError: (error) => toast({ title: "Error", description: `Error al actualizar la contraseña: ${error.message}`, variant: "destructive" })
   });
   
-  // Mutación para subir avatar
-  const uploadAvatarMutation = useMutation({
-    mutationFn: async (formData: FormData) => {
-      const res = await fetch("/api/user/avatar", {
-        method: "POST",
-        body: formData,
-        credentials: "include"
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Error al subir el avatar");
-      }
-      
+  const uploadAvatarMutation = useMutation<{ avatar: string }, Error, FormData>({
+    mutationFn: async (formData) => {
+      const res = await fetch("/api/user/avatar", { method: "POST", body: formData, credentials: "include" });
+      if (!res.ok) { const error = await res.json(); throw new Error(error.message || "Error al subir el avatar"); }
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      // Actualizar el avatar asegurando que usamos la URL correcta y añadimos un timestamp para evitar caché
-      const timestamp = new Date().getTime();
-      setAvatar(`${data.avatar}?t=${timestamp}`);
-      
-      toast({
-        title: "Avatar actualizado",
-        description: "Tu avatar se ha actualizado correctamente"
-      });
+      setAvatar(`${data.avatar}?t=${new Date().getTime()}`);
+      toast({ title: "Avatar actualizado", description: "Tu avatar se ha actualizado correctamente" });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: `Error al subir el avatar: ${error.message}`,
-        variant: "destructive"
-      });
-    }
+    onError: (error) => toast({ title: "Error", description: `Error al subir el avatar: ${error.message}`, variant: "destructive" })
   });
 
-  // Función para abrir el modal de categoría en modo edición
-  const handleEditCategory = (category: any) => {
+  const handleEditCategory = (category: Category) => {
     setEditingCategoryId(category.id);
-    setCategoryName(category.name);
-    setCategoryIcon(category.icon);
-    setCategoryColor(category.color);
-    setCategoryIsIncome(category.isIncome);
+    setCategoryFormValues({
+      name: category.name,
+      icon: category.icon,
+      color: category.color,
+      isIncome: category.isIncome,
+    });
     setCategoryDialogOpen(true);
   };
 
-  // Función para resetear el formulario de categoría
   const resetCategoryForm = () => {
     setEditingCategoryId(null);
-    setCategoryName("");
-    setCategoryIcon("Folder");
-    setCategoryColor("#6366f1");
-    setCategoryIsIncome(activeTab === "ingresos");
+    setCategoryFormValues({
+      name: "",
+      icon: "Folder",
+      color: "#6366f1",
+      isIncome: activeCategoriesTab === "ingresos",
+    });
   };
 
-  // Función para guardar cambios de configuración
   const saveSettings = () => {
-    if (!updateSettingsMutation.isPending) {
-      // Redondear el tipo de cambio a un entero
-      const roundedValue = Math.round(parseFloat(localExchangeRate)).toString();
-      
-      // Actualizar el estado local y principal con el valor redondeado
-      setLocalExchangeRate(roundedValue);
-      setExchangeRate(roundedValue);
-      
-      // Actualizar el tipo de cambio global también
-      updateGlobalExchangeRate(roundedValue);
-      
-      updateSettingsMutation.mutate({
-        defaultCurrency,
-        theme,
-        language,
-        exchangeRate: roundedValue
-      });
-    }
+    if (updateSettingsMutation.isPending) return;
+    const formattedRate = parseFloat(localExchangeRate).toFixed(2);
+    setLocalExchangeRate(formattedRate);
+    updateGlobalExchangeRate(formattedRate);
+    updateSettingsMutation.mutate({
+      defaultCurrency: defaultCurrencyState,
+      theme: themeState,
+      language: languageState,
+      exchangeRate: formattedRate
+    });
   };
 
-  // Función para actualizar el tipo de cambio
-  const updateExchangeRate = async () => {
-    if (updateSettingsMutation.isPending) {
-      return; // No hacer nada si ya hay una actualización en curso
-    }
-    
-    try {
-      // Asegurar que tenemos un valor para procesar
-      if (!localExchangeRate || localExchangeRate.trim() === "") {
-        toast({
-          title: "Error",
-          description: "Por favor ingresa un valor para el tipo de cambio",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Convertir a número y formatear con 2 decimales
-      const numValue = parseFloat(localExchangeRate);
-      if (isNaN(numValue)) {
-        toast({
-          title: "Error",
-          description: "El valor del tipo de cambio debe ser un número válido",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Formatear a 2 decimales
-      const formattedValue = numValue.toFixed(2);
-      
-      // Mostrar toast de carga
-      toast({
-        title: "Actualizando...",
-        description: "Actualizando tipo de cambio",
-      });
-      
-      // Actualizar estado local primero
-      setLocalExchangeRate(formattedValue);
-      setExchangeRate(formattedValue);
-      
-      // Actualizar el tipo de cambio global en toda la aplicación
-      updateGlobalExchangeRate(formattedValue);
-      
-      // Datos a enviar al servidor
-      const now = new Date();
-      
-      // Enviar al servidor y esperar la respuesta
-      const response = await updateSettingsMutation.mutateAsync({
-        exchangeRate: formattedValue,
-        lastExchangeRateUpdate: now.toISOString(),
-        defaultCurrency,
-        theme,
-        language
-      });
-      
-      // Mostrar toast de éxito
-      toast({
-        title: "Tipo de cambio actualizado",
-        description: `El tipo de cambio ha sido actualizado a ${formattedValue}`,
-      });
-      
-    } catch (err) {
-      console.error("Error al actualizar tipo de cambio:", err);
-      toast({
-        title: "Error",
-        description: "Ocurrió un error al actualizar el tipo de cambio",
-        variant: "destructive"
-      });
-      
-      // Restaurar valor anterior en caso de error
-      setLocalExchangeRate(exchangeRate);
-    }
-  };
-
-  // Función para guardar una categoría
-  const saveCategory = () => {
-    if (!categoryName || !categoryIcon || !categoryColor) {
-      toast({
-        title: "Error",
-        description: "Todos los campos son obligatorios",
-        variant: "destructive"
-      });
+  const updateExchangeRateOnServer = async () => { // Renamed to avoid conflict with context's updateExchangeRate
+    if (updateSettingsMutation.isPending) return;
+    if (!localExchangeRate || localExchangeRate.trim() === "") {
+      toast({ title: "Error", description: "Por favor ingresa un valor para el tipo de cambio", variant: "destructive" });
       return;
     }
-    
-    const categoryData = {
-      name: categoryName,
-      icon: categoryIcon,
-      color: categoryColor,
-      isIncome: categoryIsIncome,
-      parentId: null
-    };
+    const numValue = parseFloat(localExchangeRate);
+    if (isNaN(numValue)) {
+      toast({ title: "Error", description: "El valor del tipo de cambio debe ser un número válido", variant: "destructive" });
+      return;
+    }
+    const formattedValue = numValue.toFixed(2);
+    toast({ title: "Actualizando...", description: "Actualizando tipo de cambio" });
+    setLocalExchangeRate(formattedValue);
+    updateGlobalExchangeRate(formattedValue); // Update context immediately
+    try {
+      await updateSettingsMutation.mutateAsync({
+        exchangeRate: formattedValue,
+        lastExchangeRateUpdate: new Date().toISOString(),
+        defaultCurrency: defaultCurrencyState,
+        theme: themeState,
+        language: languageState
+      });
+      toast({ title: "Tipo de cambio actualizado", description: `El tipo de cambio ha sido actualizado a ${formattedValue}` });
+    } catch (err) {
+      console.error("Error al actualizar tipo de cambio:", err);
+      toast({ title: "Error", description: "Ocurrió un error al actualizar el tipo de cambio", variant: "destructive" });
+      setLocalExchangeRate(globalExchangeRate.toString()); // Revert to global state on error
+    }
+  };
+
+  const saveCategory = () => {
+    const { name, icon, color, isIncome } = categoryFormValues;
+    if (!name || !icon || !color) {
+      toast({ title: "Error", description: "Todos los campos son obligatorios", variant: "destructive" });
+      return;
+    }
+    const categoryData: InsertCategory = { name, icon, color, isIncome, parentId: null };
 
     if (editingCategoryId) {
-      if (!updateCategoryMutation.isPending) {
-        updateCategoryMutation.mutate(categoryData);
-      }
+      if (!updateCategoryMutation.isPending) updateCategoryMutation.mutate({ id: editingCategoryId, data: categoryData });
     } else {
-      if (!createCategoryMutation.isPending) {
-        createCategoryMutation.mutate(categoryData);
-      }
+      if (!createCategoryMutation.isPending) createCategoryMutation.mutate(categoryData);
     }
   };
   
-  // Función para manejar la subida de avatar
   const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
-    // Validar tamaño y tipo
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "La imagen es demasiado grande. El tamaño máximo es 5MB.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Error",
-        description: "El archivo debe ser una imagen.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
+    if (file.size > 5 * 1024 * 1024) { toast({ title: "Error", description: "La imagen es demasiado grande. Máximo 5MB.", variant: "destructive" }); return; }
+    if (!file.type.startsWith("image/")) { toast({ title: "Error", description: "El archivo debe ser una imagen.", variant: "destructive" }); return; }
     const formData = new FormData();
     formData.append("avatar", file);
-    
     uploadAvatarMutation.mutate(formData);
   };
   
-  // Función para cambiar contraseña
-  const onPasswordSubmit = (data: z.infer<typeof passwordFormSchema>) => {
-    if (!changePasswordMutation.isPending) {
-      changePasswordMutation.mutate(data);
-    }
+  const onPasswordSubmit = (data: PasswordFormData) => {
+    if (!changePasswordMutation.isPending) changePasswordMutation.mutate(data);
   };
   
-  // Función para actualizar perfil
-  const onProfileSubmit = (data: z.infer<typeof profileFormSchema>) => {
-    if (!updateProfileMutation.isPending) {
-      updateProfileMutation.mutate(data);
-    }
+  const onProfileSubmit = (data: ProfileFormData) => {
+    if (!updateProfileMutation.isPending) updateProfileMutation.mutate(data);
   };
+
+  if (userLoading || settingsLoading || categoriesLoading) {
+    // TODO: Add a proper loading skeleton or spinner
+    return <Shell>Cargando configuración...</Shell>;
+  }
 
   return (
     <Shell>
-      <PageHeader
-        title="Configuración"
-        description="Gestiona las preferencias de tu aplicación"
-      />
-      
+      <PageHeader title="Configuración" description="Gestiona las preferencias de tu aplicación" />
       <Tabs value={activeSettingsTab} onValueChange={setActiveSettingsTab} className="mb-6">
         <TabsList className="grid w-full grid-cols-3 lg:w-auto">
           <TabsTrigger value="general">General</TabsTrigger>
@@ -527,135 +331,65 @@ export default function SettingsPage() {
         {activeSettingsTab === "general" && (
           <>
             <Card>
-              <CardHeader>
-                <CardTitle>Configuración General</CardTitle>
-                <CardDescription>
-                  Configura las opciones básicas de tu aplicación
-                </CardDescription>
-              </CardHeader>
+              <CardHeader><CardTitle>Configuración General</CardTitle><CardDescription>Configura las opciones básicas de tu aplicación</CardDescription></CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="currency">Moneda predeterminada</Label>
-                  <Select value={defaultCurrency} onValueChange={setDefaultCurrency}>
-                    <SelectTrigger id="currency" className="w-full">
-                      <SelectValue placeholder="Selecciona moneda" />
-                    </SelectTrigger>
+                  <Select value={defaultCurrencyState} onValueChange={setDefaultCurrencyState}>
+                    <SelectTrigger id="currency" className="w-full"><SelectValue placeholder="Selecciona moneda" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="UYU">Peso Uruguayo (UYU)</SelectItem>
                       <SelectItem value="USD">Dólar Estadounidense (USD)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
                 <div className="space-y-2">
                   <Label htmlFor="language">Idioma</Label>
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger id="language" className="w-full">
-                      <SelectValue placeholder="Selecciona idioma" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="es">Español</SelectItem>
-                    </SelectContent>
+                  <Select value={languageState} onValueChange={setLanguageState}>
+                    <SelectTrigger id="language" className="w-full"><SelectValue placeholder="Selecciona idioma" /></SelectTrigger>
+                    <SelectContent><SelectItem value="es">Español</SelectItem></SelectContent>
                   </Select>
                 </div>
-                
                 <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="theme">Tema Oscuro</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Cambiar entre el tema claro y oscuro
-                    </p>
-                  </div>
-                  <Switch 
-                    id="theme" 
-                    checked={theme === "dark"}
-                    onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="notifications">Notificaciones</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Habilitar notificaciones para recordatorios
-                    </p>
-                  </div>
-                  <Switch id="notifications" />
+                  <div className="space-y-0.5"><Label htmlFor="theme">Tema Oscuro</Label><p className="text-sm text-muted-foreground">Cambiar entre el tema claro y oscuro</p></div>
+                  <Switch id="theme" checked={themeState === "dark"} onCheckedChange={(checked) => setThemeState(checked ? "dark" : "light")} />
                 </div>
               </CardContent>
             </Card>
-            
             <Card>
-              <CardHeader>
-                <CardTitle>Tipo de Cambio</CardTitle>
-                <CardDescription>
-                  Actualiza el tipo de cambio para convertir entre monedas
-                </CardDescription>
-              </CardHeader>
+              <CardHeader><CardTitle>Tipo de Cambio</CardTitle><CardDescription>Actualiza el tipo de cambio para convertir entre monedas</CardDescription></CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="exchange-rate">Dólar Estadounidense (USD) a Peso Uruguayo (UYU)</Label>
                   <div className="flex space-x-2">
-                    <Input
-                      id="exchange-rate"
-                      placeholder="38.50"
-                      type="number"
-                      step="0.01"  
-                      min="0"
-                      value={localExchangeRate}
-                      onChange={(e) => {
-                        // Permitir entrada vacía o valores numéricos
-                        const inputValue = e.target.value;
-                        
-                        if (inputValue === "") {
-                          // Permitir campo vacío durante la edición
-                          setLocalExchangeRate("");
-                        } else {
-                          // Intentar convertir a número
-                          const numValue = parseFloat(inputValue);
-                          if (!isNaN(numValue)) {
-                            // Mantener el valor decimal
-                            setLocalExchangeRate(inputValue);
-                          }
-                        }
-                      }}
+                    <Input id="exchange-rate" placeholder="38.50" type="number" step="0.01" min="0" value={localExchangeRate}
+                      onChange={(e) => setLocalExchangeRate(e.target.value)}
                       onBlur={() => {
-                        // Si el campo está vacío al perder el foco, restaurar el valor anterior
-                        if (localExchangeRate === "") {
-                          setLocalExchangeRate(exchangeRate);
-                        } else {
-                          // Formatear a dos decimales al perder el foco
-                          const numValue = parseFloat(localExchangeRate);
-                          if (!isNaN(numValue)) {
-                            setLocalExchangeRate(numValue.toFixed(2));
-                          }
-                        }
+                        const numValue = parseFloat(localExchangeRate);
+                        if (!isNaN(numValue)) setLocalExchangeRate(numValue.toFixed(2));
+                        else setLocalExchangeRate(globalExchangeRate.toString()); // Revert if invalid
                       }}
                     />
-                    <Button onClick={updateExchangeRate}>Actualizar</Button>
+                    <Button onClick={updateExchangeRateOnServer}>Actualizar</Button>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Última actualización: {settings?.lastExchangeRateUpdate ? new Date(settings.lastExchangeRateUpdate).toLocaleDateString('es-UY') : 'Nunca'}
+                    Última actualización: {settingsData?.lastExchangeRateUpdate ? new Date(settingsData.lastExchangeRateUpdate).toLocaleDateString('es-UY') : 'Nunca'}
                   </p>
                 </div>
               </CardContent>
             </Card>
-            
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => window.location.reload()}>Cancelar</Button>
-              <Button onClick={saveSettings}>Guardar Cambios</Button>
+              <Button onClick={saveSettings} disabled={updateSettingsMutation.isPending}>
+                {updateSettingsMutation.isPending ? "Guardando..." : "Guardar Cambios"}
+              </Button>
             </div>
           </>
         )}
         
-        {activeSettingsTab === "perfil" && (
+        {activeSettingsTab === "perfil" && user && (
           <Card>
-            <CardHeader>
-              <CardTitle>Mi Perfil</CardTitle>
-              <CardDescription>
-                Actualiza tu información personal y preferencias
-              </CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>Mi Perfil</CardTitle><CardDescription>Actualiza tu información personal y preferencias</CardDescription></CardHeader>
             <CardContent>
               <div className="grid gap-8 md:grid-cols-2">
                 <div className="space-y-6">
@@ -663,197 +397,78 @@ export default function SettingsPage() {
                     <div className="relative">
                       {avatar ? (
                         <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-primary/20">
-                          <img 
-                            src={avatar} 
-                            alt="Avatar" 
-                            className="h-full w-full object-cover"
+                          <img src={avatar} alt="Avatar" className="h-full w-full object-cover"
                             onError={(e) => {
-                              // Si hay error al cargar la imagen, mostrar las iniciales
-                              e.currentTarget.style.display = 'none';
-                              e.currentTarget.parentElement?.classList.add('flex', 'items-center', 'justify-center', 'text-xl', 'font-semibold', 'text-white');
-                              e.currentTarget.parentElement!.style.backgroundColor = user?.avatarColor || "#6366f1";
-                              e.currentTarget.parentElement!.innerHTML = user?.name?.substring(0, 2).toUpperCase() || "U";
+                              const target = e.currentTarget;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.classList.add('flex', 'items-center', 'justify-center', 'text-xl', 'font-semibold', 'text-white');
+                                parent.style.backgroundColor = user?.avatarColor ?? "#6366f1";
+                                parent.innerHTML = user?.name?.substring(0, 2).toUpperCase() || "U";
+                              }
                             }}
                           />
                         </div>
                       ) : (
-                        <div 
-                          className="h-24 w-24 rounded-full flex items-center justify-center text-xl font-semibold text-white border-4 border-primary/20"
-                          style={{ backgroundColor: user?.avatarColor || "#6366f1" }}
+                        <div className="h-24 w-24 rounded-full flex items-center justify-center text-xl font-semibold text-white border-4 border-primary/20"
+                          style={{ backgroundColor: user?.avatarColor ?? "#6366f1" }}
                         >
                           {user?.name?.substring(0, 2).toUpperCase() || "U"}
                         </div>
                       )}
-                      <Button 
-                        size="icon" 
-                        variant="outline" 
-                        className="absolute -bottom-2 -right-2 rounded-full h-8 w-8"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
+                      <Button size="icon" variant="outline" className="absolute -bottom-2 -right-2 rounded-full h-8 w-8" onClick={() => fileInputRef.current?.click()}>
                         <Camera className="h-4 w-4" />
                       </Button>
-                      <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        style={{ display: 'none' }} 
-                        accept="image/*"
-                        onChange={handleAvatarUpload}
-                      />
+                      <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleAvatarUpload} />
                     </div>
                     <div className="text-center">
-                      <h3 className="text-lg font-medium">{user?.name}</h3>
-                      <p className="text-sm text-muted-foreground">{user?.email}</p>
+                      <h3 className="text-lg font-medium">{user?.name ?? 'Usuario'}</h3>
+                      <p className="text-sm text-muted-foreground">{user?.email ?? 'Email no disponible'}</p>
                     </div>
                   </div>
-                  
                   <Form {...profileForm}>
                     <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                      <FormField
-                        control={profileForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Nombre</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Tu nombre" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="space-y-2">
-                        <FormField
-                          control={profileForm.control}
-                          name="avatarColor"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Color de avatar</FormLabel>
-                              <FormControl>
-                                <div className="flex items-center space-x-2">
-                                  <div 
-                                    className="h-6 w-6 rounded-full border border-input" 
-                                    style={{ backgroundColor: field.value }}
-                                  />
-                                  <Input type="color" {...field} />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <FormField
-                          control={profileForm.control}
-                          name="incomeColor"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Color para ingresos</FormLabel>
-                              <FormControl>
-                                <div className="flex items-center space-x-2">
-                                  <div 
-                                    className="h-6 w-6 rounded-full border border-input" 
-                                    style={{ backgroundColor: field.value }}
-                                  />
-                                  <Input type="color" {...field} />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <FormField
-                          control={profileForm.control}
-                          name="expenseColor"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Color para gastos</FormLabel>
-                              <FormControl>
-                                <div className="flex items-center space-x-2">
-                                  <div 
-                                    className="h-6 w-6 rounded-full border border-input" 
-                                    style={{ backgroundColor: field.value }}
-                                  />
-                                  <Input type="color" {...field} />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      
-                      <Button 
-                        type="submit" 
-                        className="w-full"
-                        disabled={updateProfileMutation.isPending}
-                      >
+                      <FormField control={profileForm.control} name="name" render={({ field }) => (
+                        <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input placeholder="Tu nombre" {...field} /></FormControl><FormMessage /></FormItem>
+                      )}/>
+                      <FormField control={profileForm.control} name="avatarColor" render={({ field }) => (
+                        <FormItem><FormLabel>Color de avatar</FormLabel><FormControl><div className="flex items-center space-x-2">
+                          <div className="h-6 w-6 rounded-full border border-input" style={{ backgroundColor: field.value }} />
+                          <Input type="color" {...field} /></div></FormControl><FormMessage /></FormItem>
+                      )}/>
+                       <FormField control={profileForm.control} name="incomeColor" render={({ field }) => (
+                        <FormItem><FormLabel>Color para ingresos</FormLabel><FormControl><div className="flex items-center space-x-2">
+                          <div className="h-6 w-6 rounded-full border border-input" style={{ backgroundColor: field.value }} />
+                          <Input type="color" {...field} /></div></FormControl><FormMessage /></FormItem>
+                      )}/>
+                       <FormField control={profileForm.control} name="expenseColor" render={({ field }) => (
+                        <FormItem><FormLabel>Color para gastos</FormLabel><FormControl><div className="flex items-center space-x-2">
+                          <div className="h-6 w-6 rounded-full border border-input" style={{ backgroundColor: field.value }} />
+                          <Input type="color" {...field} /></div></FormControl><FormMessage /></FormItem>
+                      )}/>
+                      <Button type="submit" className="w-full" disabled={updateProfileMutation.isPending || uploadAvatarMutation.isPending}>
                         {updateProfileMutation.isPending ? "Guardando..." : "Guardar cambios"}
                       </Button>
                     </form>
                   </Form>
                 </div>
-                
                 <div className="space-y-6">
                   <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Cambiar contraseña</CardTitle>
-                    </CardHeader>
+                    <CardHeader><CardTitle className="text-lg">Cambiar contraseña</CardTitle></CardHeader>
                     <CardContent>
                       <Form {...passwordForm}>
                         <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                          <FormField
-                            control={passwordForm.control}
-                            name="currentPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Contraseña actual</FormLabel>
-                                <FormControl>
-                                  <Input type="password" placeholder="••••••••" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={passwordForm.control}
-                            name="newPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Nueva contraseña</FormLabel>
-                                <FormControl>
-                                  <Input type="password" placeholder="••••••••" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={passwordForm.control}
-                            name="confirmPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Confirmar nueva contraseña</FormLabel>
-                                <FormControl>
-                                  <Input type="password" placeholder="••••••••" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <Button 
-                            type="submit" 
-                            className="w-full"
-                            disabled={changePasswordMutation.isPending}
-                          >
+                          <FormField control={passwordForm.control} name="currentPassword" render={({ field }) => (
+                            <FormItem><FormLabel>Contraseña actual</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>
+                          )}/>
+                          <FormField control={passwordForm.control} name="newPassword" render={({ field }) => (
+                            <FormItem><FormLabel>Nueva contraseña</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>
+                          )}/>
+                          <FormField control={passwordForm.control} name="confirmPassword" render={({ field }) => (
+                            <FormItem><FormLabel>Confirmar nueva contraseña</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>
+                          )}/>
+                          <Button type="submit" className="w-full" disabled={changePasswordMutation.isPending}>
                             {changePasswordMutation.isPending ? "Actualizando..." : "Actualizar contraseña"}
                           </Button>
                         </form>
@@ -868,146 +483,61 @@ export default function SettingsPage() {
         
         {activeSettingsTab === "categorias" && (
           <Card>
-            <CardHeader>
-              <CardTitle>Gestión de Categorías</CardTitle>
-              <CardDescription>
-                Crea, edita y elimina categorías para organizar tus transacciones
-              </CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>Gestión de Categorías</CardTitle><CardDescription>Crea, edita y elimina categorías para organizar tus transacciones</CardDescription></CardHeader>
             <CardContent className="space-y-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <Tabs value={activeCategoriesTab} onValueChange={setActiveCategoriesTab}>
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="gastos">Categorías de Gastos</TabsTrigger>
                   <TabsTrigger value="ingresos">Categorías de Ingresos</TabsTrigger>
                 </TabsList>
-                
                 <TabsContent value="gastos" className="pt-4">
                   <div className="flex justify-end mb-4">
-                    <Button 
-                      onClick={() => {
-                        resetCategoryForm();
-                        setCategoryIsIncome(false);
-                        setCategoryDialogOpen(true);
-                      }}
-                    >
-                      <PlusIcon className="h-4 w-4 mr-2" />
-                      Nueva Categoría
+                    <Button onClick={() => { resetCategoryForm(); setCategoryFormValues(prev => ({...prev, isIncome: false})); setCategoryDialogOpen(true); }}>
+                      <PlusIcon className="h-4 w-4 mr-2" /> Nueva Categoría
                     </Button>
                   </div>
-                  
                   <div className="rounded-md border">
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nombre</TableHead>
-                          <TableHead>Icono</TableHead>
-                          <TableHead>Color</TableHead>
-                          <TableHead className="text-right">Acciones</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                      <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Icono</TableHead><TableHead>Color</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
                       <TableBody>
-                        {categories
-                          .filter((category: any) => !category.isIncome && !category.isSystem)
-                          .map((category: any) => (
-                            <TableRow key={category.id}>
-                              <TableCell>{category.name}</TableCell>
-                              <TableCell>{category.icon}</TableCell>
-                              <TableCell>
-                                <div 
-                                  className="h-4 w-4 rounded-full" 
-                                  style={{ backgroundColor: category.color }} 
-                                />
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end space-x-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => handleEditCategory(category)}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => {
-                                      if (confirm(`¿Estás seguro que deseas eliminar la categoría "${category.name}"?`)) {
-                                        deleteCategoryMutation.mutate(category.id);
-                                      }
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                        {categoriesData.filter((category) => !category.isIncome && !category.isSystem).map((category) => (
+                          <TableRow key={category.id}>
+                            <TableCell>{category.name}</TableCell><TableCell>{category.icon}</TableCell>
+                            <TableCell><div className="h-4 w-4 rounded-full" style={{ backgroundColor: category.color }} /></TableCell>
+                            <TableCell className="text-right"><div className="flex justify-end space-x-2">
+                              <Button variant="ghost" size="icon" onClick={() => handleEditCategory(category)}><Pencil className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => { if (confirm(`¿Estás seguro que deseas eliminar la categoría "${category.name}"?`)) deleteCategoryMutation.mutate(category.id); }}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div></TableCell>
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
                   </div>
                 </TabsContent>
-                
                 <TabsContent value="ingresos" className="pt-4">
                   <div className="flex justify-end mb-4">
-                    <Button 
-                      onClick={() => {
-                        resetCategoryForm();
-                        setCategoryIsIncome(true);
-                        setCategoryDialogOpen(true);
-                      }}
-                    >
-                      <PlusIcon className="h-4 w-4 mr-2" />
-                      Nueva Categoría
+                    <Button onClick={() => { resetCategoryForm(); setCategoryFormValues(prev => ({...prev, isIncome: true})); setCategoryDialogOpen(true); }}>
+                      <PlusIcon className="h-4 w-4 mr-2" /> Nueva Categoría
                     </Button>
                   </div>
-                  
                   <div className="rounded-md border">
                     <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nombre</TableHead>
-                          <TableHead>Icono</TableHead>
-                          <TableHead>Color</TableHead>
-                          <TableHead className="text-right">Acciones</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                      <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Icono</TableHead><TableHead>Color</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
                       <TableBody>
-                        {categories
-                          .filter((category: any) => category.isIncome && !category.isSystem)
-                          .map((category: any) => (
-                            <TableRow key={category.id}>
-                              <TableCell>{category.name}</TableCell>
-                              <TableCell>{category.icon}</TableCell>
-                              <TableCell>
-                                <div 
-                                  className="h-4 w-4 rounded-full" 
-                                  style={{ backgroundColor: category.color }} 
-                                />
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end space-x-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => handleEditCategory(category)}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon"
-                                    onClick={() => {
-                                      if (confirm(`¿Estás seguro que deseas eliminar la categoría "${category.name}"?`)) {
-                                        deleteCategoryMutation.mutate(category.id);
-                                      }
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                        {categoriesData.filter((category) => category.isIncome && !category.isSystem).map((category) => (
+                           <TableRow key={category.id}>
+                            <TableCell>{category.name}</TableCell><TableCell>{category.icon}</TableCell>
+                            <TableCell><div className="h-4 w-4 rounded-full" style={{ backgroundColor: category.color }} /></TableCell>
+                            <TableCell className="text-right"><div className="flex justify-end space-x-2">
+                              <Button variant="ghost" size="icon" onClick={() => handleEditCategory(category)}><Pencil className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => { if (confirm(`¿Estás seguro que deseas eliminar la categoría "${category.name}"?`)) deleteCategoryMutation.mutate(category.id); }}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div></TableCell>
+                          </TableRow>
+                        ))}
                       </TableBody>
                     </Table>
                   </div>
@@ -1020,79 +550,35 @@ export default function SettingsPage() {
 
       <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingCategoryId ? "Editar Categoría" : "Nueva Categoría"}</DialogTitle>
-            <DialogDescription>
-              {editingCategoryId 
-                ? "Modifica los detalles de la categoría existente" 
-                : "Crea una nueva categoría para organizar tus transacciones"}
-            </DialogDescription>
+          <DialogHeader><DialogTitle>{editingCategoryId ? "Editar Categoría" : "Nueva Categoría"}</DialogTitle>
+            <DialogDescription>{editingCategoryId ? "Modifica los detalles de la categoría existente" : "Crea una nueva categoría para organizar tus transacciones"}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="category-name">Nombre</Label>
-              <Input 
-                id="category-name"
-                value={categoryName}
-                onChange={(e) => setCategoryName(e.target.value)}
-                placeholder="Alimentación"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="category-icon">Icono</Label>
-              <Select value={categoryIcon} onValueChange={setCategoryIcon}>
-                <SelectTrigger id="category-icon" className="w-full">
-                  <SelectValue placeholder="Selecciona un icono" />
-                </SelectTrigger>
+            <div className="space-y-2"><Label htmlFor="category-name">Nombre</Label><Input id="category-name" value={categoryFormValues.name} onChange={(e) => setCategoryFormValues(prev => ({...prev, name: e.target.value}))} placeholder="Alimentación"/></div>
+            <div className="space-y-2"><Label htmlFor="category-icon">Icono</Label>
+              <Select value={categoryFormValues.icon} onValueChange={(value) => setCategoryFormValues(prev => ({...prev, icon: value}))}>
+                <SelectTrigger id="category-icon" className="w-full"><SelectValue placeholder="Selecciona un icono" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ShoppingCart">🛒 Compras</SelectItem>
-                  <SelectItem value="Home">🏠 Hogar</SelectItem>
-                  <SelectItem value="Car">🚗 Transporte</SelectItem>
-                  <SelectItem value="Utensils">🍔 Alimentación</SelectItem>
-                  <SelectItem value="HeartPulse">💊 Salud</SelectItem>
-                  <SelectItem value="Shirt">👕 Ropa</SelectItem>
-                  <SelectItem value="GraduationCap">🎓 Educación</SelectItem>
-                  <SelectItem value="PartyPopper">🎉 Ocio</SelectItem>
-                  <SelectItem value="Wallet">💰 Finanzas</SelectItem>
-                  <SelectItem value="PiggyBank">🐷 Ahorros</SelectItem>
-                  <SelectItem value="Building">🏢 Trabajo</SelectItem>
-                  <SelectItem value="PlugZap">⚡ Servicios</SelectItem>
-                  <SelectItem value="Cable">📱 Comunicaciones</SelectItem>
-                  <SelectItem value="Gift">🎁 Regalos</SelectItem>
-                  <SelectItem value="Banknote">💵 Ingresos</SelectItem>
-                  <SelectItem value="Wrench">🔧 Mantenimiento</SelectItem>
-                  <SelectItem value="PencilRuler">✏️ Material Oficina</SelectItem>
-                  <SelectItem value="Baby">👶 Niños</SelectItem>
-                  <SelectItem value="Plane">✈️ Viajes</SelectItem>
-                  <SelectItem value="Coffee">☕ Café</SelectItem>
-                  <SelectItem value="Gamepad2">🎮 Juegos</SelectItem>
-                  <SelectItem value="Activity">📊 Inversiones</SelectItem>
-                  <SelectItem value="CreditCard">💳 Tarjetas</SelectItem>
-                  <SelectItem value="Folder">📁 Otros</SelectItem>
+                  <SelectItem value="ShoppingCart">🛒 Compras</SelectItem><SelectItem value="Home">🏠 Hogar</SelectItem><SelectItem value="Car">🚗 Transporte</SelectItem><SelectItem value="Utensils">🍔 Alimentación</SelectItem>
+                  <SelectItem value="HeartPulse">💊 Salud</SelectItem><SelectItem value="Shirt">👕 Ropa</SelectItem><SelectItem value="GraduationCap">🎓 Educación</SelectItem><SelectItem value="PartyPopper">🎉 Ocio</SelectItem>
+                  <SelectItem value="Wallet">💰 Finanzas</SelectItem><SelectItem value="PiggyBank">🐷 Ahorros</SelectItem><SelectItem value="Building">🏢 Trabajo</SelectItem><SelectItem value="PlugZap">⚡ Servicios</SelectItem>
+                  <SelectItem value="Cable">📱 Comunicaciones</SelectItem><SelectItem value="Gift">🎁 Regalos</SelectItem><SelectItem value="Banknote">💵 Ingresos</SelectItem><SelectItem value="Wrench">🔧 Mantenimiento</SelectItem>
+                  <SelectItem value="PencilRuler">✏️ Material Oficina</SelectItem><SelectItem value="Baby">👶 Niños</SelectItem><SelectItem value="Plane">✈️ Viajes</SelectItem><SelectItem value="Coffee">☕ Café</SelectItem>
+                  <SelectItem value="Gamepad2">🎮 Juegos</SelectItem><SelectItem value="Activity">📊 Inversiones</SelectItem><SelectItem value="CreditCard">💳 Tarjetas</SelectItem><SelectItem value="Folder">📁 Otros</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="category-color">Color</Label>
-              <Input 
-                id="category-color"
-                type="color"
-                value={categoryColor}
-                onChange={(e) => setCategoryColor(e.target.value)}
-              />
-            </div>
+            <div className="space-y-2"><Label htmlFor="category-color">Color</Label><Input id="category-color" type="color" value={categoryFormValues.color} onChange={(e) => setCategoryFormValues(prev => ({...prev, color: e.target.value}))}/></div>
             <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="category-is-income" 
-                checked={categoryIsIncome}
-                onCheckedChange={(checked) => setCategoryIsIncome(!!checked)}
-              />
+              <Checkbox id="category-is-income" checked={categoryFormValues.isIncome} onCheckedChange={(checked) => setCategoryFormValues(prev => ({...prev, isIncome: !!checked}))}/>
               <Label htmlFor="category-is-income">Es categoría de ingresos</Label>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCategoryDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={saveCategory}>Guardar</Button>
+            <Button onClick={saveCategory} disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}>
+              {createCategoryMutation.isPending || updateCategoryMutation.isPending ? "Guardando..." : "Guardar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

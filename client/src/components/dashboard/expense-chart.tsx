@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type QueryKey } from "@tanstack/react-query"; // Import QueryKey
 import { getQueryFn } from "@/lib/queryClient";
 import { useCurrency } from "@/hooks/use-currency";
 import { CategoryIcon } from "@/components/ui/category-icon";
@@ -11,17 +11,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as RechartsTooltip } from "recharts"; // Renamed Tooltip to avoid conflict if any
+import type { Transaction, Category } from "@shared/schema"; // Import types
+import { Loader2 } from "lucide-react"; // For loading state
 
 // Helper function to get date range for the selected period
-function getDateRange(period: string) {
+function getDateRange(period: string): { startDate: string; endDate: string } {
   const today = new Date();
   let startDate = new Date();
   
   if (period === "month") {
     startDate = new Date(today.getFullYear(), today.getMonth(), 1);
   } else if (period === "quarter") {
-    startDate = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+    // Correctly calculate start of quarter (e.g., current month is June (5), quarter started in April (3))
+    const currentQuarter = Math.floor(today.getMonth() / 3);
+    startDate = new Date(today.getFullYear(), currentQuarter * 3, 1);
   } else if (period === "year") {
     startDate = new Date(today.getFullYear(), 0, 1);
   }
@@ -32,67 +36,119 @@ function getDateRange(period: string) {
   };
 }
 
+// Define the structure for processed chart data items
+interface ChartDataItem {
+  name: string;
+  value: number; // Total expense amount for this category
+  color: string;
+  icon: string | null; // Icon name from category data
+  percentage: number;
+}
+
 export function ExpenseChart() {
   const [period, setPeriod] = useState("month");
-  const { formatCurrency, defaultCurrency } = useCurrency();
+  const { formatCurrency } = useCurrency(); // defaultCurrency not used directly here
   const dateRange = getDateRange(period);
   
-  // Fetch categories to get names and colors
-  const { data: categories = [] } = useQuery({
+  const { data: categoriesData = [], isLoading: categoriesLoading, isError: categoriesError } = useQuery<Category[], Error, Category[], QueryKey>({
     queryKey: ["/api/categories"],
-    queryFn: getQueryFn({ on401: "throw" })
+    queryFn: getQueryFn({ on401: "throw" }),
+    initialData: [],
   });
   
-  // Fetch transactions for the selected period
-  const { data: transactions = [] } = useQuery({
-    queryKey: ["/api/transactions", dateRange.startDate, dateRange.endDate, 2], // 2 is the transaction type ID for expenses
-    queryFn: getQueryFn({ on401: "throw" })
+  // The queryKey for transactions should be an array that includes all dependencies for the query.
+  // The number 2 is assumed to be the transactionTypeId for expenses.
+  const transactionsQueryKey: QueryKey = ["/api/transactions", {
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
+    transactionTypeId: '2' // Ensure this is passed as a string if API expects it
+  }];
+
+  const { data: transactionsData = [], isLoading: transactionsLoading, isError: transactionsErrorFetch } = useQuery<Transaction[], Error, Transaction[], QueryKey>({
+    queryKey: transactionsQueryKey,
+    // queryFn needs to correctly use the queryKey if getQueryFn is generic
+    queryFn: ({ queryKey }) => getQueryFn({ on401: "throw" })({ queryKey }),
+    initialData: [],
+    enabled: !!categoriesData && categoriesData.length > 0, // Only fetch if categories are loaded
   });
   
-  // Process data for the chart
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<ChartDataItem[]>([]);
   
   useEffect(() => {
-    if (transactions.length === 0 || categories.length === 0) return;
+    if (transactionsData.length === 0 || categoriesData.length === 0) {
+      setChartData([]); // Clear chart data if no transactions or categories
+      return;
+    }
     
-    // Filter expenses
-    const expenses = transactions.filter((tx: any) => tx.transactionTypeId === 2);
-    
-    // Group expenses by category
-    const expensesByCategory = expenses.reduce((acc: any, expense: any) => {
+    // Expenses are already filtered by transactionTypeId '2' in the query if that's how API works.
+    // If not, filter here:
+    // const expenses = transactionsData.filter((tx: Transaction) => tx.transactionTypeId === 2);
+    const expenses = transactionsData; // Assuming transactionsData are already expenses
+
+    const expensesByCategory = expenses.reduce((acc: Record<number, number>, expense: Transaction) => {
       const categoryId = expense.categoryId;
-      const amount = parseFloat(expense.amount);
+      const amount = parseFloat(expense.amount); // Amount is string in Transaction schema
       
       if (!acc[categoryId]) {
         acc[categoryId] = 0;
       }
-      
       acc[categoryId] += amount;
       return acc;
     }, {});
     
-    // Convert to chart data format
-    const chartData = Object.entries(expensesByCategory).map(([categoryId, totalAmount]) => {
-      const category = categories.find((cat: any) => cat.id === parseInt(categoryId));
+    const processedChartData: ChartDataItem[] = Object.entries(expensesByCategory).map(([categoryIdStr, totalAmount]) => {
+      const categoryId = parseInt(categoryIdStr);
+      const category = categoriesData.find((cat: Category) => cat.id === categoryId);
       return {
         name: category ? category.name : "Sin categoría",
         value: totalAmount,
-        color: category ? category.color : "#999999",
-        icon: category ? category.icon : null,
+        color: category ? category.color : "#999999", // Default color
+        icon: category ? category.icon : null, // Icon name string
+        percentage: 0, // Will be calculated next
       };
     });
     
-    // Sort by amount (highest first)
-    chartData.sort((a, b) => b.value - a.value);
+    processedChartData.sort((a, b) => b.value - a.value);
     
-    // Calculate percentage of total
-    const total = chartData.reduce((sum, item) => sum + item.value, 0);
-    chartData.forEach(item => {
-      item.percentage = Math.round((item.value / total) * 100);
-    });
+    const totalExpenses = processedChartData.reduce((sum, item) => sum + item.value, 0);
     
-    setChartData(chartData);
-  }, [transactions, categories]);
+    const finalChartData = processedChartData.map(item => ({
+      ...item,
+      percentage: totalExpenses > 0 ? Math.round((item.value / totalExpenses) * 100) : 0,
+    }));
+
+    setChartData(finalChartData);
+  }, [transactionsData, categoriesData]);
+
+  const isLoading = categoriesLoading || transactionsLoading;
+  const isError = categoriesError || transactionsErrorFetch;
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-md font-medium">Distribución de Gastos</CardTitle>
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </CardHeader>
+        <CardContent className="h-[208px] flex items-center justify-center">
+          <p className="text-muted-foreground">Cargando datos...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError) {
+     return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-md font-medium">Distribución de Gastos</CardTitle>
+        </CardHeader>
+        <CardContent className="h-[208px] flex items-center justify-center">
+          <p className="text-red-500">Error al cargar los datos del gráfico.</p>
+        </CardContent>
+      </Card>
+    );
+  }
   
   return (
     <Card>
@@ -104,14 +160,14 @@ export function ExpenseChart() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="month">Este mes</SelectItem>
-            <SelectItem value="quarter">Último trimestre</SelectItem>
+            <SelectItem value="quarter">Trimestre actual</SelectItem>
             <SelectItem value="year">Este año</SelectItem>
           </SelectContent>
         </Select>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="h-52">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center"> {/* Added items-center */}
+          <div className="h-52"> {/* Ensure fixed height for chart container */}
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -121,50 +177,63 @@ export function ExpenseChart() {
                     cy="50%"
                     labelLine={false}
                     outerRadius={70}
+                    innerRadius={30} // Doughnut chart
                     fill="#8884d8"
                     dataKey="value"
+                    paddingAngle={2}
                   >
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    {chartData.map((entry: ChartDataItem, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} stroke={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    formatter={(value: any) => formatCurrency(value)} 
-                    labelFormatter={(name) => `Categoría: ${name}`}
+                  <RechartsTooltip
+                    formatter={(value: number, name: string, props: {payload: ChartDataItem}) => [`${formatCurrency(value)} (${props.payload.percentage}%)`, name]}
+                    labelFormatter={(name: string) => `Categoría: ${name}`} // This might not be shown for Pie charts by default
+                    contentStyle={{
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px hsla(var(--shadow-color), 0.1)',
+                        border: '1px solid hsl(var(--border))',
+                        backgroundColor: 'hsl(var(--background))'
+                      }}
                   />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex items-center justify-center text-muted-foreground">
-                No hay datos para mostrar
+                <p>No hay gastos en este período.</p>
               </div>
             )}
           </div>
-          <div className="space-y-3">
-            {chartData.slice(0, 6).map((item, index) => (
-              <div key={index} className="flex items-center">
-                <CategoryIcon 
-                  name={item.name} 
-                  icon={item.icon} 
-                  color={item.color}
-                  size="sm"
-                  showEmoji={true}
-                  className="mr-2"
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-300 flex-1">{item.name}</span>
-                <span className="text-sm font-semibold">{item.percentage}%</span>
+          <div className="space-y-2 max-h-52 overflow-y-auto pr-2"> {/* Added scroll for legend items */}
+            {chartData.slice(0, 6).map((item: ChartDataItem, index: number) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <CategoryIcon
+                    name={item.name} // Pass name for default icon generation if item.icon is null
+                    icon={item.icon}
+                    color={item.color}
+                    size="sm"
+                    showEmoji={true} // Assuming CategoryIcon can handle this
+                    className="mr-2 flex-shrink-0"
+                  />
+                  <span className="text-sm text-gray-600 dark:text-gray-300 truncate" title={item.name}>{item.name}</span>
+                </div>
+                <span className="text-sm font-semibold whitespace-nowrap">{item.percentage}%</span>
               </div>
             ))}
             {chartData.length > 6 && (
-              <div className="flex items-center">
-                <CategoryIcon 
-                  name="Varios"
-                  color="#777777"
-                  size="sm"
-                  showEmoji={true}
-                  className="mr-2"
-                />
-                <span className="text-sm text-gray-600 dark:text-gray-300 flex-1">Otros</span>
+              <div className="flex items-center justify-between">
+                 <div className="flex items-center">
+                    <CategoryIcon
+                        name="Otros" // For default icon generation
+                        icon={null} // No specific icon for "Otros"
+                        color="#777777" // Default color for "Otros"
+                        size="sm"
+                        showEmoji={true}
+                        className="mr-2 flex-shrink-0"
+                    />
+                    <span className="text-sm text-gray-600 dark:text-gray-300 flex-1">Otros</span>
+                </div>
                 <span className="text-sm font-semibold">
                   {chartData.slice(6).reduce((sum, item) => sum + item.percentage, 0)}%
                 </span>

@@ -1516,7 +1516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verificar si el usuario es el propietario del hogar
       const [household] = await db.select().from(households).where(eq(households.id, req.user.householdId));
       
-      if (household && household.created_by_user_id === req.user.id) {
+      if (household && household.createdByUserId === req.user.id) { // Corrected property name
         // El propietario no puede abandonar el hogar directamente
         return res.status(400).json({ 
           message: "Eres el propietario del hogar. Debes eliminar el hogar o transferir la propiedad antes de abandonarlo." 
