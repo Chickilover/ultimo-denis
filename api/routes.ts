@@ -3,7 +3,6 @@ import { createServer, type Server } from "http";
 import { setupWebSocketServer, WebSocketMessageType, notifyUser, notifyHousehold } from "./websocket";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { setupReplitAuth } from "./replitAuth";
 import { generateInvitationCode, validateInvitationCode, consumeInvitationCode, getActiveInvitationsForUser } from './invitation';
 import { sendEmail, sendFamilyInvitationEmail } from './email-service';
 import { z } from "zod";
@@ -89,19 +88,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: String(error) });
     }
   });
-  // Initialize database with default data
-  await seedDatabase();
-  
-  // Set up both authentication systems - Replit Auth for Replit environment 
-  // and local auth for development and testing
-  try {
-    await setupReplitAuth(app);
-    console.log("Replit Auth configurado correctamente");
-  } catch (error) {
-    console.error("Error al configurar Replit Auth:", error);
+  // Initialize database with default data when using PostgreSQL
+  if (process.env.DATABASE_URL) {
+    await seedDatabase();
   }
   
-  // Set up standard authentication routes
+  // Set up authentication routes
   setupAuth(app);
 
   // Accounts
