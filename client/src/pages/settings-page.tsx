@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
+import type { User, Settings, Category } from "@shared/schema";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/use-theme";
@@ -18,10 +19,10 @@ import { useProfileSettings } from "@/hooks/use-profile-settings";
 import { useCurrency } from "@/hooks/use-currency";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
-  PlusIcon, 
-  Pencil, 
-  Trash2, 
-  User, 
+  PlusIcon,
+  Pencil,
+  Trash2,
+  User as UserIcon,
   Camera, 
   Lock, 
   Palette, 
@@ -79,21 +80,21 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("gastos");
 
   // Obtener el usuario actual
-  const { data: user, isLoading: userLoading } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ["/api/user"],
-    queryFn: getQueryFn({ on401: "throw" })
+    queryFn: getQueryFn<User>({ on401: "throw" })
   });
 
   // Obtener la configuración actual
-  const { data: settings, isLoading: settingsLoading } = useQuery({
+  const { data: settings, isLoading: settingsLoading } = useQuery<Settings>({
     queryKey: ["/api/settings"],
-    queryFn: getQueryFn({ on401: "throw" })
+    queryFn: getQueryFn<Settings>({ on401: "throw" })
   });
 
   // Obtener categorías
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
-    queryFn: getQueryFn({ on401: "throw" })
+    queryFn: getQueryFn<Category[]>({ on401: "throw" })
   });
   
   // Formulario de perfil

@@ -137,7 +137,7 @@ export const categories = pgTable("categories", {
   color: text("color").notNull(),
   isIncome: boolean("is_income").notNull().default(false),
   isSystem: boolean("is_system").notNull().default(false),
-  parentId: integer("parent_id").references(() => categories.id),
+  parentId: integer("parent_id").references((): any => categories.id),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).pick({

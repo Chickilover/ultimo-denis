@@ -4,10 +4,10 @@ import { transactionTypes, accountTypes, categories } from "@shared/schema";
 export async function seedDatabase() {
   try {
     // Check if transaction types already exist
-    const existingTxTypes = await db.select().from(transactionTypes);
+    const existingTxTypes = await db!.select().from(transactionTypes);
     if (existingTxTypes.length === 0) {
       console.log('Seeding transaction types...');
-      await db.insert(transactionTypes).values([
+      await db!.insert(transactionTypes).values([
         { id: 1, name: "Ingreso" },
         { id: 2, name: "Gasto" },
         { id: 3, name: "Transferencia" }
@@ -15,10 +15,10 @@ export async function seedDatabase() {
     }
 
     // Check if account types already exist
-    const existingAcctTypes = await db.select().from(accountTypes);
+    const existingAcctTypes = await db!.select().from(accountTypes);
     if (existingAcctTypes.length === 0) {
       console.log('Seeding account types...');
-      await db.insert(accountTypes).values([
+      await db!.insert(accountTypes).values([
         { id: 1, name: "Efectivo" },
         { id: 2, name: "Cuenta Corriente" },
         { id: 3, name: "Cuenta de Ahorro" },
@@ -29,10 +29,10 @@ export async function seedDatabase() {
     }
 
     // Check if categories already exist
-    const existingCategories = await db.select().from(categories);
+    const existingCategories = await db!.select().from(categories);
     if (existingCategories.length === 0) {
       console.log('Seeding categories...');
-      await db.insert(categories).values([
+      await db!.insert(categories).values([
         { id: 1, name: "Ingresos", icon: "Banknote", color: "#22c55e", isIncome: true, isSystem: true, parentId: null },
         { id: 2, name: "Salario", icon: "Briefcase", color: "#22c55e", isIncome: true, isSystem: true, parentId: 1 },
         { id: 3, name: "Intereses", icon: "DollarSign", color: "#22c55e", isIncome: true, isSystem: true, parentId: 1 },
