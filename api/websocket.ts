@@ -24,12 +24,11 @@ export interface WebSocketMessage {
 
 // Configurar el servidor WebSocket
 export function setupWebSocketServer(server: Server) {
-  // Configuración específica para Replit
-  const wss = new WebSocketServer({ 
-    server, 
+  const wss = new WebSocketServer({
+    server,
     path: '/ws',
     clientTracking: true,
-    // Configuraciones adicionales para mejorar la estabilidad en Replit
+    // Per-message deflate options to improve connection stability
     perMessageDeflate: {
       zlibDeflateOptions: {
         chunkSize: 1024,
@@ -47,7 +46,7 @@ export function setupWebSocketServer(server: Server) {
     }
   });
   
-  console.log('Servidor WebSocket inicializado en Replit');
+  console.log('Servidor WebSocket inicializado');
   
   // Manejo de errores a nivel de servidor
   wss.on('error', (error) => {

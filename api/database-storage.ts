@@ -12,9 +12,11 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.SessionStore;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({ 
-      pool, 
-      createTableIfMissing: false // No intentar crear la tabla si ya existe
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      // Create session table automatically if it doesn't exist so
+      // fresh deployments work without manual migrations
+      createTableIfMissing: true,
     });
   }
 
