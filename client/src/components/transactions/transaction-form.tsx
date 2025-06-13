@@ -43,7 +43,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 // Extend the transaction schema for form validation
-const formSchema = insertTransactionSchema.extend({
+const formSchema = formTransactionSchema.extend({
   date: z.date({
     required_error: "La fecha es requerida",
   }),
