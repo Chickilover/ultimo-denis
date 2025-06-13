@@ -5,40 +5,14 @@ import cors from "cors";
 
 const app = express();
 
-// Configuración de CORS para Replit
-const corsOptions = {
-  // Permitir el origen de la aplicación (desarrollo y producción)
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    const validOrigins = [];
-    
-    // En desarrollo, permitir localhost y la URL de Replit
-    if (process.env.NODE_ENV !== 'production') {
-      validOrigins.push('http://localhost:5000', 'http://localhost:3000');
-    }
-    
-    // En Replit, permitir la URL del dominio
-    if (process.env.REPLIT_DOMAINS) {
-      const domains = process.env.REPLIT_DOMAINS.split(',');
-      domains.forEach(domain => {
-        validOrigins.push(`https://${domain}`);
-      });
-    }
-    
-    // Si no hay origen (petición desde el mismo origen) o es un origen válido
-    if (!origin || validOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Bloqueado por CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  maxAge: 86400 // 24 horas
-};
-
-// Aplicar configuración CORS
-app.use(cors(corsOptions));
+// Configuración de CORS genérica para cualquier entorno
+const allowedOrigins = process.env.CORS_ORIGIN?.split(',');
+app.use(
+  cors({
+    origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : true,
+    credentials: true,
+  }),
+);
 
 // Middleware para analizar JSON y URL-encoded
 app.use(express.json());
@@ -103,10 +77,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Use the port provided by the environment when available
+  const port = Number(process.env.PORT) || 5000;
   server.listen({
     port,
     host: "0.0.0.0",

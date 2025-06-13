@@ -65,17 +65,17 @@ const formSchema = insertTransactionSchema.extend({
 type TransactionFormValues = z.infer<typeof formSchema>;
 
 interface TransactionFormProps {
-  onComplete: () => void;
+  onSuccess: () => void;
   defaultValues?: Partial<TransactionFormValues>;
   editMode?: boolean;
   transactionId?: number;
 }
 
-export function TransactionForm({ 
-  onComplete, 
+export function TransactionForm({
+  onSuccess,
   defaultValues,
   editMode = false,
-  transactionId 
+  transactionId
 }: TransactionFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -170,7 +170,7 @@ export function TransactionForm({
         title: "Transacción creada",
         description: "La transacción se ha registrado correctamente",
       });
-      onComplete();
+      onSuccess();
     },
     onError: (error) => {
       toast({
@@ -193,7 +193,7 @@ export function TransactionForm({
         title: "Transacción actualizada",
         description: "La transacción se ha actualizado correctamente",
       });
-      onComplete();
+      onSuccess();
     },
     onError: (error) => {
       toast({
@@ -597,7 +597,7 @@ export function TransactionForm({
           <Button
             type="button"
             variant="outline"
-            onClick={onComplete}
+            onClick={onSuccess}
           >
             Cancelar
           </Button>

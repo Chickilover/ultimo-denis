@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
+import type { Settings } from "@shared/schema";
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 
 // Definir el tipo de contexto de moneda
@@ -22,9 +23,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   
   // Obtener la configuración para el tipo de cambio
-  const { data: settings } = useQuery({
+  const { data: settings } = useQuery<Settings | null>({
     queryKey: ["/api/settings"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: getQueryFn<Settings | null>({ on401: "returnNull" }),
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 

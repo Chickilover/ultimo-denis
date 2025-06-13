@@ -3,7 +3,6 @@ import { createServer, type Server } from "http";
 import { setupWebSocketServer, WebSocketMessageType, notifyUser, notifyHousehold } from "./websocket";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { setupReplitAuth } from "./replitAuth";
 import { generateInvitationCode, validateInvitationCode, consumeInvitationCode, getActiveInvitationsForUser } from './invitation';
 import { sendEmail, sendFamilyInvitationEmail } from './email-service';
 import { z } from "zod";
@@ -89,19 +88,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: String(error) });
     }
   });
-  // Initialize database with default data
-  await seedDatabase();
-  
-  // Set up both authentication systems - Replit Auth for Replit environment 
-  // and local auth for development and testing
-  try {
-    await setupReplitAuth(app);
-    console.log("Replit Auth configurado correctamente");
-  } catch (error) {
-    console.error("Error al configurar Replit Auth:", error);
+  // Initialize database with default data when using PostgreSQL
+  if (process.env.DATABASE_URL) {
+    await seedDatabase();
   }
   
-  // Set up standard authentication routes
+  // Set up authentication routes
   setupAuth(app);
 
   // Accounts
@@ -1433,7 +1425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Crear un nuevo hogar
-      const household = await db.insert(households)
+      const household = await db!.insert(households)
         .values({
           name: name,
           createdByUserId: req.user.id,
@@ -1464,7 +1456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Obtener información del hogar
-      const [household] = await db.select().from(households).where(eq(households.id, req.user.householdId));
+      const [household] = await db!.select().from(households).where(eq(households.id, req.user.householdId));
       
       if (!household) {
         return res.status(404).json({ message: "Hogar no encontrado" });
@@ -1487,7 +1479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Obtener todos los usuarios del mismo hogar
-      const householdMembers = await db.select({
+      const householdMembers = await db!.select({
         id: users.id,
         name: users.name,
         username: users.username,
@@ -1514,9 +1506,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verificar si el usuario es el propietario del hogar
-      const [household] = await db.select().from(households).where(eq(households.id, req.user.householdId));
+      const [household] = await db!.select().from(households).where(eq(households.id, req.user.householdId));
       
-      if (household && household.created_by_user_id === req.user.id) {
+      if (household && household.createdByUserId === req.user.id) {
         // El propietario no puede abandonar el hogar directamente
         return res.status(400).json({ 
           message: "Eres el propietario del hogar. Debes eliminar el hogar o transferir la propiedad antes de abandonarlo." 

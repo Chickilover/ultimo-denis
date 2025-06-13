@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useQueryClient } from '@tanstack/react-query';
+import type { Settings } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 
 interface ProfileSettingsState {
@@ -33,7 +34,7 @@ export function useExchangeRateSync() {
     try {
       // Invalidar caché y volver a obtener la configuración
       await queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      const data = await queryClient.fetchQuery({ queryKey: ["/api/settings"] });
+      const data = await queryClient.fetchQuery<Settings>({ queryKey: ["/api/settings"] });
       
       if (data && data.exchangeRate) {
         setExchangeRate(data.exchangeRate);

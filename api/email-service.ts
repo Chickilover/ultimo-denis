@@ -21,8 +21,8 @@ try {
 }
 
 // Dirección de correo desde la cual se enviarán los mensajes
-const FROM_EMAIL = 'info@nidofinanciero.com' as string;
-const FROM_NAME = 'Nido Financiero' as string;
+const FROM_EMAIL = process.env.FROM_EMAIL || 'info@nidofinanciero.com';
+const FROM_NAME = process.env.FROM_NAME || 'Nido Financiero';
 
 /**
  * Envía un correo electrónico utilizando SendGrid

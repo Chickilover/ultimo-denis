@@ -1,6 +1,9 @@
 node_modules
-dist
+api/public
 .DS_Store
-server/public
+dist
 vite.config.ts.*
 *.tar.gz
+*.bak
+attached_assets/
+.env
