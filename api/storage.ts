@@ -179,9 +179,7 @@ export class MemStorage implements IStorage {
       acctTypes: 1
     };
     
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // 24 hours
-    });
+    this.sessionStore = new session.MemoryStore();
     
     // Seed transaction types
     this.txTypes.set(1, { id: 1, name: "Ingreso" });
@@ -648,4 +646,6 @@ export class MemStorage implements IStorage {
 
 import { DatabaseStorage } from "./database-storage";
 
-export const storage = new DatabaseStorage();
+export const storage: IStorage = process.env.DATABASE_URL
+  ? new DatabaseStorage()
+  : new MemStorage();

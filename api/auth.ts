@@ -33,48 +33,26 @@ async function comparePasswords(supplied: string, stored: string) {
 
 
 export function setupAuth(app: Express) {
-  // Configuración específica para Replit
   const isProduction = process.env.NODE_ENV === 'production';
-  // En Replit, las cookies seguras funcionan incluso en desarrollo
-  const isSecure = !!process.env.REPLIT_DOMAINS || isProduction;
-  // No necesitamos especificar un dominio para las cookies en el entorno Replit
-  // ya que este se maneja automáticamente
-  
-  console.log('Configuración de sesión:');
-  console.log('- Entorno:', process.env.NODE_ENV);
-  console.log('- Dominio Replit:', process.env.REPLIT_DOMAINS || 'No configurado');
-  console.log('- Cookie secure:', isSecure);
-  
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "mi-hogar-financiero-secreto",
-    name: 'nido.sid', // Nombre personalizado de la cookie para evitar el estándar de 'connect.sid'
-    resave: true, // Importante para mantener la sesión activa
-    saveUninitialized: true, // Guardar sesiones vacías para facilitar autenticación en Replit
+    name: 'nido.sid',
+    resave: false,
+    saveUninitialized: false,
     store: storage.sessionStore,
     cookie: {
       path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
-      // En Replit, se requiere secure: true solo en producción y cuando se usa HTTPS
-      secure: isSecure, 
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: isProduction,
       httpOnly: true,
-      sameSite: 'lax' // Cambiar a 'lax' que funciona mejor en Replit para la mayoría de los casos
-      // No configurar domain, dejar que el navegador lo maneje automáticamente
+      sameSite: 'lax',
     },
-    rolling: true, // Renovar la cookie en cada petición
-    proxy: true // Indicar que estamos detrás de un proxy (Replit)
+    rolling: true,
   };
 
-  // Configuración para trabajar con el proxy de Replit
+  // Trust the proxy when deployed (e.g. Render)
   app.set("trust proxy", 1);
-  
-  // Debug para el error "connect.sid" cookie
-  app.use((req, res, next) => {
-    // Log completo para ayudar en debug
-    if (req.path === '/api/login' || req.path === '/api/register' || req.path === '/api/user') {
-      console.log(`Cookies en la solicitud ${req.path}:`, req.headers.cookie || 'No hay cookies');
-    }
-    next();
-  });
   
   // Aplicar middleware de sesión
   app.use(session(sessionSettings));
@@ -249,33 +227,19 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res, next) => {
-    // Verificar si el usuario está autenticado
     if (req.isAuthenticated()) {
       console.log("Cerrando sesión de usuario:", req.user?.id);
     }
-    
-    // Lógica para Replit: Necesitamos asegurarnos de que las cookies se limpien correctamente
-    const isProduction = process.env.NODE_ENV === 'production';
-    const isSecure = process.env.REPLIT_DOMAINS ? true : isProduction;
-    const domain = process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',')[0] : undefined;
-    
+
     req.logout((err) => {
       if (err) return next(err);
-      
+
       req.session.destroy((sessionErr) => {
         if (sessionErr) {
           console.error("Error al destruir la sesión:", sessionErr);
         }
-        
-        // Limpiar la cookie con las mismas opciones con las que se creó
-        res.clearCookie('nido.sid', {
-          path: '/',
-          httpOnly: true,
-          secure: true,
-          sameSite: 'none'
-          // No especificar domain para que funcione correctamente
-        });
-        
+
+        res.clearCookie('nido.sid');
         res.status(200).json({ success: true, message: "Sesión cerrada con éxito" });
       });
     });
