@@ -4,3 +4,6 @@ api/public
 dist
 vite.config.ts.*
 *.tar.gz
+*.bak
+attached_assets/
+.env

@@ -105,7 +105,7 @@ export interface IStorage {
   updateUserBalance(userId: number, personalAmount: number, familyAmount: number): Promise<User | undefined>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
@@ -121,11 +121,12 @@ export class MemStorage implements IStorage {
   private budgets: Map<number, Budget>;
   private savingsGoals: Map<number, SavingsGoal>;
   private savingsContributions: Map<number, SavingsContribution>;
+  private balanceTransfers: Map<number, BalanceTransfer>;
   private userSettings: Map<number, Settings>;
   private txTypes: Map<number, typeof transactionTypes.$inferSelect>;
   private acctTypes: Map<number, typeof accountTypes.$inferSelect>;
   
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
   currentId: {
     users: number;
     familyMembers: number;
@@ -139,6 +140,7 @@ export class MemStorage implements IStorage {
     budgets: number;
     savingsGoals: number;
     savingsContributions: number;
+    balanceTransfers: number;
     settings: number;
     txTypes: number;
     acctTypes: number;
@@ -157,6 +159,7 @@ export class MemStorage implements IStorage {
     this.budgets = new Map();
     this.savingsGoals = new Map();
     this.savingsContributions = new Map();
+    this.balanceTransfers = new Map();
     this.userSettings = new Map();
     this.txTypes = new Map();
     this.acctTypes = new Map();
@@ -174,6 +177,7 @@ export class MemStorage implements IStorage {
       budgets: 1,
       savingsGoals: 1,
       savingsContributions: 1,
+      balanceTransfers: 1,
       settings: 1,
       txTypes: 1,
       acctTypes: 1
@@ -230,7 +234,22 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId.users++;
     const now = new Date();
-    const user: User = { ...insertUser, id, createdAt: now };
+    const user: User = {
+      id,
+      username: insertUser.username,
+      email: insertUser.email,
+      password: insertUser.password,
+      name: insertUser.name,
+      avatar: null,
+      avatarColor: "#6366f1",
+      incomeColor: "#10b981",
+      expenseColor: "#ef4444",
+      isAdmin: insertUser.isAdmin ?? false,
+      householdId: insertUser.householdId ?? null,
+      personalBalance: "0",
+      familyBalance: "0",
+      createdAt: now,
+    };
     this.users.set(id, user);
     return user;
   }
@@ -258,7 +277,17 @@ export class MemStorage implements IStorage {
   async createFamilyMember(member: InsertFamilyMember): Promise<FamilyMember> {
     const id = this.currentId.familyMembers++;
     const now = new Date();
-    const newMember: FamilyMember = { ...member, id, isActive: true, createdAt: now };
+    const newMember: FamilyMember = {
+      id,
+      createdAt: now,
+      userId: member.userId,
+      name: member.name,
+      email: member.email ?? null,
+      relationship: member.relationship,
+      isActive: member.isActive ?? true,
+      canAccess: member.canAccess ?? false,
+      avatarUrl: member.avatarUrl ?? null,
+    };
     this.familyMembers.set(id, newMember);
     return newMember;
   }
@@ -296,7 +325,22 @@ export class MemStorage implements IStorage {
   async createAccount(account: InsertAccount): Promise<Account> {
     const id = this.currentId.accounts++;
     const now = new Date();
-    const newAccount: Account = { ...account, id, isActive: true, createdAt: now };
+    const newAccount: Account = {
+      id,
+      createdAt: now,
+      userId: account.userId,
+      name: account.name,
+      accountTypeId: account.accountTypeId,
+      initialBalance: account.initialBalance ?? "0",
+      currentBalance: account.currentBalance ?? "0",
+      currency: account.currency ?? "UYU",
+      isShared: account.isShared ?? false,
+      institution: account.institution ?? null,
+      accountNumber: account.accountNumber ?? null,
+      closingDay: account.closingDay ?? null,
+      dueDay: account.dueDay ?? null,
+      isActive: true,
+    };
     this.accounts.set(id, newAccount);
     return newAccount;
   }
@@ -325,7 +369,15 @@ export class MemStorage implements IStorage {
   
   async createCategory(category: InsertCategory): Promise<Category> {
     const id = this.currentId.categories++;
-    const newCategory: Category = { ...category, id, isSystem: false };
+    const newCategory: Category = {
+      id,
+      name: category.name,
+      icon: category.icon,
+      color: category.color,
+      isIncome: category.isIncome ?? false,
+      isSystem: false,
+      parentId: category.parentId ?? null,
+    };
     this.categories.set(id, newCategory);
     return newCategory;
   }
@@ -357,7 +409,12 @@ export class MemStorage implements IStorage {
   
   async createTag(tag: InsertTag): Promise<Tag> {
     const id = this.currentId.tags++;
-    const newTag: Tag = { ...tag, id, isSystem: false };
+    const newTag: Tag = {
+      id,
+      name: tag.name,
+      userId: tag.userId ?? null,
+      isSystem: false,
+    };
     this.tags.set(id, newTag);
     return newTag;
   }
@@ -417,7 +474,28 @@ export class MemStorage implements IStorage {
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     const id = this.currentId.transactions++;
     const now = new Date();
-    const newTransaction: Transaction = { ...transaction, id, createdAt: now };
+    const newTransaction: Transaction = {
+      id,
+      createdAt: now,
+      userId: transaction.userId,
+      accountId: transaction.accountId ?? null,
+      categoryId: transaction.categoryId,
+      transactionTypeId: transaction.transactionTypeId,
+      amount: transaction.amount,
+      currency: transaction.currency ?? "UYU",
+      description: transaction.description,
+      date:
+        transaction.date instanceof Date
+          ? transaction.date.toISOString().split("T")[0]
+          : transaction.date,
+      time: transaction.time ?? null,
+      isShared: transaction.isShared ?? false,
+      isReconciled: transaction.isReconciled ?? false,
+      isReimbursable: transaction.isReimbursable ?? false,
+      isReimbursed: transaction.isReimbursed ?? false,
+      notes: transaction.notes ?? null,
+      receiptUrl: transaction.receiptUrl ?? null,
+    };
     this.transactions.set(id, newTransaction);
     return newTransaction;
   }
@@ -462,7 +540,13 @@ export class MemStorage implements IStorage {
   
   async createTransactionSplit(split: InsertTransactionSplit): Promise<TransactionSplit> {
     const id = this.currentId.transactionSplits++;
-    const newSplit: TransactionSplit = { ...split, id };
+    const newSplit: TransactionSplit = {
+      id,
+      transactionId: split.transactionId,
+      categoryId: split.categoryId,
+      amount: split.amount,
+      description: split.description ?? null,
+    };
     this.transactionSplits.set(id, newSplit);
     return newSplit;
   }
@@ -484,10 +568,22 @@ export class MemStorage implements IStorage {
   
   async createRecurringTransaction(recurringTransaction: InsertRecurringTransaction): Promise<RecurringTransaction> {
     const id = this.currentId.recurringTransactions++;
-    const newRecurringTransaction: RecurringTransaction = { 
-      ...recurringTransaction, 
+    const newRecurringTransaction: RecurringTransaction = {
       id,
-      isActive: true
+      userId: recurringTransaction.userId,
+      accountId: recurringTransaction.accountId,
+      categoryId: recurringTransaction.categoryId,
+      transactionTypeId: recurringTransaction.transactionTypeId,
+      amount: recurringTransaction.amount,
+      currency: recurringTransaction.currency ?? "UYU",
+      description: recurringTransaction.description,
+      frequency: recurringTransaction.frequency,
+      startDate: recurringTransaction.startDate,
+      endDate: recurringTransaction.endDate ?? null,
+      nextDueDate: recurringTransaction.nextDueDate,
+      isShared: recurringTransaction.isShared ?? false,
+      isActive: true,
+      reminderDays: recurringTransaction.reminderDays ?? 1,
     };
     this.recurringTransactions.set(id, newRecurringTransaction);
     return newRecurringTransaction;
@@ -520,7 +616,26 @@ export class MemStorage implements IStorage {
   async createBudget(budget: InsertBudget): Promise<Budget> {
     const id = this.currentId.budgets++;
     const now = new Date();
-    const newBudget: Budget = { ...budget, id, createdAt: now };
+    const newBudget: Budget = {
+      id,
+      createdAt: now,
+      userId: budget.userId,
+      categoryId: budget.categoryId,
+      name: budget.name,
+      amount: budget.amount,
+      currency: budget.currency ?? "UYU",
+      period: budget.period ?? "monthly",
+      isRollover: budget.isRollover ?? false,
+      isShared: budget.isShared ?? false,
+      startDate: budget.startDate,
+      endDate: budget.endDate ?? null,
+      paymentType: budget.paymentType ?? "one-time",
+      paymentDay: budget.paymentDay ?? null,
+      installments: budget.installments ?? null,
+      status: budget.status ?? "pending",
+      approvalCount: budget.approvalCount ?? 0,
+      rejectionCount: budget.rejectionCount ?? 0,
+    };
     this.budgets.set(id, newBudget);
     return newBudget;
   }
@@ -552,7 +667,19 @@ export class MemStorage implements IStorage {
   async createSavingsGoal(savingsGoal: InsertSavingsGoal): Promise<SavingsGoal> {
     const id = this.currentId.savingsGoals++;
     const now = new Date();
-    const newSavingsGoal: SavingsGoal = { ...savingsGoal, id, createdAt: now };
+    const newSavingsGoal: SavingsGoal = {
+      id,
+      createdAt: now,
+      userId: savingsGoal.userId,
+      name: savingsGoal.name,
+      targetAmount: savingsGoal.targetAmount,
+      currentAmount: savingsGoal.currentAmount ?? "0",
+      currency: savingsGoal.currency ?? "UYU",
+      deadline: savingsGoal.deadline ?? null,
+      isShared: savingsGoal.isShared ?? false,
+      accountId: savingsGoal.accountId ?? null,
+      icon: savingsGoal.icon ?? null,
+    };
     this.savingsGoals.set(id, newSavingsGoal);
     return newSavingsGoal;
   }
@@ -579,7 +706,15 @@ export class MemStorage implements IStorage {
   
   async createSavingsContribution(contribution: InsertSavingsContribution): Promise<SavingsContribution> {
     const id = this.currentId.savingsContributions++;
-    const newContribution: SavingsContribution = { ...contribution, id };
+    const newContribution: SavingsContribution = {
+      id,
+      savingsGoalId: contribution.savingsGoalId,
+      userId: contribution.userId,
+      amount: contribution.amount,
+      date: contribution.date,
+      transactionId: contribution.transactionId ?? null,
+      notes: contribution.notes ?? null,
+    };
     this.savingsContributions.set(id, newContribution);
     
     // Update SavingsGoal currentAmount
@@ -619,7 +754,15 @@ export class MemStorage implements IStorage {
   
   async createSettings(settings: InsertSettings): Promise<Settings> {
     const id = this.currentId.settings++;
-    const newSettings: Settings = { ...settings, id, lastExchangeRateUpdate: null };
+    const newSettings: Settings = {
+      id,
+      userId: settings.userId,
+      defaultCurrency: settings.defaultCurrency ?? "UYU",
+      theme: settings.theme ?? "light",
+      language: settings.language ?? "es",
+      exchangeRate: settings.exchangeRate ?? "40.0",
+      lastExchangeRateUpdate: null,
+    };
     this.userSettings.set(settings.userId, newSettings);
     return newSettings;
   }
@@ -641,6 +784,49 @@ export class MemStorage implements IStorage {
   // Account types
   async getAccountTypes(): Promise<typeof accountTypes.$inferSelect[]> {
     return Array.from(this.acctTypes.values());
+  }
+
+  // Balance transfers
+  async getBalanceTransfers(userId: number): Promise<BalanceTransfer[]> {
+    return Array.from(this.balanceTransfers.values()).filter(
+      (t) => t.userId === userId
+    );
+  }
+
+  async createBalanceTransfer(
+    transfer: InsertBalanceTransfer
+  ): Promise<BalanceTransfer> {
+    const id = this.currentId.balanceTransfers++;
+    const newTransfer: BalanceTransfer = {
+      ...transfer,
+      id,
+      createdAt: new Date(),
+      currency: transfer.currency ?? "UYU",
+      description: transfer.description ?? null,
+    };
+    this.balanceTransfers.set(id, newTransfer);
+    return newTransfer;
+  }
+
+  async updateUserBalance(
+    userId: number,
+    personalAmount: number,
+    familyAmount: number
+  ): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+
+    const updatedUser = {
+      ...user,
+      personalBalance: (
+        Number(user.personalBalance ?? 0) + personalAmount
+      ).toString(),
+      familyBalance: (
+        Number(user.familyBalance ?? 0) + familyAmount
+      ).toString(),
+    };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
   }
 }
 
